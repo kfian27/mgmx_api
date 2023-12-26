@@ -16,7 +16,7 @@ db.sequelize.sync({ alter: true });
 
 app.get("/", async(req, res) => {
     res.json({
-        message: "Company created successfully test.",
+        message: "Company created successfully test again.",
     });
 });
 
