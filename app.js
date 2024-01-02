@@ -6,6 +6,7 @@ const http = require("http").createServer(app);
 const soRoute = require("./routing/so.route");
 const companyRoute = require("./routing/company.route");
 const userRoute = require("./routing/user.route");
+const barangRoute = require("./routing/barang.route");
 
 app.use(cors());
 app.use(express.json());
@@ -21,6 +22,7 @@ app.get("/", async(req, res) => {
 });
 
 app.use("/api/so", soRoute);
+app.use("/api/barang", barangRoute);
 app.use("/master/company", companyRoute);
 app.use("/master/user", userRoute);
 
