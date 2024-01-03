@@ -7,6 +7,8 @@ const soRoute = require("./routing/so.route");
 const companyRoute = require("./routing/company.route");
 const userRoute = require("./routing/user.route");
 const barangRoute = require("./routing/barang.route");
+const satuanRoute = require("./routing/satuan.route");
+const customerRoute = require("./routing/customer.route");
 
 app.use(cors());
 app.use(express.json());
@@ -23,6 +25,8 @@ app.get("/", async(req, res) => {
 
 app.use("/api/so", soRoute);
 app.use("/api/barang", barangRoute);
+app.use("/api/satuan", satuanRoute);
+app.use("/api/customer", customerRoute);
 app.use("/master/company", companyRoute);
 app.use("/master/user", userRoute);
 

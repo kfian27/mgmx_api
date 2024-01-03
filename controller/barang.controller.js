@@ -1,5 +1,7 @@
 const db = require("../models");
 const sequelize = db.sequelize;
+
+// get list
 exports.findAll = async (req, res) => {
   // const data = await sequelize.query("SELECT * FROM mginmbrg", {
   //   raw: false,
@@ -9,9 +11,9 @@ exports.findAll = async (req, res) => {
   //   message: "All data barang",
   //   data: data[0],
   // });
-  let sql = "SELECT IdMBrg, DATE_FORMAT(TglCreate,'%d-%m-%Y') as TglCreate, TglUpdate, NmMBrg, Barcode, KdMBrg, Reserved_dec1 as HppBarang, Reserved_dec2 as HargaJual, Keterangan, KdMStn, Aktif, Gambar FROM mginmbrg";
+  let sql = "SELECT IdMBrg, DATE_FORMAT(TglCreate,'%d-%m-%Y') as Created, TglUpdate, NmMBrg, Barcode, KdMBrg, Reserved_dec1 as HppBarang, Reserved_dec2 as HargaJual, Keterangan, KdMStn, Aktif, Gambar FROM mginmbrg WHERE Hapus = 0";
   let sortBy = req.body.sort_by || "TglCreate";
-  let sortType = req.body.sort_type || "asc";
+  let sortType = req.body.sort_type || "desc";
   let search = req.body.search || "";
   sortBy = sortBy.split(",");
   sortType = sortType.split(",");
@@ -30,13 +32,13 @@ exports.findAll = async (req, res) => {
   let qpaginate = '';
   if (search != "") {
     // let testDate = db.Sequelize.literal("DATE_FORMAT(created_at,'%d-%m-%Y')");
-    qsearch = ` WHERE 
+    qsearch = ` AND ( 
     NmMBrg LIKE '%${search}%' OR 
     Barcode LIKE '%${search}%' OR 
     KdMBrg LIKE '%${search}%' OR 
     Reserved_dec1 LIKE '%${search}%' OR 
     Reserved_dec2 LIKE '%${search}%' OR 
-    Keterangan LIKE '%${search}%'`;
+    Keterangan LIKE '%${search}%')`;
   }
 
   qsort = ` ORDER BY `;
@@ -78,9 +80,9 @@ exports.findAll = async (req, res) => {
   }
 
   res.json({
-    message: "All data barang",
+    message: "Success",
     CountData: total_data,
-    TotalData: total_page,
+    TotalPage: total_page,
     CurrentPage: current_page,
     PrevPage : prev_page,
     NextPage : next_page,
@@ -106,11 +108,12 @@ exports.create = async (req, res) => {
   let harga_jual = req.body.harga_jual || 0;
   let keterangan = req.body.keterangan || "";
   let gambar = req.body.gambar || "";
+  let is_aktif = req.body.is_aktif || "";
 
   let userid = 0;
 
   let sql = `INSERT INTO mginmbrg (idmcabangmbrg, idmbrg, kdmbrg, nmmbrg, barcode, reserved_dec1, reserved_dec2, idmusercreate, tglcreate, idmuserupdate, tglupdate, kdmstn, keterangan, gambar, aktif, hapus)
-  VALUES(0,'${id}','${kode}', '${nama}', '${barcode}', ${hpp}, ${harga_jual}, '${userid}', NOW(), '${userid}', NOW(), '${satuan}', '${keterangan}', '${gambar}', 1, 0)`
+  VALUES(0,'${id}','${kode}', '${nama}', '${barcode}', ${hpp}, ${harga_jual}, '${userid}', NOW(), '${userid}', NOW(), '${satuan}', '${keterangan}', '${gambar}', ${is_aktif}, 0)`
   const data = await sequelize.query(sql, {
     raw: false,    
   }).then(datanya => {
@@ -152,7 +155,6 @@ exports.update = async (req, res) => {
   kdmstn = '${satuan}', 
   keterangan = '${keterangan}',
   aktif = '${is_aktif}',
-  hapus = '${hapus}',
   gambar = '${gambar}'
   WHERE idmbrg = ${id}`;
   const data = await sequelize.query(sql, {
