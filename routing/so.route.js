@@ -1,6 +1,6 @@
-const bookController = require("../controller/so.controller");
+const soController = require("../controller/so.controller");
 const router = require("express").Router();
 
-router.get("/", bookController.findAll);
+router.post("/", soController.findAll);
 
 module.exports = router;
