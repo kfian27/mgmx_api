@@ -9,6 +9,7 @@ const userRoute = require("./routing/user.route");
 const barangRoute = require("./routing/barang.route");
 const satuanRoute = require("./routing/satuan.route");
 const customerRoute = require("./routing/customer.route");
+const authRoute = require("./routing/auth.route");
 
 app.use(cors());
 app.use(express.json());
@@ -29,6 +30,7 @@ app.use("/api/satuan", satuanRoute);
 app.use("/api/customer", customerRoute);
 app.use("/master/company", companyRoute);
 app.use("/master/user", userRoute);
+app.use("/auth", authRoute);
 
 var server = http.listen(8123, () => {
     //   console.log("Server is running at port 8000");
