@@ -19,6 +19,7 @@ const db = require("./models/index");
 db.sequelize.sync({ alter: true });
 
 app.get("/", async(req, res) => {
+    // test comments
     res.json({
         message: "Company created successfully test again.",
     });
