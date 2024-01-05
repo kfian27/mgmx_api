@@ -42,10 +42,9 @@ module.exports = (sequelize, Sequelize) => {
         return arr;
     };
 
-    User.prototype.verifyPassword = function(password, done = () => {}) {
-        return bcrypt.compare(password, this.password, function(err, res) {
-            return done(err, res);
-        });
+    User.prototype.verifyPassword = async function(password) {
+        let cek = bcrypt.compare(password, this.password);
+        return cek;
     };
 
     return User;
