@@ -5,7 +5,9 @@ const upload = multer();
 
 router.get("/getListCabang", upload.none(), reportController.getListCabang);
 router.get("/getListCustomer", upload.none(), reportController.getListCustomer);
+router.get("/getListSupplier", upload.none(), reportController.getListSupplier);
 router.post("/penjualan", upload.none(), reportController.penjualan);
+router.post("/pembelian", upload.none(), reportController.pembelian);
 // router.post("/pembelian", upload.none(), reportController.pembelian);
 // router.get("/", upload.none(), reportController.findAll);
 // router.put("/:id", upload.none(), reportController.update);
