@@ -10,6 +10,7 @@ const barangRoute = require("./routing/barang.route");
 const satuanRoute = require("./routing/satuan.route");
 const customerRoute = require("./routing/customer.route");
 const authRoute = require("./routing/auth.route");
+const reportRoute = require("./routing/report.route");
 
 app.use(cors());
 app.use(express.json());
@@ -26,6 +27,7 @@ app.get("/", async(req, res) => {
 });
 
 app.use("/api/so", soRoute);
+app.use("/api/report", reportRoute);
 app.use("/api/barang", barangRoute);
 app.use("/api/satuan", satuanRoute);
 app.use("/api/customer", customerRoute);
