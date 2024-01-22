@@ -3355,8 +3355,95 @@ exports.piutang = async (req, res) => {
 
 exports.labarugi = async (req, res) => {
     let jenis = req.body.jenis || 1;
+    let start = req.body.start || today;
+    let end = req.body.end || today;
 
+    // LABA RUGI PENJUALAN
     if (jenis == 1) {
+        let cabang = req.body.cabang || "";
+        let qcabang = "";
+        if (cabang != "") {
+            qcabang = "AND idmcabang=" + cabang;
+        }
+
+        let customer = req.body.customer || "";
+        let qcustomer = "";
+        if (customer != "") {
+            qcustomer = "AND idmcust = " + customer;
+        }
+
+        let sales = req.body.sales || "";
+        let qsales = "";
+        if (sales != "") {
+            qsales = "AND idmsales = " + sales;
+        }
+
+        let sql = `select mcabang.idmcabang, mcabang.nmmcabang, SUM(TRLPenjualan.nilaijual) AS nilaijual, SUM(TRLPenjualan.nilaihpp) AS nilaihpp, SUM(IF(idx = 5, 0, (nilaijual - nilaihpp))) AS labarugi, SUM(COALESCE((((nilaijual-nilaihpp)/nilaihpp)*100),0)) AS persenrl FROM (SELECT Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, nilaijual, nilaihpp, NilaiKomisi FROM (SELECT 3 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(Qty * HPP) AS nilaihpp, SUM(Komisi) AS NilaiKomisi FROM (SELECT m.IdMCabang, m.IdTJual AS IdTrans, m.TglTJual AS TglTrans, m.BuktiTJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, COALESCE((d.HrgStn- IF(COALESCE(d.DiscV,0)=0, 0, d.DiscV) - ((d.HrgStn - IF(COALESCE(d.DiscV,0)=0, 0, d.DiscV)) * (m.discV/m.Bruto))),0) AS HrgStn, COALESCE(d.HPP, 0) AS HPP, 0 AS Komisi FROM MGARTJualD d LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual)) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (m.IdMCabangMSales = MSales.IdMCabang AND m.IdMSales = MSales.IdMSales) WHERE (m.Hapus = 0) AND (m.Void = 0) AND (MCust.Hapus = 0) AND (MSales.Hapus = 0) AND ((m.TglTJual >= '${start}') AND (m.TglTJual <= '${end}'))  AND d.IdMBrg <> 0 AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%') ) TablePenjualan GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales UNION ALL SELECT 4 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(Qty * HPP) AS nilaihpp, 0 AS nilaikomisi FROM ( SELECT m.IdMCabang, m.IdTRJual AS IdTrans, m.TglTRJual AS TglTrans, m.BuktiTRJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, - (d.HrgStn) AS HrgStn, COALESCE(-d.HPP, 0) AS HPP FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTRJual = m.IdTRJual)) LEFT OUTER JOIN MGARTJual TJual ON (TJual.IdMCabang = m.IdMCabangTJual AND TJual.IdTJual = m.IdTJual) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (TJual.IdMCabangMSales = MSales.IdMCabang AND TJual.IdMSales = MSales.IdMSales) WHERE (m.IdTJual <> 0) AND (m.Hapus = 0) AND (m.Void = 0) AND ((TglTRJual >=  '${start}') AND (TglTRJual <= '${end}')) AND (MCust.Hapus = 0) AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.Hapus = 0) AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%')) TableReturPenjualan WHERE IdMBrg <> 0 GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales UNION ALL SELECT 5 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(HPP) AS nilaihpp, 0 AS nilaikomisi FROM (SELECT m.IdMCabang, m.IdTJual AS IdTrans, m.TglTJual AS TglTrans, CONCAT(m.BuktiTJual, ' (', ' Pembulatan ', ')') AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, 0 AS Qty, 0 AS HrgStn, ABS(COALESCE(LPembulatanKartuStock.HrgStn, 0)) AS HPP FROM MGARTJualD d LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual)) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (m.IdMCabangMSales = MSales.IdMCabang AND m.IdMSales = MSales.IdMSales) LEFT OUTER JOIN MGINLPembulatanKartuStock LPembulatanKartuStock ON (d.IdMCabang = LPembulatanKartuStock.IdMCabang AND d.IdTJual = LPembulatanKartuStock.IdTrans AND d.IdTJualD = LPembulatanKartuStock.IdTransD)  WHERE (m.Hapus = 0) AND (m.Void = 0) AND (MCust.Hapus = 0) AND (MSales.Hapus = 0) AND ((m.TglTJual >=  '${start}') AND (m.TglTJual <= '${end}'))  AND d.IdMBrg <> 0 AND SUBSTRING(LPembulatanKartuStock.Keterangan, 14, 3) = 'RJL' AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%')) TablePenjualan GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales ) SubTRLPenjualan ) TRLPenjualan LEFT OUTER JOIN MGSYMCabang MCabang ON (TRLPenjualan.IdMCabang = MCabang.IdMCabang) WHERE (MCabang.Hapus = 0) ${qcabang} ${qsales} ${qcustomer} GROUP BY mcabang.idmcabang ORDER BY TglTrans`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
+
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `select TRLPenjualan.TglTrans, SUM(TRLPenjualan.nilaijual) AS nilaijual, SUM(TRLPenjualan.nilaihpp) AS nilaihpp, SUM(IF(idx = 5, 0, (nilaijual - nilaihpp))) AS labarugi, SUM(COALESCE((((nilaijual-nilaihpp)/nilaihpp)*100),0)) AS persenrl FROM (SELECT Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, nilaijual, nilaihpp, NilaiKomisi FROM (SELECT 3 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(Qty * HPP) AS nilaihpp, SUM(Komisi) AS NilaiKomisi FROM (SELECT m.IdMCabang, m.IdTJual AS IdTrans, m.TglTJual AS TglTrans, m.BuktiTJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, COALESCE((d.HrgStn- IF(COALESCE(d.DiscV,0)=0, 0, d.DiscV) - ((d.HrgStn - IF(COALESCE(d.DiscV,0)=0, 0, d.DiscV)) * (m.discV/m.Bruto))),0) AS HrgStn, COALESCE(d.HPP, 0) AS HPP, 0 AS Komisi FROM MGARTJualD d LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual)) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (m.IdMCabangMSales = MSales.IdMCabang AND m.IdMSales = MSales.IdMSales) WHERE (m.Hapus = 0) AND (m.Void = 0) AND (MCust.Hapus = 0) AND (MSales.Hapus = 0) AND ((m.TglTJual >= '${start}') AND (m.TglTJual <= '${end}'))  AND d.IdMBrg <> 0 AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%') ) TablePenjualan GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales UNION ALL SELECT 4 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(Qty * HPP) AS nilaihpp, 0 AS nilaikomisi FROM ( SELECT m.IdMCabang, m.IdTRJual AS IdTrans, m.TglTRJual AS TglTrans, m.BuktiTRJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, - (d.HrgStn) AS HrgStn, COALESCE(-d.HPP, 0) AS HPP FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTRJual = m.IdTRJual)) LEFT OUTER JOIN MGARTJual TJual ON (TJual.IdMCabang = m.IdMCabangTJual AND TJual.IdTJual = m.IdTJual) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (TJual.IdMCabangMSales = MSales.IdMCabang AND TJual.IdMSales = MSales.IdMSales) WHERE (m.IdTJual <> 0) AND (m.Hapus = 0) AND (m.Void = 0) AND ((TglTRJual >=  '${start}') AND (TglTRJual <= '${end}')) AND (MCust.Hapus = 0) AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.Hapus = 0) AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%')) TableReturPenjualan WHERE IdMBrg <> 0 GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales UNION ALL SELECT 5 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(HPP) AS nilaihpp, 0 AS nilaikomisi FROM (SELECT m.IdMCabang, m.IdTJual AS IdTrans, m.TglTJual AS TglTrans, CONCAT(m.BuktiTJual, ' (', ' Pembulatan ', ')') AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, 0 AS Qty, 0 AS HrgStn, ABS(COALESCE(LPembulatanKartuStock.HrgStn, 0)) AS HPP FROM MGARTJualD d LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual)) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (m.IdMCabangMSales = MSales.IdMCabang AND m.IdMSales = MSales.IdMSales) LEFT OUTER JOIN MGINLPembulatanKartuStock LPembulatanKartuStock ON (d.IdMCabang = LPembulatanKartuStock.IdMCabang AND d.IdTJual = LPembulatanKartuStock.IdTrans AND d.IdTJualD = LPembulatanKartuStock.IdTransD)  WHERE (m.Hapus = 0) AND (m.Void = 0) AND (MCust.Hapus = 0) AND (MSales.Hapus = 0) AND ((m.TglTJual >=  '${start}') AND (m.TglTJual <= '${end}'))  AND d.IdMBrg <> 0 AND SUBSTRING(LPembulatanKartuStock.Keterangan, 14, 3) = 'RJL' AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%')) TablePenjualan GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales ) SubTRLPenjualan ) TRLPenjualan LEFT OUTER JOIN MGSYMCabang MCabang ON (TRLPenjualan.IdMCabang = MCabang.IdMCabang) WHERE (MCabang.Hapus = 0 AND MCabang.IdMCabang = ${fil.idmcabang}) ${qcabang} ${qsales} ${qcustomer} GROUP BY TglTrans ORDER BY TglTrans`;
+            const list = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_list = await Promise.all(list[0].map(async (list, index_satu) => {
+                console.log('list', list)
+                let tgltrans = list.TglTrans.toISOString();
+                let sql2 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TRLPenjualan.*, IF(idx = 5, 0, (nilaijual - nilaihpp)) AS labarugi , COALESCE((((nilaijual-nilaihpp)/nilaihpp)*100),0) AS persenrl FROM (SELECT Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, nilaijual, nilaihpp, NilaiKomisi FROM (SELECT 3 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(Qty * HPP) AS nilaihpp, SUM(Komisi) AS NilaiKomisi FROM (SELECT m.IdMCabang, m.IdTJual AS IdTrans, m.TglTJual AS TglTrans, m.BuktiTJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, COALESCE((d.HrgStn- IF(COALESCE(d.DiscV,0)=0, 0, d.DiscV) - ((d.HrgStn - IF(COALESCE(d.DiscV,0)=0, 0, d.DiscV)) * (m.discV/m.Bruto))),0) AS HrgStn, COALESCE(d.HPP, 0) AS HPP, 0 AS Komisi FROM MGARTJualD d LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual)) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (m.IdMCabangMSales = MSales.IdMCabang AND m.IdMSales = MSales.IdMSales) WHERE (m.Hapus = 0) AND (m.Void = 0) AND (MCust.Hapus = 0) AND (MSales.Hapus = 0) AND ((m.TglTJual >= '${start}') AND (m.TglTJual <= '${end}'))  AND d.IdMBrg <> 0 AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%') ) TablePenjualan GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales UNION ALL SELECT 4 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(Qty * HPP) AS nilaihpp, 0 AS nilaikomisi FROM ( SELECT m.IdMCabang, m.IdTRJual AS IdTrans, m.TglTRJual AS TglTrans, m.BuktiTRJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, - (d.HrgStn) AS HrgStn, COALESCE(-d.HPP, 0) AS HPP FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTRJual = m.IdTRJual)) LEFT OUTER JOIN MGARTJual TJual ON (TJual.IdMCabang = m.IdMCabangTJual AND TJual.IdTJual = m.IdTJual) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (TJual.IdMCabangMSales = MSales.IdMCabang AND TJual.IdMSales = MSales.IdMSales) WHERE (m.IdTJual <> 0) AND (m.Hapus = 0) AND (m.Void = 0) AND ((TglTRJual >= '${start}') AND (TglTRJual <= '${end}')) AND (MCust.Hapus = 0) AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.Hapus = 0) AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%')) TableReturPenjualan WHERE IdMBrg <> 0 GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales UNION ALL SELECT 5 AS Idx, IdMCabang, IdTrans, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS nilaijual, SUM(HPP) AS nilaihpp, 0 AS nilaikomisi FROM (SELECT m.IdMCabang, m.IdTJual AS IdTrans, m.TglTJual AS TglTrans, CONCAT(m.BuktiTJual, ' (', ' Pembulatan ', ')') AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, 0 AS Qty, 0 AS HrgStn, ABS(COALESCE(LPembulatanKartuStock.HrgStn, 0)) AS HPP FROM MGARTJualD d LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual)) LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust) LEFT OUTER JOIN MGARMSales MSales ON (m.IdMCabangMSales = MSales.IdMCabang AND m.IdMSales = MSales.IdMSales) LEFT OUTER JOIN MGINLPembulatanKartuStock LPembulatanKartuStock ON (d.IdMCabang = LPembulatanKartuStock.IdMCabang AND d.IdTJual = LPembulatanKartuStock.IdTrans AND d.IdTJualD = LPembulatanKartuStock.IdTransD)  WHERE (m.Hapus = 0) AND (m.Void = 0) AND (MCust.Hapus = 0) AND (MSales.Hapus = 0) AND ((m.TglTJual >= '${start}') AND (m.TglTJual <= '${end}'))  AND d.IdMBrg <> 0 AND SUBSTRING(LPembulatanKartuStock.Keterangan, 14, 3) = 'RJL' AND (MCust.KdMCust LIKE '%%') AND (MCust.NmMCust LIKE '%%') AND (MSales.KdMSales LIKE '%%') AND (MSales.NmMSales LIKE '%%')) TablePenjualan GROUP BY IdMCabang, TglTrans, IdTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales ) SubTRLPenjualan ) TRLPenjualan LEFT OUTER JOIN MGSYMCabang MCabang ON (TRLPenjualan.IdMCabang = MCabang.IdMCabang) WHERE (MCabang.Hapus = 0 AND MCabang.IdMCabang = ${fil.idmcabang}) ${qcabang} ${qsales} ${qcustomer} AND tgltrans = '${tgltrans}' ORDER BY TglTrans`;
+                const item = await sequelize.query(sql2, {
+                    raw: false,
+                });
+
+                console.log('sql2', item);
+
+                var arr_item = item[0].map((item, index_dua) => {
+                    return {
+                        "bukti": item.BuktiTrans,
+                        "customer": item.NmMCust,
+                        "sales": item.NmMSales,
+                        "jual": parseFloat(item.nilaijual),
+                        "hpp": parseFloat(item.nilaihpp),
+                        "labarugi": parseFloat(item.labarugi),
+                        "persen": parseFloat(item.persenrl)
+                    }
+                })
+
+                return {
+                    "tanggal" : list.TglTrans,
+                    "jual" : parseFloat(list.nilaijual),
+                    "hpp" : parseFloat(list.nilaihpp),
+                    "labarugi" : parseFloat(list.labarugi),
+                    "persen" : parseFloat(list.persenrl),
+                    'item': arr_item
+                }
+            }))
+
+            return {
+                "nama" : fil.nmmcabang,
+                "jual": parseFloat(fil.nilaijual),
+                "hpp": parseFloat(fil.nilaihpp),
+                "labarugi": parseFloat(fil.labarugi),
+                "persen": parseFloat(fil.persenrl),
+                "list" : arr_list
+            }
+        }))
+
+        res.json({
+            message: "Success, laba rugi penjualan",
+            data: arr_data
+        })
+    }
+
+    // PROGRESS LABA RUGI
+    else if (jenis == 2) {
+        
+    }
+
+    // LABA RUGI
+    else if (jenis == 3) {
         
     }
 }
