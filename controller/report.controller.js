@@ -3481,6 +3481,213 @@ exports.labarugi = async (req, res) => {
 
     // LABA RUGI
     else if (jenis == 3) {
-        
+        let date = req.body.tanggal || '2024-01-19';
+        let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
+
+        var total = 0;
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            var total = 0;
+            var totalpenjualan=0;
+            var totalhpp=0;
+            var totallain = 0;
+            
+            let sql1 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TableRL.* FROM (
+                    SELECT 2 as Idx, 'Kotor' as Group2, 'Penjualan' as Group3, IdMCabang, 'Penjualan' AS Keterangan, sum(Jumlah) as Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, IF(m.JenisTJual = 0, SUM(d.QtyTotal * (d.HrgStn - COALESCE(d.DiscV, 0)) * (1 - (COALESCE(m.DiscV, 0)/m.Bruto))), sum(QtyTotal * HrgStnSales)) AS Jumlah 
+                        FROM MGARTJualD d 
+                            LEFT OUTER JOIN MGARTJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTJual = m.IdTJual) 
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTJual >= '${start}' AND TglTJual <= '${end}')
+                        GROUP BY m.IdMCabang 
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TablePenjualan
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 3 as Idx, 'Kotor' as Group2, 'Penjualan' as Group3, IdMCabang, 'Retur Penjualan' AS Keterangan, sum(Jumlah) as Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, - sum(QtyTotal * HrgStn) AS Jumlah
+                        FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTRJual = m.IdTRJual) WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTRJual >= '${start}' AND TglTRJual <= '${end}') GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableReturPenjualan
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 4 as Idx, 'Kotor' as Group2, 'HPP' as Group3, IdMCabang, 'Harga Pokok Penjualan' AS Keterangan, - sum(Jumlah) as Jumlah
+                    FROM (
+                        SELECT df.IdMCabang, sum(df.QtyTotal * df.HPP) AS Jumlah 
+                        FROM MGARTJualDF df LEFT OUTER JOIN MGARTJualD d ON (df.IdMCabang = d.IdMCabang AND df.IdTJualD = d.IdTJualD)
+                                                LEFT OUTER JOIN MGARTJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTJual = m.IdTJual)
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND (m.TglTJual >= '${start}' AND m.TglTJual <= '${end}') 
+                        GROUP BY df.IdMCabang
+                        UNION ALL
+                        SELECT d.IdMCabang, SUM(d.QtyTotal * d.HrgStn) AS Jumlah
+                        FROM mgaptbelid d
+                            LEFT OUTER JOIN mgaptbeli m ON (m.IdMCabang = d.IdMCabang AND m.IdTBeli = d.IdTBeli)
+                            LEFT OUTER JOIN mginmbrg brg ON (brg.IdMBrg = d.IdMBrg)
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND brg.Reserved_int1 = 2 AND (m.TglTBeli >= '${start}' AND m.TglTBeli <= '${end}') 
+                        GROUP BY d.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, - sum(QtyTotal * HPP) AS Jumlah
+                        FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTRJual = m.IdTRJual) WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTRJual >= '${start}' AND TglTRJual <= '${end}') GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableHPP
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    SELECT 4.5 AS Idx, 'Kotor' AS Group2, 'HPP' AS Group3, IdMCabang, 'Barang Jasa' AS Keterangan, -SUM(Jumlah) AS Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, SUM(QtyTotal * (HrgStn * (100 - d.DiscP)/100 * (100 - m.DiscP)/100 * (100 + m.PPNP)/100)) AS Jumlah
+                        FROM MGAPTBeliD d
+                            LEFT OUTER JOIN MGAPTBeli m ON (d.IdMCabang = m.IdMCabang AND d.IdTBeli = m.IdTBeli)
+                            LEFT OUTER JOIN MGINMBrg MBrg ON (MBrg.IdMBrg = d.IdMBrg)
+                            LEFT OUTER JOIN MGTRMTruck MTruck ON (MTruck.IdMTruck = d.IdMTruck)
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTBeli >= '${start}' AND TglTBeli <= '${end}')
+                        AND MTruck.KdMTruck LIKE '%%'
+                        AND MTruck.NoPol LIKE '%%'
+                        AND MBrg.Reserved_int1 = 2
+                        GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TablePenjualan
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 12 AS Idx, 'Operasional' AS Group2, 'Pendapatan & Biaya Lain-lain dari Kas' AS Group3, IdMCabang, 'Pendapatan dari Perkiraan' AS Keterangan, SUM(Jumlah) AS Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, SUM(JMLBAYAR) AS Jumlah
+                        FROM MGKBTTransferD d LEFT OUTER JOIN MGKBTTransfer m ON (m.IdMCabang = d.IdMCabang AND m.IdTTransfer = d.IdTTransfer) 
+                                            LEFT OUTER JOIN MGGLMPrk p ON (p.IdMPrk = d.IdMRef AND d.JenisMRef = 'P' AND p.Periode = 0)
+                        WHERE d.jenismref = 'P'
+                        AND m.jenisttransfer = 'M'
+                        AND p.jenismprkd IN (7, 12)
+                        AND m.Hapus = 0 AND m.Void = 0 
+                        AND m.TglTTransfer >= '${start}' AND m.TglTTransfer <= '${end}'
+                        GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableBiayaKasKeluar
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 13 AS Idx, 'Operasional' AS Group2, 'Pendapatan & Biaya Lain-lain dari Kas' AS Group3, IdMCabang, 'Biaya dari Perkiraan' AS Keterangan, SUM(Jumlah) AS Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, -SUM(JMLBAYAR) AS Jumlah
+                        FROM MGKBTTransferD d LEFT OUTER JOIN MGKBTTransfer m ON (m.IdMCabang = d.IdMCabang AND m.IdTTransfer = d.IdTTransfer) 
+                                            LEFT OUTER JOIN MGGLMPrk p ON (p.IdMPrk = d.IdMRef AND d.JenisMRef = 'P' AND p.Periode = 0)
+                        WHERE d.jenismref = 'P'
+                        AND m.jenisttransfer = 'K'
+                        AND p.jenismprkd IN (10, 11, 13)
+                        AND m.Hapus = 0 AND m.Void = 0 
+                        AND m.TglTTransfer >= '${start}' AND m.TglTTransfer <= '${end}'
+                        GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableBiayaKasKeluar
+                    GROUP BY IdMCabang
+                    
+                    ) TableRL LEFT OUTER JOIN MGSYMCabang MCabang ON (TableRL.IdMCabang = MCabang.IdMCabang)
+                    WHERE MCabang.Hapus = 0
+                    AND MCabang.Aktif = 1
+                    AND MCabang.NmMCabang LIKE '%${fil.nmmcabang}%'
+                    ORDER BY KdMCabang, Idx`;
+            const laporan = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_penjualan = [];
+            var arr_hpp = [];
+            var arr_lain = [];
+            var arr_list = await Promise.all(laporan[0].map(async (list, index) => {
+                total += parseFloat(list.Jumlah);
+                if (list.Group3 == "Penjualan") {
+                    totalpenjualan += parseFloat(list.Jumlah);
+                    arr_penjualan.push({
+                        // "group": list.Group3,
+                        "keterangan": list.Keterangan,
+                        "jumlah": parseFloat(list.Jumlah)
+                    })
+                    // Object.assign(arr_penjualan, {
+                    //     "group": list.Group3,
+                    //     "keterangan": list.Keterangan,
+                    //     "jumlah": parseFloat(list.Jumlah)
+                    // });
+                }
+                if (list.Group3 == "HPP") {
+                    totalhpp += parseFloat(list.Jumlah);
+                    arr_hpp.push({
+                        // "group": list.Group3,
+                        "keterangan": list.Keterangan,
+                        "jumlah": parseFloat(list.Jumlah)
+                    })
+                    // Object.assign(arr_hpp, {
+                    //     "group": list.Group3,
+                    //     "keterangan": list.Keterangan,
+                    //     "jumlah": parseFloat(list.Jumlah)
+                    // });
+                }
+                if (list.Group3 == "Pendapatan & Biaya Lain-lain dari Kas") {
+                    totallain += parseFloat(list.Jumlah);
+                    arr_lain.push({
+                        // "group": list.Group3,
+                        "keterangan": list.Keterangan,
+                        "jumlah": parseFloat(list.Jumlah)
+                    })
+                    // Object.assign(arr_lain, {
+                    //     "group": list.Group3,
+                    //     "keterangan": list.Keterangan,
+                    //     "jumlah": parseFloat(list.Jumlah)
+                    // });
+                }
+            }));
+
+            var penjualan = {
+                "total": totalpenjualan,
+                "data": arr_penjualan 
+            }
+
+            var hpp = {
+                "total": totalpenjualan,
+                "data": arr_hpp 
+            }
+
+            var lain = {
+                "total": totalpenjualan,
+                "data": arr_lain 
+            }
+
+            
+            return {
+                "nama": fil.nmmcabang,
+                "labarugi" : total,
+                "penjualan" : penjualan,
+                // "totalhpp" : totalhpp,
+                "hpp" : hpp,
+                // "totallain" : totallain,
+                "biayalain" : lain,
+                // "total" : total
+            }
+        }))
+
+        res.json({
+            message: "Success, report laba rugi",
+            data: arr_data
+        })
     }
 }
