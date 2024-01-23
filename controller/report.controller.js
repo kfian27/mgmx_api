@@ -99,6 +99,30 @@ exports.getListBarang = async (req, res) => {
     });
 }
 
+exports.getListBank = async (req, res) => {
+    let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0`;
+    const data = await sequelize.query(sql, {
+        raw: false,
+    });
+
+    res.json({
+        message: "Success",
+        data: data[0]
+    });
+}
+
+exports.getListKas = async (req, res) => {
+    let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0`;
+    const data = await sequelize.query(sql, {
+        raw: false,
+    });
+
+    res.json({
+        message: "Success",
+        data: data[0]
+    });
+}
+
 
 exports.penjualan = async (req, res) => {
 
@@ -876,7 +900,7 @@ exports.kas = async (req, res) => {
     let jenis = req.body.jenis || 1;
     // posisi kas
     if (jenis == 1) {
-        let date = req.body.tanggal || '2024-01-19';
+        let date = req.body.tanggal || today;
         let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
         const filter = await sequelize.query(sql, {
             raw: false,
@@ -888,11 +912,11 @@ exports.kas = async (req, res) => {
                 raw: false,
             });
 
-            var arr_kas = await Promise.all(kas[0].map(async (brg, index_satu) => {
+            var arr_kas = await Promise.all(kas[0].map(async (item, index_satu) => {
                 return {
-                    "kode": kas.kdmkas,
-                    "nama": kas.nmmkas,
-                    "qty": parseFloat(kas.total),
+                    "kode": item.kdmkas,
+                    "nama": item.nmmkas,
+                    "qty": parseFloat(item.total),
                 }
             }))
 
@@ -908,91 +932,192 @@ exports.kas = async (req, res) => {
         })
     }
 
-    // kartu stock
-    // else if (jenis == 2) {
-    //     let start = req.body.start || today;
-    //     let end = req.body.end || today;
+    // kartu kas
+    else if (jenis == 2) {
+        let start = req.body.start || today;
+        let end = req.body.end || today;
 
-    //     let cabang = req.body.cabang || "";
-    //     let qcabang = "";
-    //     if (cabang != "") {
-    //         qcabang = "AND c.idmcabang=" + cabang;
-    //     }
+        let kas = req.body.kas || "";
+        let qkas = "";
+        if (kas != "") {
+            qkas = "AND k.idmkas=" + kas;
+        }
 
-    //     let gudang = req.body.gudang || "";
-    //     let qgudang = "";
-    //     if (gudang != "") {
-    //         qgudang = "AND g.idmgd = " + gudang;
-    //     }
+        let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' GROUP BY c.nmmcabang`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
 
-    //     let barang = req.body.barang || "";
-    //     let qbarang = "";
-    //     if (barang != "") {
-    //         qbarang = "AND b.idmbrg = " + barang;
-    //     }
-    //     console.log('logbrg', qbarang)
-    //     console.log('logstart', start)
-    //     console.log('logend', end)
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `SELECT k.IdMKas, k.KdMKas, k.NmMKas FROM mgkblkartukas kas LEFT OUTER JOIN mgkbmkas k ON kas.idmkas = k.idmkas WHERE kas.idmcabang = ${fil.idmcabang} ${qkas} AND k.Aktif=1 AND k.Hapus=0 AND STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') <= '${today}' GROUP BY k.idmkas`;
+            const kas = await sequelize.query(sql1, {
+                raw: false,
+            });
 
+            var arr_list = await Promise.all(kas[0].map(async (list, index_satu) => {
+                let idmkas = list.IdMKas;
+                let sql2 = `SELECT k.tgltrans, k.buktitrans, k.keterangan, k.debit, k.kredit, SUM(k.saldo) AS saldo FROM (SELECT kas.TglTrans, '-' AS buktitrans, 'Saldo Awal' AS keterangan, 0 AS debit, 0 AS kredit, SUM(kas.jmlkas) AS saldo FROM mgkblkartukas kas WHERE STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') < '${start}' AND kas.idmkas=${idmkas} UNION ALL SELECT kas.TglTrans, kas.BuktiTrans, kas.Keterangan, IF(kas.jmlkas>=0,kas.jmlkas,0) AS debit, IF(kas.jmlkas<0,kas.jmlkas,0) AS kredit, SUM(kas.jmlkas) AS saldo FROM mgkblkartukas kas WHERE STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') BETWEEN '${start}' AND '${end}' AND kas.idmkas=${idmkas} GROUP BY kas.BuktiTrans) k GROUP BY k.buktitrans ORDER BY k.tgltrans ASC`;
+                const item = await sequelize.query(sql2, {
+                    raw: false,
+                });
 
-    //     let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' ${qcabang} ${qgudang} GROUP BY c.nmmcabang`;
-    //     const filter = await sequelize.query(sql, {
-    //         raw: false,
-    //     });
+                var saldo = 0;
+                var arr_item = item[0].map((item, index_dua) => {
+                    saldo += parseFloat(item.saldo);
+                    return {
+                        'tanggal': item.tgltrans,
+                        'keterangan': item.keterangan,
+                        'debet': parseFloat(item.debit),
+                        'kredit': parseFloat(item.kredit),
+                        'saldo': parseFloat(item.saldo)
+                    }
+                })
 
-    //     var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
-    //         console.log('fil', fil)
-    //         let sql1 = `select b.idmbrg, b.kdmbrg, b.nmmbrg from mginmbrg b left outer join mginlkartustock k on b.idmbrg = k.idmbrg where k.idmcabang = ${fil.idmcabang} and k.idmgd = ${fil.idmgd} ${qbarang} group by b.idmbrg`;
-    //         const brg = await sequelize.query(sql1, {
-    //             raw: false,
-    //         });
+                return {
+                    "kode": list.KdMKas, 
+                    "nama": list.NmMKas,
+                    "listitem": arr_item,
+                }
+            }))
 
-    //         var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
-    //             console.log('brg', brg)
+            return {
+                "cabang": fil.nmmcabang,
+                "list": arr_list
+            }
+        }))
 
-    //             let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT '${start}' as tgltrans, idmbrg, idtrans, 'Saldo awal' AS keterangan, (0) AS debet, (0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') < '${start}' AND idmbrg = ${brg.idmbrg} UNION ALL SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') between '${start}' AND '${end}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
-    //             const item = await sequelize.query(sql2, {
-    //                 raw: false,
-    //             });
+        res.json({
+            message: "Success kartu",
+            data: arr_data
+        })
+    }
 
-    //             var saldo = 0;
-    //             var arr_item = item[0].map((item, index_dua) => {
-    //                 saldo += parseFloat(item.saldo);
-    //                 return {
-    //                     'tanggal': item.tgltrans,
-    //                     'keterangan': item.keterangan,
-    //                     'satuan': item.nmmstn,
-    //                     'debet': parseFloat(item.debet),
-    //                     'kredit': parseFloat(item.kredit),
-    //                     'saldo': parseFloat(item.saldo),
-    //                     // 'debet': item.debet,
-    //                     // 'kredit': item.kredit,
-    //                     // 'saldo': item.saldo,
-    //                 }
-    //             })
+}
 
-    //             return {
-    //                 // "id": brg.idmbrg,
-    //                 "kode": brg.kdmbrg, 
-    //                 "nama": brg.nmmbrg,
-    //                 // "qty": parseFloat(brg.qty),
-    //                 // "satuan": brg.nmmstn,
-    //                 "listitem": arr_item,
-    //             }
-    //         }))
+exports.bank = async (req, res) => {
 
-    //         return {
-    //             "cabang": fil.nmmcabang,
-    //             "gudang": fil.nmmgd, // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-    //             "list": arr_brg
-    //         }
-    //     }))
+    let jenis = req.body.jenis || 1;
+    // posisi bank
+    if (jenis == 1) {
+        let date = req.body.tanggal || '2024-01-19';
+        let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
 
-    //     res.json({
-    //         message: "Success kartu",
-    //         data: arr_data
-    //     })
-    // }
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif,bank.nmmbank, MRek.kdmrek, MRek.nmmrek, MRek.Aktif, TablePosRek.PosRek FROM (SELECT TransAll.IdMCabang, IdMRek, SUM(JmlRek) AS PosRek FROM (SELECT k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' AS TglTrans, IdMCabang, IdMRek, 0 AS JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) LEFT OUTER JOIN mgkbmbank bank ON mrek.IDMBANK=bank.IDMBANK WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`;
+            const bank = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_item = await Promise.all(bank[0].map(async (item, index_satu) => {
+                return {
+                    "bank": item.nmmbank,
+                    "kode": item.kdmrek,
+                    "nama": item.nmmrek,
+                    "qty": parseFloat(item.PosRek),
+                }
+            }))
+
+            return {
+                "cabang": fil.nmmcabang,
+                "list": arr_item
+            }
+        }))
+
+        res.json({
+            message: "Success",
+            data: arr_data
+        })
+    } else if (jenis == 2) {
+        let start = req.body.start || today;
+        let end = req.body.end || today;
+
+        let bank = req.body.bank || "";
+        let qbank = "";
+        if (bank != "") {
+            qbank = "AND bank.idmbank=" + bank;
+        }
+
+        let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans >= '${start}' AND k.tgltrans <= '${end}' GROUP BY c.nmmcabang`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
+
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `select mrek.idmrek, mrek.kdmrek, mrek.nmmrek, bank.idmbank, bank.nmmbank from mgkbmrek mrek left outer join mgkbmbank bank on mrek.idmbank = bank.idmbank where mrek.hapus=0 and mrek.aktif=1 and bank.aktif=1 and bank.hapus=0 ${qbank}`;
+            const bank_data = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_list = await Promise.all(bank_data[0].map(async (list, index_satu) => {
+
+                let sql2 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MRek.KdMRek, MRek.NmMRek, TableKartuRek.IdMRek, TableKartuRek.IdMCabang, Urut, BuktiTrans, NoRef, CAST(TglTrans as DATE) as TglTrans, TableKartuRek.Keterangan, Saldo, JmlRek, IF(Urut = 0, 0, IF(COALESCE(JmlRek,0) > 0,COALESCE(JmlRek,0), 0)) As Debit, IF(Urut = 0, 0, IF(COALESCE(JmlRek,0) >= 0, 0, COALESCE(JmlRek,0))) As Kredit, MCabang.IdMCabang, IdTrans, JenisTrans
+                    FROM (
+                    SELECT IdMCabang, IdMRek, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, '-' As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans, 0 As JmlRek, sum(JmlRek) As Saldo, 'Saldo Sebelumnya' As Keterangan
+                        , '-' As NoRef FROM (
+                    SELECT IdMCabang, IdMRek, 0 As JmlRek FROM MGKBMRek
+                    UNION ALL
+                    SELECT IdMCabang, IdMRek, JmlRek FROM MGKBLKartuBank where CAST(TglTrans as DATE) < CAST('${start} 00:00:00' AS DATE)
+                    ) TableSaldoAwal
+                    GROUP BY IdMCabang, IdMRek
+                    UNION ALL
+                    SELECT IdMCabang, IdMRek, 1 as Urut, JenisTrans, IdTrans, BuktiTrans, TglTrans, JmlRek, 0, Keterangan 
+                        , NoRef
+                    FROM MGKBLKartuBank
+                    WHERE CAST(TglTrans as DATE) >= CAST('${start} 00:00:00' AS DATE) and CAST(TglTrans as DATE) <= CAST('${end} 00:00:00' AS DATE)
+                    ) TableKartuRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuRek.IdMCabang = MCabang.IdMCabang)
+                                    LEFT OUTER JOIN MGKBMRek MRek ON (TableKartuRek.IdMCabang = MRek.IdMCabang AND TableKartuRek.IdMRek = MRek.IdMRek)
+                        LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek)
+                        left outer join mgkbmbank bank on mrek.idmbank = bank.idmbank
+                    WHERE MCabang.Hapus = 0
+                    AND MRek.Hapus = 0
+                    AND MRek.IdMRek LIKE '%${list.idmrek}%'
+                    ${qbank}
+                    ORDER BY TableKartuRek.IdMCabang, TableKartuRek.IdMRek, Urut, TglTrans, JenisTrans, IdTrans`;
+                const barang = await sequelize.query(sql2, {
+                    raw: false,
+                });
+
+                var saldo = 0;
+                var arr_item = await Promise.all(barang[0].map(async (item, index_dua) => {
+                    var total = parseFloat(item.Debit) + parseFloat(item.Kredit);
+                    if (item.Saldo == 0) {
+                        total= parseFloat(item.Debit) + parseFloat(item.Kredit)
+                    } else {
+                        total = parseFloat(item.Saldo);
+                    }
+                    saldo += parseFloat(total);
+                    
+                    return {
+                        "tanggal" : item.TglTrans,
+                        "keterangan" : item.Keterangan,
+                        "debet" : parseFloat(item.Debit),
+                        "kredit" : parseFloat(Math.abs(item.Kredit)),
+                        "saldo" : parseFloat(saldo)
+                    }
+                }))
+
+                return {
+                    "bank": list.nmmbank,
+                    "kode": list.kdmrek,
+                    "nama": list.nmmrek,
+                    "list": arr_item,
+                }
+            }))
+
+            return {
+                "cabang": fil.nmmcabang,
+                "list": arr_list
+            }
+        }))
+
+        res.json({
+            message: "Success",
+            data: arr_data
+        })
+    }
 
 }
 
