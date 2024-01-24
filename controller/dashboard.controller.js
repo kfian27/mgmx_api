@@ -2,6 +2,17 @@ const db = require("../models");
 const sequelize = db.sequelize;
 
 const fun = require("../mgmx");
+const query = require("../query");
+
+let today = new Date().toJSON().slice(0, 10);
+
+
+function resData(count = 0, list = []) {
+    return {
+        countData: count,
+        data: list
+    };
+}
 
 exports.getDataCustomer = async (req, res) => {
     let countData = await fun.countDataFromQuery(
@@ -54,15 +65,13 @@ exports.getDataBarang = async (req, res) => {
     });
 }
 
-
-
-exports.getDataWarningToday = async (req, res) => {
+exports.getWarningToday = async (req, res) => {
     // jual_lewatjt
     let count_juallewatjt = await fun.countDataFromQuery(
         `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut < CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
     );
     const juallewatjt = await fun.getDataFromQuery(
-        `SELECT * FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut < CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas' order by tgltjual desc`
+        `SELECT * FROM (SELECT j.tglcreate, j.tgltjual, j.buktitjual,c.nmmcust, j.netto, j.tgljtpiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut < CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas' order by tgltjual desc`
     );
     var arr_juallewatjt = await Promise.all(juallewatjt.map(async (list, index) => {
         return resList(list, 1);
@@ -73,7 +82,7 @@ exports.getDataWarningToday = async (req, res) => {
         `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut = CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
     );
     const jualjthi = await fun.getDataFromQuery(
-        `SELECT * FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut = CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
+        `SELECT * FROM (SELECT j.tglcreate, j.tgltjual, j.buktitjual,c.nmmcust, j.netto, j.tgljtpiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut = CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
     );
     var arr_jualjthi = await Promise.all(jualjthi.map(async (list, index) => {
         return resList(list, 1);
@@ -85,7 +94,7 @@ exports.getDataWarningToday = async (req, res) => {
         `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut between CURDATE() and ${nw} GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
     );
     const jualjt7 = await fun.getDataFromQuery(
-        `SELECT * FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut between CURDATE() and ${nw} GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
+        `SELECT * FROM (SELECT j.tglcreate, j.tgltjual, j.buktitjual,c.nmmcust, j.netto, j.tgljtpiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut between CURDATE() and ${nw} GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
     );
     var arr_jualjt7 = await Promise.all(jualjt7.map(async (list, index) => {
         return resList(list, 1);
@@ -125,7 +134,7 @@ exports.getDataWarningToday = async (req, res) => {
         `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTBeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut= CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas'`
     );
     const belijthi = await fun.getDataFromQuery(
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut = CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
+        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.tgljthut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut = CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
     );
     var arr_belijthi = await Promise.all(belijthi.map(async (list, index) => {
         return resList(list, 2);
@@ -136,7 +145,7 @@ exports.getDataWarningToday = async (req, res) => {
         `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTBeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut between CURDATE() and '${nw}' GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas'`
     );
     const belijt7 = await fun.getDataFromQuery(
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut between CURDATE() and '${nw}' GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
+        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.tgljthut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut between CURDATE() and '${nw}' GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
     );
     var arr_belijt7 = await Promise.all(belijt7.map(async (list, index) => {
         return resList(list, 2);
@@ -231,13 +240,6 @@ exports.getDataWarningToday = async (req, res) => {
         }
     }
 
-    function resData(count = 0, list = []) {
-        return {
-            countData: count,
-            data: list
-        };
-    }
-
     function resDataTransaksi(countVoid = 0, countEdit = 0, countBackdate=0, list = []) {
         return {
             void: countVoid,
@@ -263,4 +265,157 @@ exports.getDataWarningToday = async (req, res) => {
         message: "Success",
         data: data
     });
+}
+
+exports.getTransaksiAdjustKoreksi = async (req, res) => { 
+    let start = req.query.start || today;
+    let end = req.query.end || today;
+    let date = today;
+    // PENYESUAIAN STOCK
+    let count_penstock = await fun.countDataFromQuery(
+        `SELECT count(*) as total FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg = '${date}' ORDER BY pb.TglTPenyesuaianBrg DESC`
+    );
+    const penstock = await fun.getDataFromQuery(
+        `SELECT b.nmmbrg, pb.tgltpenyesuaianbrg, pb.buktitpenyesuaianbrg, pbd.qtytotal, s.nmmstn FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg = '${date}' ORDER BY pb.TglTPenyesuaianBrg DESC`
+    );
+    var arr_penstock = await Promise.all(penstock.map(async (list, index) => {
+        return {
+            "nmmbrg" : list.nmmbrg,
+            "tgl" : list.tgltpenyesuaianbrg,
+            "bukti" : list.buktitpenyesuaianbrg,
+            "satuan" : list.nmmstn,
+            "qty" : parseFloat(list.qtytotal)
+        }
+    }))
+    arr_penstock.push({
+        "nmmbrg": '',
+        "tgl": '',
+        "bukti": 'dummy',
+        "satuan": 'dummy',
+        "qty": 0,
+    });
+
+    // KOREKSI HUTANG
+    let count_korhut = await fun.countDataFromQuery(
+        `SELECT count(*) as total FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut = '${date}' ORDER BY h.TglTBHut DESC`
+    );
+    const korhut = await fun.getDataFromQuery(
+        `SELECT h.tgltbhut, h.buktitbhut,c.nmmcust,hd.jmlbayar FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut = '${date}' ORDER BY h.TglTBHut DESC`
+    );
+    var arr_korhut = await Promise.all(korhut.map(async (list, index) => {
+        return {
+            "tgl" : list.tgltbhut,
+            "bukti" : list.buktitbhut,
+            "customer" : list.nmmcust,
+            "jumlah" : parseFloat(list.jmlbayar)
+        }
+    }))
+    arr_korhut.push({
+        "tgl": '',
+        "bukti": 'dummy',
+        "customer": 'dummy',
+        "jumlah": 0,
+    });
+
+    // KOREKSI PIUTANG
+    let count_korpiut = await fun.countDataFromQuery(
+        `SELECT COUNT(*) AS total FROM mgartbpiut p LEFT OUTER JOIN mgartbpiutd pd ON p.IdTBPiut = pd.IdTBPiut LEFT OUTER JOIN mgaptbeli b ON pd.IdTrans = b.IdTBeli LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.IdMSup WHERE p.TglTBPiut = '${date}' ORDER BY p.TglTBPiut DESC`
+    );
+    const korpiut = await fun.getDataFromQuery(
+        `SELECT p.tgltbpiut, p.buktitbpiut, s.nmmsup, pd.jmlbayar FROM mgartbpiut p LEFT OUTER JOIN mgartbpiutd pd ON p.IdTBPiut = pd.IdTBPiut LEFT OUTER JOIN mgaptbeli b ON pd.IdTrans = b.IdTBeli LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.IdMSup WHERE p.TglTBPiut between '${start}' and '${end}' ORDER BY p.TglTBPiut DESC`
+    );
+    var arr_korpiut = await Promise.all(korpiut.map(async (list, index) => {
+        return {
+            "tgl" : list.tgltbpiut,
+            "bukti" : list.buktitbpiut,
+            "customer" : list.nmmsup,
+            "jumlah" : parseFloat(list.jmlbayar)
+        }
+    }))
+    arr_korpiut.push({
+        "tgl": '',
+        "bukti": 'dummy',
+        "customer": 'dummy',
+        "jumlah": 0,
+    });
+
+    // TRANSAKSI JURNAL UMUM
+    let count_jurnalumum = await fun.countDataFromQuery(
+        `SELECT count(*) as total FROM mgglljurnalhrn jj where jj.tgltrans = '${date}' ORDER BY jj.TglTrans DESC`
+    );
+    const jurnalumum = await fun.getDataFromQuery(
+        `SELECT LEFT(jj.tgltrans,10) AS tgl, jj.buktitrans, jj.jmld, jj.jmlk, jj.keterangan FROM mgglljurnalhrn jj where jj.tgltrans between '${start}' and '${end}' ORDER BY jj.TglTrans DESC`
+    );
+    var arr_jurnalumum = await Promise.all(jurnalumum.map(async (list, index) => {
+        return {
+            "tgl" : list.tgl,
+            "bukti" : list.buktitrans,
+            "debit" : parseFloat(list.jmld),
+            "kredit": parseFloat(list.jmlk),
+            "keterangan" : list.keterangan
+        }
+    }))
+    arr_jurnalumum.push({
+        "tgl": '',
+        "bukti": 'dummy',
+        "debit": 0,
+        "kredit": 0,
+        "keterangan": 'dummy'
+    });
+
+    var data = {
+        penyesuaian_stok: resData(count_penstock, arr_penstock),
+        koreksi_hutang: resData(count_korhut, arr_korhut),
+        koreksi_piutang: resData(count_korpiut, arr_korpiut),
+        transaksi_jurnalumum: resData(count_jurnalumum, arr_jurnalumum),
+    }
+
+    res.json({
+        message: "Success",
+        data: data
+    });
+}
+
+exports.getNilaiBisnis = async (req, res) => { 
+    let date = today;
+    let nilaibarang = await fun.countDataFromQuery(
+        `SELECT SUM(fin.nilai) AS total FROM (SELECT qtytotal, hrgstn, (hrgstn * qtytotal) AS nilai  FROM mginlkartustock) fin`
+    );
+
+    let stockbarang = await fun.countDataFromQuery(
+        `SELECT SUM(fin.qtytotal) AS total FROM (SELECT qtytotal, hrgstn, (hrgstn * qtytotal) AS nilai  FROM mginlkartustock) fin`
+    );
+
+    let q_totalpiutang = await query.dashboard_totalpiutang(date);
+    let totalpiutang = await fun.countDataFromQuery(
+        q_totalpiutang
+    );
+
+    let q_totalhutang = await query.dashboard_totalpiutang(date);
+    let totalhutang = await fun.countDataFromQuery(
+        q_totalhutang
+    );
+
+    let totalkas = await fun.countDataFromQuery(
+        `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
+    );
+
+    let totalbank = await fun.countDataFromQuery(
+        `SELECT sum(TablePosRek.PosRek) as total FROM (SELECT TransAll.IdMCabang, IdMRek, Sum(JmlRek) as PosRek FROM (Select k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' as TglTrans, IdMCabang, IdMRek, 0 as JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 AND PosRek <> 0 AND MUserMRek.IdMUser=1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`
+    );
+
+    var data = {
+        nilaibarang: nilaibarang,
+        stockbarang: stockbarang,
+        totalpiutang: totalpiutang,
+        totalhutang: totalhutang,
+        totalkas: totalkas,
+        totalbank: totalbank
+    }
+    res.json({
+        message: "Success",
+        data: data
+    });
+
+    
 }

@@ -6,7 +6,10 @@ const upload = multer();
 router.get("/getDataCustomer", upload.none(), reportController.getDataCustomer);
 router.get("/getDataSupplier", upload.none(), reportController.getDataSupplier);
 router.get("/getDataBarang", upload.none(), reportController.getDataBarang);
-router.get("/getDataWarningToday", upload.none(), reportController.getDataWarningToday);
+router.get("/getWarningToday", upload.none(), reportController.getWarningToday);
+router.get("/getTransaksiAdjustKoreksi", upload.none(), reportController.getTransaksiAdjustKoreksi);
+router.get("/getNilaiBisnis", upload.none(), reportController.getNilaiBisnis);
+
 
 
 module.exports = router;
