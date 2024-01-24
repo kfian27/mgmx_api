@@ -11,7 +11,20 @@ exports.create = (req, res) => {
   //   }
   // data yang didapatkan dari inputan oleh pengguna
   const company = req.body;
-  Object.assign(company, { logo: req.file.path });
+  let companyClone = company;
+  let cek_file = req.file.path || false;
+  if (cek_file) {
+    let file_path = req.file.path;
+    file_path = file_path.replace("public\\", "");
+    file_path = file_path.replace("\\", "/");
+    Object.assign(company, { logo: file_path });
+  }
+
+  for (let key in company) {
+    if (key == "password") {
+      company[key] = btoa(company[key]);
+    }
+  }
 
   // proses menyimpan kedalam database
   Company.create(company)
