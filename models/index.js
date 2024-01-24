@@ -1,10 +1,10 @@
-const dbConfig = require("../config/db.config")(0);
+const dbConfig = require("../config/db.config")(2);
 const Sequelize = require("sequelize");
 const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
   host: dbConfig.HOST,
   dialect: dbConfig.dialect,
   operatorAlias: false,
-  port: dbConfig.port,
+  port: (dbConfig.PORT || 3306),
   pool: {
     max: dbConfig.pool.max,
     min: dbConfig.pool.min,

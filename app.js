@@ -11,13 +11,14 @@ const satuanRoute = require("./routing/satuan.route");
 const customerRoute = require("./routing/customer.route");
 const authRoute = require("./routing/auth.route");
 const reportRoute = require("./routing/report.route");
+const dashboardRoute = require("./routing/dashboard.route");
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const db = require("./models/index");
-db.sequelize.sync({ alter: true });
+// db.sequelize.sync({ alter: true });
 
 app.get("/", async(req, res) => {
     // test comments
@@ -26,6 +27,7 @@ app.get("/", async(req, res) => {
     });
 });
 
+app.use("/api/dashboard", dashboardRoute);
 app.use("/api/so", soRoute);
 app.use("/api/report", reportRoute);
 app.use("/api/barang", barangRoute);
