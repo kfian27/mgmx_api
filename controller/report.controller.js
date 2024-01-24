@@ -1,44 +1,9 @@
 const db = require("../models");
 const sequelize = db.sequelize;
 
-const formatNumberTwoComma = new Intl.NumberFormat('id-ID', {
-    style: 'decimal',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-});
-
-const formatNumberNoComma = new Intl.NumberFormat('id-ID', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-});
-
-function formatNoComma(params = 0) {
-    return formatNumberNoComma.format(params);
-}
-
-function formatTwoComma(params = 0) {
-    return formatNumberTwoComma.format(params);
-}
-
-function formatNoCommaRp(params = 0) {
-    return 'Rp' + formatNumberNoComma.format(params);
-}
-
-function formatTwoCommaRp(params) {
-    return 'Rp' + formatNumberTwoComma.format(params);
-}
+const fun = require("../mgmx");
 
 let today = new Date().toJSON().slice(0, 10);
-
-async function countDataFromQuery(query) {
-    var count_data = await sequelize.query(
-        query, {
-            raw: false,
-            plain: true
-        })
-    return parseFloat(count_data.total);
-}
 
 exports.getListCabang = async (req, res) => {
     let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0`;
@@ -151,16 +116,16 @@ exports.penjualan = async (req, res) => {
     let group = req.body.group;
 
 
-    const count_penjualan = await countDataFromQuery(
+    const count_penjualan = await fun.countDataFromQuery(
         `SELECT COUNT(j.idtjual) as total FROM mgartjual j LEFT OUTER JOIN mgartjuald jd ON jd.idtjual = j.idtjual WHERE j.hapus=0 ${qcabang} ${qcustomer} ${qbarang} and j.tgltjual between '${start}%' and '${end}%'`
     );
-    const count_produk = await countDataFromQuery(
+    const count_produk = await fun.countDataFromQuery(
         `SELECT SUM(jd.qtytotal) as total FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual = j.IdTJual WHERE j.tgltjual between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qcustomer}`
     );
-    const count_pendapatan = await countDataFromQuery(
+    const count_pendapatan = await fun.countDataFromQuery(
         `SELECT SUM(j.netto) as total FROM mgartjual j WHERE j.tgltjual between '${start}%' and '${end}%' and j.hapus=0 ${qcabang} ${qcustomer} ${qbarang}`
     );
-    const count_hpp = await countDataFromQuery(
+    const count_hpp = await fun.countDataFromQuery(
         `SELECT COALESCE((SELECT (jd.QtyTotal * b.reserved_dec1) AS hpp FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual=j.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.idmbrg WHERE j.tgltjual between '${start}%' and '${end}%' ${qbarang} ${qcustomer} ${qbarang} order by jd.IdTJualD desc limit 1),0) as total`
     );
 
@@ -464,32 +429,38 @@ exports.pembelian = async (req, res) => {
 
     let cabang = req.body.cabang;
     let qcabang = "";
+    let qcabang_count = "";
     if (cabang && cabang != "") {
         qcabang = "and b.idmcabang=" + cabang;
+        qcabang_count = "and j.idmcabang=" + cabang;
     }
 
     let supplier = req.body.supplier;
     let qsupplier = "";
+    let qsupplier_count = "";
     if (supplier && supplier != "") {
         qsupplier = "and b.idmsup=" + supplier;
+        qsupplier_count = "and j.idmsup=" + supplier;
     }
 
     let barang = req.body.barang;
     let qbarang = "";
+    let qbarang_count = "";
     if (barang && barang != "") {
         qbarang = "and bb.idmbrg=" + barang;
+        qbarang_count = "and jd.idmbrg=" + barang;
     }
 
     let group = req.body.group;
 
-    const count_pembelian = await countDataFromQuery(
-        `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang} ${qsupplier} ${qbarang} and j.tgltbeli between '${start}%' and '${end}%'`
+    const count_pembelian = await fun.countDataFromQuery(
+        `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang_count} ${qsupplier_count} ${qbarang_count} and j.tgltbeli between '${start}%' and '${end}%'`
     );
-    const count_produk = await countDataFromQuery(
-        `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qsupplier}`
+    const count_produk = await fun.countDataFromQuery(
+        `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count}`
     );
-    const count_pengeluaran = await countDataFromQuery(
-        `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qsupplier} order by j.idtbeli desc limit 1),0) as total`
+    const count_pengeluaran = await fun.countDataFromQuery(
+        `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count} order by j.idtbeli desc limit 1),0) as total`
     );
 
     var count = {
@@ -1318,7 +1289,7 @@ exports.hutang = async (req, res) => {
             }
         }))
 
-        const total = await countDataFromQuery(
+        const total = await fun.countDataFromQuery(
             `SELECT MSup.KdMSup, MSup.NmMSup, MSup.Aktif
             , sum(TablePosHut.PosHut) as total
         FROM (
@@ -2276,7 +2247,7 @@ exports.piutang = async (req, res) => {
 
         }))
 
-        // const total = await countDataFromQuery(
+        // const total = await fun.countDataFromQuery(
         //     `SELECT MCabang.idMCabang, MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif as AktifMCabang
         //     , Coalesce(MCust.KdMCust,'') as KdMCust, Coalesce(MCust.NmMCust,'') as NmMCust, coalesce(MCust.Aktif,1) as AktifMCust, sum(coalesce(MCust.LimitPiut,0)) as LimitPiut
         //     , sum(TablePosPiut.PosPiut) as total, sum(MCust.LimitPiut - TablePosPiut.PosPiut) As Selisih
