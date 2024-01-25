@@ -11,21 +11,25 @@ const satuanRoute = require("./routing/satuan.route");
 const customerRoute = require("./routing/customer.route");
 const authRoute = require("./routing/auth.route");
 const reportRoute = require("./routing/report.route");
+var path = require("path");
+const dashboardRoute = require("./routing/dashboard.route");
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.resolve("./public")));
 
 const db = require("./models/index");
-db.sequelize.sync({ alter: true });
+// db.sequelize.sync({ alter: true });
 
-app.get("/", async(req, res) => {
-    // test comments
-    res.json({
-        message: "Company created successfully test again.",
-    });
+app.get("/", async (req, res) => {
+  // test comments
+  res.json({
+    message: "Company created successfully test again.",
+  });
 });
 
+app.use("/api/dashboard", dashboardRoute);
 app.use("/api/so", soRoute);
 app.use("/api/report", reportRoute);
 app.use("/api/barang", barangRoute);
@@ -36,5 +40,5 @@ app.use("/master/user", userRoute);
 app.use("/auth", authRoute);
 
 var server = http.listen(8123, () => {
-    //   console.log("Server is running at port 8000");
+  //   console.log("Server is running at port 8000");
 });

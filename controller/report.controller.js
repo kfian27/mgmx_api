@@ -1,44 +1,9 @@
 const db = require("../models");
 const sequelize = db.sequelize;
 
-const formatNumberTwoComma = new Intl.NumberFormat('id-ID', {
-    style: 'decimal',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-});
-
-const formatNumberNoComma = new Intl.NumberFormat('id-ID', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-});
-
-function formatNoComma(params = 0) {
-    return formatNumberNoComma.format(params);
-}
-
-function formatTwoComma(params = 0) {
-    return formatNumberTwoComma.format(params);
-}
-
-function formatNoCommaRp(params = 0) {
-    return 'Rp' + formatNumberNoComma.format(params);
-}
-
-function formatTwoCommaRp(params) {
-    return 'Rp' + formatNumberTwoComma.format(params);
-}
+const fun = require("../mgmx");
 
 let today = new Date().toJSON().slice(0, 10);
-
-async function countDataFromQuery(query) {
-    var count_data = await sequelize.query(
-        query, {
-            raw: false,
-            plain: true
-        })
-    return parseFloat(count_data.total);
-}
 
 exports.getListCabang = async (req, res) => {
     let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0`;
@@ -99,6 +64,30 @@ exports.getListBarang = async (req, res) => {
     });
 }
 
+exports.getListBank = async (req, res) => {
+    let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0`;
+    const data = await sequelize.query(sql, {
+        raw: false,
+    });
+
+    res.json({
+        message: "Success",
+        data: data[0]
+    });
+}
+
+exports.getListKas = async (req, res) => {
+    let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0`;
+    const data = await sequelize.query(sql, {
+        raw: false,
+    });
+
+    res.json({
+        message: "Success",
+        data: data[0]
+    });
+}
+
 
 exports.penjualan = async (req, res) => {
 
@@ -127,16 +116,16 @@ exports.penjualan = async (req, res) => {
     let group = req.body.group;
 
 
-    const count_penjualan = await countDataFromQuery(
+    const count_penjualan = await fun.countDataFromQuery(
         `SELECT COUNT(j.idtjual) as total FROM mgartjual j LEFT OUTER JOIN mgartjuald jd ON jd.idtjual = j.idtjual WHERE j.hapus=0 ${qcabang} ${qcustomer} ${qbarang} and j.tgltjual between '${start}%' and '${end}%'`
     );
-    const count_produk = await countDataFromQuery(
+    const count_produk = await fun.countDataFromQuery(
         `SELECT SUM(jd.qtytotal) as total FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual = j.IdTJual WHERE j.tgltjual between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qcustomer}`
     );
-    const count_pendapatan = await countDataFromQuery(
+    const count_pendapatan = await fun.countDataFromQuery(
         `SELECT SUM(j.netto) as total FROM mgartjual j WHERE j.tgltjual between '${start}%' and '${end}%' and j.hapus=0 ${qcabang} ${qcustomer} ${qbarang}`
     );
-    const count_hpp = await countDataFromQuery(
+    const count_hpp = await fun.countDataFromQuery(
         `SELECT COALESCE((SELECT (jd.QtyTotal * b.reserved_dec1) AS hpp FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual=j.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.idmbrg WHERE j.tgltjual between '${start}%' and '${end}%' ${qbarang} ${qcustomer} ${qbarang} order by jd.IdTJualD desc limit 1),0) as total`
     );
 
@@ -440,32 +429,38 @@ exports.pembelian = async (req, res) => {
 
     let cabang = req.body.cabang;
     let qcabang = "";
+    let qcabang_count = "";
     if (cabang && cabang != "") {
         qcabang = "and b.idmcabang=" + cabang;
+        qcabang_count = "and j.idmcabang=" + cabang;
     }
 
     let supplier = req.body.supplier;
     let qsupplier = "";
+    let qsupplier_count = "";
     if (supplier && supplier != "") {
         qsupplier = "and b.idmsup=" + supplier;
+        qsupplier_count = "and j.idmsup=" + supplier;
     }
 
     let barang = req.body.barang;
     let qbarang = "";
+    let qbarang_count = "";
     if (barang && barang != "") {
         qbarang = "and bb.idmbrg=" + barang;
+        qbarang_count = "and jd.idmbrg=" + barang;
     }
 
     let group = req.body.group;
 
-    const count_pembelian = await countDataFromQuery(
-        `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang} ${qsupplier} ${qbarang} and j.tgltbeli between '${start}%' and '${end}%'`
+    const count_pembelian = await fun.countDataFromQuery(
+        `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang_count} ${qsupplier_count} ${qbarang_count} and j.tgltbeli between '${start}%' and '${end}%'`
     );
-    const count_produk = await countDataFromQuery(
-        `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qsupplier}`
+    const count_produk = await fun.countDataFromQuery(
+        `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count}`
     );
-    const count_pengeluaran = await countDataFromQuery(
-        `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qsupplier} order by j.idtbeli desc limit 1),0) as total`
+    const count_pengeluaran = await fun.countDataFromQuery(
+        `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count} order by j.idtbeli desc limit 1),0) as total`
     );
 
     var count = {
@@ -876,7 +871,7 @@ exports.kas = async (req, res) => {
     let jenis = req.body.jenis || 1;
     // posisi kas
     if (jenis == 1) {
-        let date = req.body.tanggal || '2024-01-19';
+        let date = req.body.tanggal || today;
         let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
         const filter = await sequelize.query(sql, {
             raw: false,
@@ -888,11 +883,11 @@ exports.kas = async (req, res) => {
                 raw: false,
             });
 
-            var arr_kas = await Promise.all(kas[0].map(async (brg, index_satu) => {
+            var arr_kas = await Promise.all(kas[0].map(async (item, index_satu) => {
                 return {
-                    "kode": kas.kdmkas,
-                    "nama": kas.nmmkas,
-                    "qty": parseFloat(kas.total),
+                    "kode": item.kdmkas,
+                    "nama": item.nmmkas,
+                    "qty": parseFloat(item.total),
                 }
             }))
 
@@ -908,91 +903,192 @@ exports.kas = async (req, res) => {
         })
     }
 
-    // kartu stock
-    // else if (jenis == 2) {
-    //     let start = req.body.start || today;
-    //     let end = req.body.end || today;
+    // kartu kas
+    else if (jenis == 2) {
+        let start = req.body.start || today;
+        let end = req.body.end || today;
 
-    //     let cabang = req.body.cabang || "";
-    //     let qcabang = "";
-    //     if (cabang != "") {
-    //         qcabang = "AND c.idmcabang=" + cabang;
-    //     }
+        let kas = req.body.kas || "";
+        let qkas = "";
+        if (kas != "") {
+            qkas = "AND k.idmkas=" + kas;
+        }
 
-    //     let gudang = req.body.gudang || "";
-    //     let qgudang = "";
-    //     if (gudang != "") {
-    //         qgudang = "AND g.idmgd = " + gudang;
-    //     }
+        let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' GROUP BY c.nmmcabang`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
 
-    //     let barang = req.body.barang || "";
-    //     let qbarang = "";
-    //     if (barang != "") {
-    //         qbarang = "AND b.idmbrg = " + barang;
-    //     }
-    //     console.log('logbrg', qbarang)
-    //     console.log('logstart', start)
-    //     console.log('logend', end)
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `SELECT k.IdMKas, k.KdMKas, k.NmMKas FROM mgkblkartukas kas LEFT OUTER JOIN mgkbmkas k ON kas.idmkas = k.idmkas WHERE kas.idmcabang = ${fil.idmcabang} ${qkas} AND k.Aktif=1 AND k.Hapus=0 AND STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') <= '${today}' GROUP BY k.idmkas`;
+            const kas = await sequelize.query(sql1, {
+                raw: false,
+            });
 
+            var arr_list = await Promise.all(kas[0].map(async (list, index_satu) => {
+                let idmkas = list.IdMKas;
+                let sql2 = `SELECT k.tgltrans, k.buktitrans, k.keterangan, k.debit, k.kredit, SUM(k.saldo) AS saldo FROM (SELECT kas.TglTrans, '-' AS buktitrans, 'Saldo Awal' AS keterangan, 0 AS debit, 0 AS kredit, SUM(kas.jmlkas) AS saldo FROM mgkblkartukas kas WHERE STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') < '${start}' AND kas.idmkas=${idmkas} UNION ALL SELECT kas.TglTrans, kas.BuktiTrans, kas.Keterangan, IF(kas.jmlkas>=0,kas.jmlkas,0) AS debit, IF(kas.jmlkas<0,kas.jmlkas,0) AS kredit, SUM(kas.jmlkas) AS saldo FROM mgkblkartukas kas WHERE STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') BETWEEN '${start}' AND '${end}' AND kas.idmkas=${idmkas} GROUP BY kas.BuktiTrans) k GROUP BY k.buktitrans ORDER BY k.tgltrans ASC`;
+                const item = await sequelize.query(sql2, {
+                    raw: false,
+                });
 
-    //     let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' ${qcabang} ${qgudang} GROUP BY c.nmmcabang`;
-    //     const filter = await sequelize.query(sql, {
-    //         raw: false,
-    //     });
+                var saldo = 0;
+                var arr_item = item[0].map((item, index_dua) => {
+                    saldo += parseFloat(item.saldo);
+                    return {
+                        'tanggal': item.tgltrans,
+                        'keterangan': item.keterangan,
+                        'debet': parseFloat(item.debit),
+                        'kredit': parseFloat(item.kredit),
+                        'saldo': parseFloat(item.saldo)
+                    }
+                })
 
-    //     var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
-    //         console.log('fil', fil)
-    //         let sql1 = `select b.idmbrg, b.kdmbrg, b.nmmbrg from mginmbrg b left outer join mginlkartustock k on b.idmbrg = k.idmbrg where k.idmcabang = ${fil.idmcabang} and k.idmgd = ${fil.idmgd} ${qbarang} group by b.idmbrg`;
-    //         const brg = await sequelize.query(sql1, {
-    //             raw: false,
-    //         });
+                return {
+                    "kode": list.KdMKas, 
+                    "nama": list.NmMKas,
+                    "listitem": arr_item,
+                }
+            }))
 
-    //         var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
-    //             console.log('brg', brg)
+            return {
+                "cabang": fil.nmmcabang,
+                "list": arr_list
+            }
+        }))
 
-    //             let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT '${start}' as tgltrans, idmbrg, idtrans, 'Saldo awal' AS keterangan, (0) AS debet, (0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') < '${start}' AND idmbrg = ${brg.idmbrg} UNION ALL SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') between '${start}' AND '${end}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
-    //             const item = await sequelize.query(sql2, {
-    //                 raw: false,
-    //             });
+        res.json({
+            message: "Success kartu",
+            data: arr_data
+        })
+    }
 
-    //             var saldo = 0;
-    //             var arr_item = item[0].map((item, index_dua) => {
-    //                 saldo += parseFloat(item.saldo);
-    //                 return {
-    //                     'tanggal': item.tgltrans,
-    //                     'keterangan': item.keterangan,
-    //                     'satuan': item.nmmstn,
-    //                     'debet': parseFloat(item.debet),
-    //                     'kredit': parseFloat(item.kredit),
-    //                     'saldo': parseFloat(item.saldo),
-    //                     // 'debet': item.debet,
-    //                     // 'kredit': item.kredit,
-    //                     // 'saldo': item.saldo,
-    //                 }
-    //             })
+}
 
-    //             return {
-    //                 // "id": brg.idmbrg,
-    //                 "kode": brg.kdmbrg, 
-    //                 "nama": brg.nmmbrg,
-    //                 // "qty": parseFloat(brg.qty),
-    //                 // "satuan": brg.nmmstn,
-    //                 "listitem": arr_item,
-    //             }
-    //         }))
+exports.bank = async (req, res) => {
 
-    //         return {
-    //             "cabang": fil.nmmcabang,
-    //             "gudang": fil.nmmgd, // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-    //             "list": arr_brg
-    //         }
-    //     }))
+    let jenis = req.body.jenis || 1;
+    // posisi bank
+    if (jenis == 1) {
+        let date = req.body.tanggal || '2024-01-19';
+        let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
 
-    //     res.json({
-    //         message: "Success kartu",
-    //         data: arr_data
-    //     })
-    // }
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif,bank.nmmbank, MRek.kdmrek, MRek.nmmrek, MRek.Aktif, TablePosRek.PosRek FROM (SELECT TransAll.IdMCabang, IdMRek, SUM(JmlRek) AS PosRek FROM (SELECT k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' AS TglTrans, IdMCabang, IdMRek, 0 AS JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) LEFT OUTER JOIN mgkbmbank bank ON mrek.IDMBANK=bank.IDMBANK WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`;
+            const bank = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_item = await Promise.all(bank[0].map(async (item, index_satu) => {
+                return {
+                    "bank": item.nmmbank,
+                    "kode": item.kdmrek,
+                    "nama": item.nmmrek,
+                    "qty": parseFloat(item.PosRek),
+                }
+            }))
+
+            return {
+                "cabang": fil.nmmcabang,
+                "list": arr_item
+            }
+        }))
+
+        res.json({
+            message: "Success",
+            data: arr_data
+        })
+    } else if (jenis == 2) {
+        let start = req.body.start || today;
+        let end = req.body.end || today;
+
+        let bank = req.body.bank || "";
+        let qbank = "";
+        if (bank != "") {
+            qbank = "AND bank.idmbank=" + bank;
+        }
+
+        let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans >= '${start}' AND k.tgltrans <= '${end}' GROUP BY c.nmmcabang`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
+
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            let sql1 = `select mrek.idmrek, mrek.kdmrek, mrek.nmmrek, bank.idmbank, bank.nmmbank from mgkbmrek mrek left outer join mgkbmbank bank on mrek.idmbank = bank.idmbank where mrek.hapus=0 and mrek.aktif=1 and bank.aktif=1 and bank.hapus=0 ${qbank}`;
+            const bank_data = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_list = await Promise.all(bank_data[0].map(async (list, index_satu) => {
+
+                let sql2 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MRek.KdMRek, MRek.NmMRek, TableKartuRek.IdMRek, TableKartuRek.IdMCabang, Urut, BuktiTrans, NoRef, CAST(TglTrans as DATE) as TglTrans, TableKartuRek.Keterangan, Saldo, JmlRek, IF(Urut = 0, 0, IF(COALESCE(JmlRek,0) > 0,COALESCE(JmlRek,0), 0)) As Debit, IF(Urut = 0, 0, IF(COALESCE(JmlRek,0) >= 0, 0, COALESCE(JmlRek,0))) As Kredit, MCabang.IdMCabang, IdTrans, JenisTrans
+                    FROM (
+                    SELECT IdMCabang, IdMRek, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, '-' As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans, 0 As JmlRek, sum(JmlRek) As Saldo, 'Saldo Sebelumnya' As Keterangan
+                        , '-' As NoRef FROM (
+                    SELECT IdMCabang, IdMRek, 0 As JmlRek FROM MGKBMRek
+                    UNION ALL
+                    SELECT IdMCabang, IdMRek, JmlRek FROM MGKBLKartuBank where CAST(TglTrans as DATE) < CAST('${start} 00:00:00' AS DATE)
+                    ) TableSaldoAwal
+                    GROUP BY IdMCabang, IdMRek
+                    UNION ALL
+                    SELECT IdMCabang, IdMRek, 1 as Urut, JenisTrans, IdTrans, BuktiTrans, TglTrans, JmlRek, 0, Keterangan 
+                        , NoRef
+                    FROM MGKBLKartuBank
+                    WHERE CAST(TglTrans as DATE) >= CAST('${start} 00:00:00' AS DATE) and CAST(TglTrans as DATE) <= CAST('${end} 00:00:00' AS DATE)
+                    ) TableKartuRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuRek.IdMCabang = MCabang.IdMCabang)
+                                    LEFT OUTER JOIN MGKBMRek MRek ON (TableKartuRek.IdMCabang = MRek.IdMCabang AND TableKartuRek.IdMRek = MRek.IdMRek)
+                        LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek)
+                        left outer join mgkbmbank bank on mrek.idmbank = bank.idmbank
+                    WHERE MCabang.Hapus = 0
+                    AND MRek.Hapus = 0
+                    AND MRek.IdMRek LIKE '%${list.idmrek}%'
+                    ${qbank}
+                    ORDER BY TableKartuRek.IdMCabang, TableKartuRek.IdMRek, Urut, TglTrans, JenisTrans, IdTrans`;
+                const barang = await sequelize.query(sql2, {
+                    raw: false,
+                });
+
+                var saldo = 0;
+                var arr_item = await Promise.all(barang[0].map(async (item, index_dua) => {
+                    var total = parseFloat(item.Debit) + parseFloat(item.Kredit);
+                    if (item.Saldo == 0) {
+                        total= parseFloat(item.Debit) + parseFloat(item.Kredit)
+                    } else {
+                        total = parseFloat(item.Saldo);
+                    }
+                    saldo += parseFloat(total);
+                    
+                    return {
+                        "tanggal" : item.TglTrans,
+                        "keterangan" : item.Keterangan,
+                        "debet" : parseFloat(item.Debit),
+                        "kredit" : parseFloat(Math.abs(item.Kredit)),
+                        "saldo" : parseFloat(saldo)
+                    }
+                }))
+
+                return {
+                    "bank": list.nmmbank,
+                    "kode": list.kdmrek,
+                    "nama": list.nmmrek,
+                    "list": arr_item,
+                }
+            }))
+
+            return {
+                "cabang": fil.nmmcabang,
+                "list": arr_list
+            }
+        }))
+
+        res.json({
+            message: "Success",
+            data: arr_data
+        })
+    }
 
 }
 
@@ -1193,7 +1289,7 @@ exports.hutang = async (req, res) => {
             }
         }))
 
-        const total = await countDataFromQuery(
+        const total = await fun.countDataFromQuery(
             `SELECT MSup.KdMSup, MSup.NmMSup, MSup.Aktif
             , sum(TablePosHut.PosHut) as total
         FROM (
@@ -2151,7 +2247,7 @@ exports.piutang = async (req, res) => {
 
         }))
 
-        // const total = await countDataFromQuery(
+        // const total = await fun.countDataFromQuery(
         //     `SELECT MCabang.idMCabang, MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif as AktifMCabang
         //     , Coalesce(MCust.KdMCust,'') as KdMCust, Coalesce(MCust.NmMCust,'') as NmMCust, coalesce(MCust.Aktif,1) as AktifMCust, sum(coalesce(MCust.LimitPiut,0)) as LimitPiut
         //     , sum(TablePosPiut.PosPiut) as total, sum(MCust.LimitPiut - TablePosPiut.PosPiut) As Selisih
@@ -3481,6 +3577,213 @@ exports.labarugi = async (req, res) => {
 
     // LABA RUGI
     else if (jenis == 3) {
-        
+        let date = req.body.tanggal || '2024-01-19';
+        let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
+        const filter = await sequelize.query(sql, {
+            raw: false,
+        });
+
+        var total = 0;
+        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
+            var total = 0;
+            var totalpenjualan=0;
+            var totalhpp=0;
+            var totallain = 0;
+            
+            let sql1 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TableRL.* FROM (
+                    SELECT 2 as Idx, 'Kotor' as Group2, 'Penjualan' as Group3, IdMCabang, 'Penjualan' AS Keterangan, sum(Jumlah) as Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, IF(m.JenisTJual = 0, SUM(d.QtyTotal * (d.HrgStn - COALESCE(d.DiscV, 0)) * (1 - (COALESCE(m.DiscV, 0)/m.Bruto))), sum(QtyTotal * HrgStnSales)) AS Jumlah 
+                        FROM MGARTJualD d 
+                            LEFT OUTER JOIN MGARTJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTJual = m.IdTJual) 
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTJual >= '${start}' AND TglTJual <= '${end}')
+                        GROUP BY m.IdMCabang 
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TablePenjualan
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 3 as Idx, 'Kotor' as Group2, 'Penjualan' as Group3, IdMCabang, 'Retur Penjualan' AS Keterangan, sum(Jumlah) as Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, - sum(QtyTotal * HrgStn) AS Jumlah
+                        FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTRJual = m.IdTRJual) WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTRJual >= '${start}' AND TglTRJual <= '${end}') GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableReturPenjualan
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 4 as Idx, 'Kotor' as Group2, 'HPP' as Group3, IdMCabang, 'Harga Pokok Penjualan' AS Keterangan, - sum(Jumlah) as Jumlah
+                    FROM (
+                        SELECT df.IdMCabang, sum(df.QtyTotal * df.HPP) AS Jumlah 
+                        FROM MGARTJualDF df LEFT OUTER JOIN MGARTJualD d ON (df.IdMCabang = d.IdMCabang AND df.IdTJualD = d.IdTJualD)
+                                                LEFT OUTER JOIN MGARTJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTJual = m.IdTJual)
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND (m.TglTJual >= '${start}' AND m.TglTJual <= '${end}') 
+                        GROUP BY df.IdMCabang
+                        UNION ALL
+                        SELECT d.IdMCabang, SUM(d.QtyTotal * d.HrgStn) AS Jumlah
+                        FROM mgaptbelid d
+                            LEFT OUTER JOIN mgaptbeli m ON (m.IdMCabang = d.IdMCabang AND m.IdTBeli = d.IdTBeli)
+                            LEFT OUTER JOIN mginmbrg brg ON (brg.IdMBrg = d.IdMBrg)
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND brg.Reserved_int1 = 2 AND (m.TglTBeli >= '${start}' AND m.TglTBeli <= '${end}') 
+                        GROUP BY d.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, - sum(QtyTotal * HPP) AS Jumlah
+                        FROM MGARTRJualD d LEFT OUTER JOIN MGARTRJual m ON (d.IdMCabang = m.IdMCabang AND d.IdTRJual = m.IdTRJual) WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTRJual >= '${start}' AND TglTRJual <= '${end}') GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableHPP
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    SELECT 4.5 AS Idx, 'Kotor' AS Group2, 'HPP' AS Group3, IdMCabang, 'Barang Jasa' AS Keterangan, -SUM(Jumlah) AS Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, SUM(QtyTotal * (HrgStn * (100 - d.DiscP)/100 * (100 - m.DiscP)/100 * (100 + m.PPNP)/100)) AS Jumlah
+                        FROM MGAPTBeliD d
+                            LEFT OUTER JOIN MGAPTBeli m ON (d.IdMCabang = m.IdMCabang AND d.IdTBeli = m.IdTBeli)
+                            LEFT OUTER JOIN MGINMBrg MBrg ON (MBrg.IdMBrg = d.IdMBrg)
+                            LEFT OUTER JOIN MGTRMTruck MTruck ON (MTruck.IdMTruck = d.IdMTruck)
+                        WHERE m.Hapus = 0 AND m.Void = 0 AND (TglTBeli >= '${start}' AND TglTBeli <= '${end}')
+                        AND MTruck.KdMTruck LIKE '%%'
+                        AND MTruck.NoPol LIKE '%%'
+                        AND MBrg.Reserved_int1 = 2
+                        GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TablePenjualan
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 12 AS Idx, 'Operasional' AS Group2, 'Pendapatan & Biaya Lain-lain dari Kas' AS Group3, IdMCabang, 'Pendapatan dari Perkiraan' AS Keterangan, SUM(Jumlah) AS Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, SUM(JMLBAYAR) AS Jumlah
+                        FROM MGKBTTransferD d LEFT OUTER JOIN MGKBTTransfer m ON (m.IdMCabang = d.IdMCabang AND m.IdTTransfer = d.IdTTransfer) 
+                                            LEFT OUTER JOIN MGGLMPrk p ON (p.IdMPrk = d.IdMRef AND d.JenisMRef = 'P' AND p.Periode = 0)
+                        WHERE d.jenismref = 'P'
+                        AND m.jenisttransfer = 'M'
+                        AND p.jenismprkd IN (7, 12)
+                        AND m.Hapus = 0 AND m.Void = 0 
+                        AND m.TglTTransfer >= '${start}' AND m.TglTTransfer <= '${end}'
+                        GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableBiayaKasKeluar
+                    GROUP BY IdMCabang
+                    
+                    UNION ALL
+                    
+                    SELECT 13 AS Idx, 'Operasional' AS Group2, 'Pendapatan & Biaya Lain-lain dari Kas' AS Group3, IdMCabang, 'Biaya dari Perkiraan' AS Keterangan, SUM(Jumlah) AS Jumlah
+                    FROM (
+                        SELECT m.IdMCabang, -SUM(JMLBAYAR) AS Jumlah
+                        FROM MGKBTTransferD d LEFT OUTER JOIN MGKBTTransfer m ON (m.IdMCabang = d.IdMCabang AND m.IdTTransfer = d.IdTTransfer) 
+                                            LEFT OUTER JOIN MGGLMPrk p ON (p.IdMPrk = d.IdMRef AND d.JenisMRef = 'P' AND p.Periode = 0)
+                        WHERE d.jenismref = 'P'
+                        AND m.jenisttransfer = 'K'
+                        AND p.jenismprkd IN (10, 11, 13)
+                        AND m.Hapus = 0 AND m.Void = 0 
+                        AND m.TglTTransfer >= '${start}' AND m.TglTTransfer <= '${end}'
+                        GROUP BY m.IdMCabang
+                        UNION ALL
+                        SELECT m.IdMCabang, 0 AS Jumlah
+                        FROM MGSYMCabang m
+                    ) TableBiayaKasKeluar
+                    GROUP BY IdMCabang
+                    
+                    ) TableRL LEFT OUTER JOIN MGSYMCabang MCabang ON (TableRL.IdMCabang = MCabang.IdMCabang)
+                    WHERE MCabang.Hapus = 0
+                    AND MCabang.Aktif = 1
+                    AND MCabang.NmMCabang LIKE '%${fil.nmmcabang}%'
+                    ORDER BY KdMCabang, Idx`;
+            const laporan = await sequelize.query(sql1, {
+                raw: false,
+            });
+
+            var arr_penjualan = [];
+            var arr_hpp = [];
+            var arr_lain = [];
+            var arr_list = await Promise.all(laporan[0].map(async (list, index) => {
+                total += parseFloat(list.Jumlah);
+                if (list.Group3 == "Penjualan") {
+                    totalpenjualan += parseFloat(list.Jumlah);
+                    arr_penjualan.push({
+                        // "group": list.Group3,
+                        "keterangan": list.Keterangan,
+                        "jumlah": parseFloat(list.Jumlah)
+                    })
+                    // Object.assign(arr_penjualan, {
+                    //     "group": list.Group3,
+                    //     "keterangan": list.Keterangan,
+                    //     "jumlah": parseFloat(list.Jumlah)
+                    // });
+                }
+                if (list.Group3 == "HPP") {
+                    totalhpp += parseFloat(list.Jumlah);
+                    arr_hpp.push({
+                        // "group": list.Group3,
+                        "keterangan": list.Keterangan,
+                        "jumlah": parseFloat(list.Jumlah)
+                    })
+                    // Object.assign(arr_hpp, {
+                    //     "group": list.Group3,
+                    //     "keterangan": list.Keterangan,
+                    //     "jumlah": parseFloat(list.Jumlah)
+                    // });
+                }
+                if (list.Group3 == "Pendapatan & Biaya Lain-lain dari Kas") {
+                    totallain += parseFloat(list.Jumlah);
+                    arr_lain.push({
+                        // "group": list.Group3,
+                        "keterangan": list.Keterangan,
+                        "jumlah": parseFloat(list.Jumlah)
+                    })
+                    // Object.assign(arr_lain, {
+                    //     "group": list.Group3,
+                    //     "keterangan": list.Keterangan,
+                    //     "jumlah": parseFloat(list.Jumlah)
+                    // });
+                }
+            }));
+
+            var penjualan = {
+                "total": totalpenjualan,
+                "data": arr_penjualan 
+            }
+
+            var hpp = {
+                "total": totalpenjualan,
+                "data": arr_hpp 
+            }
+
+            var lain = {
+                "total": totalpenjualan,
+                "data": arr_lain 
+            }
+
+            
+            return {
+                "nama": fil.nmmcabang,
+                "labarugi" : total,
+                "penjualan" : penjualan,
+                // "totalhpp" : totalhpp,
+                "hpp" : hpp,
+                // "totallain" : totallain,
+                "biayalain" : lain,
+                // "total" : total
+            }
+        }))
+
+        res.json({
+            message: "Success, report laba rugi",
+            data: arr_data
+        })
     }
 }

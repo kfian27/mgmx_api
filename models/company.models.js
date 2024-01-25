@@ -43,6 +43,15 @@ module.exports = (sequelize, Sequelize) => {
       password: {
         type: Sequelize.STRING,
       },
+      host: {
+        type: Sequelize.STRING,
+      },
+      port: {
+        type: Sequelize.STRING,
+      },
+      database: {
+        type: Sequelize.STRING,
+      },
       deviceID: {
         type: Sequelize.STRING,
       },
