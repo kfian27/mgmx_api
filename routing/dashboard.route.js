@@ -2,6 +2,8 @@ const reportController = require("../controller/dashboard.controller");
 const router = require("express").Router();
 const multer = require("multer");
 const upload = multer();
+const authMiddleware = require("../middleware/auth_company");
+router.use(authMiddleware);
 
 router.get("/getDataCustomer", upload.none(), reportController.getDataCustomer);
 router.get("/getDataSupplier", upload.none(), reportController.getDataSupplier);

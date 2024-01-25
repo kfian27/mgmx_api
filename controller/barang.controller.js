@@ -1,16 +1,12 @@
-const db = require("../models");
-const sequelize = db.sequelize;
+// const db = require("../models");
+// const sequelize = db.sequelize;
+
+const fun = require("../mgmx");
 
 // get list
 exports.findAll = async (req, res) => {
-  // const data = await sequelize.query("SELECT * FROM mginmbrg", {
-  //   raw: false,
-  // });
-  
-  // res.json({
-  //   message: "All data barang",
-  //   data: data[0],
-  // });
+  const sequelize = await fun.connection(req.datacompany);
+
   let sql = "SELECT IdMBrg, DATE_FORMAT(TglCreate,'%d-%m-%Y') as Created, TglUpdate, NmMBrg, Barcode, KdMBrg, Reserved_dec1 as HppBarang, Reserved_dec2 as HargaJual, Keterangan, KdMStn, Aktif, Gambar FROM mginmbrg WHERE Hapus = 0";
   let sortBy = req.body.sort_by || "TglCreate";
   let sortType = req.body.sort_type || "desc";
@@ -26,7 +22,7 @@ exports.findAll = async (req, res) => {
   let page = req.body.page || 1;
   let offset = (page - 1) * limit;
   let where = {};
-  let Op = db.Sequelize.Op;
+  // let Op = db.Sequelize.Op;
   let qsearch = '';
   let qsort = '';
   let qpaginate = '';
@@ -92,6 +88,8 @@ exports.findAll = async (req, res) => {
 
 // Create: Create data sesuai id yang dikirimkan
 exports.create = async (req, res) => {
+  const sequelize = await fun.connection(req.datacompany);
+
   let qcount = "SELECT COUNT(IdMBrg) as total FROM mginmbrg";
   const count_data = await sequelize.query(qcount, {
     raw: false,
@@ -131,6 +129,8 @@ exports.create = async (req, res) => {
 
 // UPDATE: Update data sesuai id yang dikirimkan
 exports.update = async (req, res) => {
+  const sequelize = await fun.connection(req.datacompany);
+
   const id = req.params.id;
 
   let kode = req.body.kode || "";
@@ -174,6 +174,8 @@ exports.update = async (req, res) => {
 
 // DELETE: Menghapus data sesuai id yang dikirimkan
 exports.delete = async (req, res) => {
+  const sequelize = await fun.connection(req.datacompany);
+
   const id = req.params.id;
   let userid = 0;
   let sql = `UPDATE mginmbrg SET Hapus = 1, idmuserupdate = ${userid}, tglupdate = NOW() WHERE IdMBrg = ${id}`

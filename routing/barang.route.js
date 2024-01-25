@@ -2,6 +2,8 @@ const barangController = require("../controller/barang.controller");
 const router = require("express").Router();
 const multer = require("multer");
 const upload = multer();
+const authMiddleware = require("../middleware/auth_company");
+router.use(authMiddleware);
 
 router.post("/", barangController.findAll);
 router.post("/create", upload.none(), barangController.create);

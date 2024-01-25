@@ -1,8 +1,5 @@
-const db = require("./models/index");
-const sequelize = db.sequelize;
-// const { QueryTypes } = require('sequelize');
 
-exports.countDataFromQuery = async (query = "") => {
+exports.countDataFromQuery = async (sequelize, query = "") => {
     var count_data = await sequelize.query(
         query, {
             raw: false,
@@ -11,7 +8,7 @@ exports.countDataFromQuery = async (query = "") => {
     return parseFloat(count_data.total);
 }
 
-exports.getDataFromQuery = async (query = "") => {
+exports.getDataFromQuery = async (sequelize, query = "") => {
     var data = await sequelize.query(
         query, {
             raw: false,
@@ -28,5 +25,19 @@ exports.getDateDiff = async (start = "", end = "") => {
     let diff_days = Math.round(diff_time / (1000 * 3600 * 24));
     
     return diff_days;
+}
+
+exports.connection = async (datacompany = "") => {
+    console.log('datacompany', datacompany)
+    var db = require("./models/db_dynamic")(datacompany);
+    var sequelize = db.sequelize;
+    return sequelize;
+    // if (datacompany == "") {
+    //     console.log('asdasdas')
+    // } else {
+    //     var db = require("./models/db_dynamic")(datacompany);
+    //     var sequelize = db.sequelize;
+    //     return sequelize;
+    // }
 }
 

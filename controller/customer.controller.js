@@ -1,15 +1,12 @@
-const db = require("../models");
-const sequelize = db.sequelize;
+// const db = require("../models");
+// const sequelize = db.sequelize;
+
+const fun = require("../mgmx");
+
 
 exports.findAll = async (req, res) => {
-    // const data = await sequelize.query("SELECT * FROM mginmbrg", {
-    //   raw: false,
-    // });
+    const sequelize = await fun.connection(req.datacompany);
 
-    // res.json({
-    //   message: "All data barang",
-    //   data: data[0],
-    // });
     let sql = `SELECT c.IdMCust, c.KdMCust, c.NmMCust, c.JenisMCust, c.Alamat, c.IdMKota, c.Kota, c.KodePos, c.Telp1, c.Hp1, c.Aktif FROM mgarmcust c WHERE c.Hapus = 0`;
 
     let sortBy = req.body.sort_by || "TglCreate";
@@ -26,7 +23,7 @@ exports.findAll = async (req, res) => {
     let page = req.body.page || 1;
     let offset = (page - 1) * limit;
     let where = {};
-    let Op = db.Sequelize.Op;
+    // let Op = db.Sequelize.Op;
     let qsearch = '';
     let qsort = '';
     let qpaginate = '';
@@ -83,6 +80,8 @@ exports.findAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let qcount = "SELECT IdMCust as ID FROM mgarmcust ORDER BY ID DESC LIMIT 1";
     const count_data = await sequelize.query(qcount, {
         raw: false,
@@ -124,6 +123,8 @@ exports.create = async (req, res) => {
 }
 
 exports.update = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     const id = req.params.id;
     req.body['id'] = parseInt(id);
 
@@ -139,16 +140,16 @@ exports.update = async (req, res) => {
 
 
     let sql = `update mgarmcust set 
-  kdmcust='${kode}',
-  nmmcust='${nama}',
-  alamat='${alamat}',
-  kodepos='${kodepos}',
-  telp1='${telp}',
-  hp1='${hp}',
-  aktif='${is_aktif}',
-  idmuserupdate='${userid}',
-  tglupdate = NOW()
-  where idmcust=${id}`;
+    kdmcust='${kode}',
+    nmmcust='${nama}',
+    alamat='${alamat}',
+    kodepos='${kodepos}',
+    telp1='${telp}',
+    hp1='${hp}',
+    aktif='${is_aktif}',
+    idmuserupdate='${userid}',
+    tglupdate = NOW()
+    where idmcust=${id}`;
     const data = await sequelize.query(sql, {
         raw: false,
     }).then(datanya => {
@@ -166,6 +167,8 @@ exports.update = async (req, res) => {
 
 // DELETE: Menghapus data sesuai id yang dikirimkan
 exports.delete = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     const id = req.params.id;
     req.body['id'] = parseInt(id);
     let userid = 0;

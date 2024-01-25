@@ -1,10 +1,12 @@
 // comment By fian
 // const db = require("../models");
 // const sequelize = db.sequelize;
+const fun = require("../mgmx");
 
 exports.findAll = async (req, res) => {
-  const db = require("../models/db_dynamic")(req.datacompany);
-  const sequelize = db.sequelize;
+  // const db = require("../models/db_dynamic")(req.datacompany);
+  // const sequelize = db.sequelize;
+  const sequelize = await fun.connection(req.datacompany);
 
   let sql =
     "SELECT IdMStn, KdMStn, NmMStn, Aktif FROM mginmstn WHERE Hapus = 0";
@@ -22,7 +24,7 @@ exports.findAll = async (req, res) => {
   let page = req.body.page || 1;
   let offset = (page - 1) * limit;
   let where = {};
-  let Op = db.Sequelize.Op;
+  // let Op = db.Sequelize.Op;
   let qsearch = "";
   let qsort = "";
   let qpaginate = "";
@@ -84,8 +86,10 @@ exports.findAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  const db = require("../models/db_dynamic")(req.datacompany);
-  const sequelize = db.sequelize;
+  // const db = require("../models/db_dynamic")(req.datacompany);
+  // const sequelize = db.sequelize;
+  const sequelize = await fun.connection(req.datacompany);
+
   let qcount = "SELECT IdMStn as ID FROM mginmstn ORDER BY ID DESC LIMIT 1";
   const count_data = await sequelize.query(qcount, {
     raw: false,
@@ -123,8 +127,10 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const db = require("../models/db_dynamic")(req.datacompany);
-  const sequelize = db.sequelize;
+  // const db = require("../models/db_dynamic")(req.datacompany);
+  // const sequelize = db.sequelize;
+  const sequelize = await fun.connection(req.datacompany);
+
   const id = req.params.id;
   req.body["id"] = parseInt(id);
 
@@ -161,8 +167,10 @@ exports.update = async (req, res) => {
 
 // DELETE: Menghapus data sesuai id yang dikirimkan
 exports.delete = async (req, res) => {
-  const db = require("../models/db_dynamic")(req.datacompany);
-  const sequelize = db.sequelize;
+  // const db = require("../models/db_dynamic")(req.datacompany);
+  // const sequelize = db.sequelize;
+  const sequelize = await fun.connection(req.datacompany);
+
   const id = req.params.id;
   req.body["id"] = parseInt(id);
   let userid = 0;

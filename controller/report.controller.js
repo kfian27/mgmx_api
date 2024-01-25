@@ -1,11 +1,12 @@
-const db = require("../models");
-const sequelize = db.sequelize;
+// const db = require("../models");
+// const sequelize = db.sequelize;
 
 const fun = require("../mgmx");
 
 let today = new Date().toJSON().slice(0, 10);
 
 exports.getListCabang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
     let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -18,6 +19,8 @@ exports.getListCabang = async (req, res) => {
 }
 
 exports.getListCustomer = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select IdMCust as ID, NmMCust as nama from mgarmcust where aktif=1 and hapus=0`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -30,6 +33,8 @@ exports.getListCustomer = async (req, res) => {
 }
 
 exports.getListSupplier = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmsup as ID, nmmsup as nama from mgapmsup where aktif=1 and hapus=0`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -42,6 +47,8 @@ exports.getListSupplier = async (req, res) => {
 }
 
 exports.getListGudang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -53,6 +60,8 @@ exports.getListGudang = async (req, res) => {
     });
 }
 exports.getListBarang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg GROUP BY b.idmbrg`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -65,6 +74,8 @@ exports.getListBarang = async (req, res) => {
 }
 
 exports.getListBank = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -77,6 +88,8 @@ exports.getListBank = async (req, res) => {
 }
 
 exports.getListKas = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0`;
     const data = await sequelize.query(sql, {
         raw: false,
@@ -90,6 +103,7 @@ exports.getListKas = async (req, res) => {
 
 
 exports.penjualan = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let start = req.body.start || '2008-01-17';
     let end = req.body.end || '2024-02-17';
@@ -117,15 +131,19 @@ exports.penjualan = async (req, res) => {
 
 
     const count_penjualan = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COUNT(j.idtjual) as total FROM mgartjual j LEFT OUTER JOIN mgartjuald jd ON jd.idtjual = j.idtjual WHERE j.hapus=0 ${qcabang} ${qcustomer} ${qbarang} and j.tgltjual between '${start}%' and '${end}%'`
     );
     const count_produk = await fun.countDataFromQuery(
+        sequelize,
         `SELECT SUM(jd.qtytotal) as total FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual = j.IdTJual WHERE j.tgltjual between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qcustomer}`
     );
     const count_pendapatan = await fun.countDataFromQuery(
+        sequelize,
         `SELECT SUM(j.netto) as total FROM mgartjual j WHERE j.tgltjual between '${start}%' and '${end}%' and j.hapus=0 ${qcabang} ${qcustomer} ${qbarang}`
     );
     const count_hpp = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COALESCE((SELECT (jd.QtyTotal * b.reserved_dec1) AS hpp FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual=j.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.idmbrg WHERE j.tgltjual between '${start}%' and '${end}%' ${qbarang} ${qcustomer} ${qbarang} order by jd.IdTJualD desc limit 1),0) as total`
     );
 
@@ -422,6 +440,7 @@ exports.penjualan = async (req, res) => {
 };
 
 exports.pembelian = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let start = req.body.start || '2008-01-17';
     let end = req.body.end || '2024-02-17';
@@ -454,12 +473,15 @@ exports.pembelian = async (req, res) => {
     let group = req.body.group;
 
     const count_pembelian = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang_count} ${qsupplier_count} ${qbarang_count} and j.tgltbeli between '${start}%' and '${end}%'`
     );
     const count_produk = await fun.countDataFromQuery(
+        sequelize,
         `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count}`
     );
     const count_pengeluaran = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count} order by j.idtbeli desc limit 1),0) as total`
     );
 
@@ -717,6 +739,7 @@ exports.pembelian = async (req, res) => {
 };
 
 exports.stock = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     // posisi stock
@@ -867,6 +890,7 @@ exports.stock = async (req, res) => {
 }
 
 exports.kas = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     // posisi kas
@@ -898,6 +922,7 @@ exports.kas = async (req, res) => {
         }))
 
         var grandtotal = await fun.countDataFromQuery(
+            sequelize,
             `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
         );
 
@@ -916,10 +941,10 @@ exports.kas = async (req, res) => {
         let start = req.body.start || today;
         let end = req.body.end || today;
 
-        let kas = req.body.kas || "";
+        let mkas = req.body.mkas || "";
         let qkas = "";
-        if (kas != "") {
-            qkas = "AND k.idmkas=" + kas;
+        if (mkas != "") {
+            qkas = "AND k.idmkas=" + mkas;
         }
 
         let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' GROUP BY c.nmmcabang`;
@@ -974,6 +999,7 @@ exports.kas = async (req, res) => {
 }
 
 exports.bank = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     // posisi bank
@@ -1101,6 +1127,7 @@ exports.bank = async (req, res) => {
 }
 
 exports.hutang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     
@@ -1298,6 +1325,7 @@ exports.hutang = async (req, res) => {
         }))
 
         const total = await fun.countDataFromQuery(
+            sequelize,
             `SELECT MSup.KdMSup, MSup.NmMSup, MSup.Aktif
             , sum(TablePosHut.PosHut) as total
         FROM (
@@ -1840,6 +1868,8 @@ exports.hutang = async (req, res) => {
 }
 
 exports.piutang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let jenis = req.body.jenis || 1;
 
     // posisi piutang
@@ -2665,7 +2695,7 @@ exports.piutang = async (req, res) => {
             , Coalesce(MCust.KdMCust, '') as KdMCust
             , coalesce(MCust.NmMCust, '') as NmMCust
             , Bcf.no_bcf
-            , CAST(TableKartuPiut.IdMCabangMCust AS INT) As IdMCabangMCust
+            , TableKartuPiut.IdMCabangMCust As IdMCabangMCust
             , TableKartuPiut.IdMCust
             , TableKartuPiut.IdMCabangTrans
             , TableKartuPiut.IdTrans
@@ -3458,6 +3488,8 @@ exports.piutang = async (req, res) => {
 }
 
 exports.labarugi = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let jenis = req.body.jenis || 1;
     let start = req.body.start || today;
     let end = req.body.end || today;
