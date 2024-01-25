@@ -2,6 +2,8 @@ const reportController = require("../controller/report.controller");
 const router = require("express").Router();
 const multer = require("multer");
 const upload = multer();
+const authMiddleware = require("../middleware/auth_company");
+router.use(authMiddleware);
 
 router.get("/getListCabang", upload.none(), reportController.getListCabang);
 router.get("/getListCustomer", upload.none(), reportController.getListCustomer);
