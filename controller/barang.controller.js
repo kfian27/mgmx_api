@@ -105,7 +105,15 @@ exports.create = async (req, res) => {
   let hpp = req.body.hpp || 0;
   let harga_jual = req.body.harga_jual || 0;
   let keterangan = req.body.keterangan || "";
-  let gambar = req.body.gambar || "";
+  let gambar = req.file || "";
+  
+  if (gambar != "") {
+    let file_path = req.file.path;
+    file_path = file_path.replace("public\\", "");
+    file_path = file_path.replace("\\", "/");
+    gambar = file_path;
+  }
+
   let is_aktif = req.body.is_aktif || "";
 
   let userid = 0;
@@ -141,7 +149,14 @@ exports.update = async (req, res) => {
   let harga_jual = req.body.harga_jual || 0;
   let keterangan = req.body.keterangan || "";
   let is_aktif = req.body.is_aktif || 0;
-  let gambar = req.body.gambar || "";
+  let gambar = req.file || "";
+  
+  if (gambar != "") {
+    let file_path = req.file.path;
+    file_path = file_path.replace("public\\", "");
+    file_path = file_path.replace("\\", "/");
+    gambar = file_path;
+  }
   let userid = 0;
 
 
