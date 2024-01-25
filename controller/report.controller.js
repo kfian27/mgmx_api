@@ -897,8 +897,16 @@ exports.kas = async (req, res) => {
             }
         }))
 
+        var grandtotal = await fun.countDataFromQuery(
+            `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
+        );
+
+        var count = {
+            grandtotal: grandtotal
+        }
         res.json({
             message: "Success",
+            countData: count,
             data: arr_data
         })
     }

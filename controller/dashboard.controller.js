@@ -419,3 +419,89 @@ exports.getNilaiBisnis = async (req, res) => {
 
     
 }
+
+exports.getBarangTerlaku = async (req, res) => {
+    let date = today;
+    const data = await fun.getDataFromQuery(
+        `SELECT b.nmmbrg as nama, SUM(jd.qtytotal) AS jumlah FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.tgltjual = '${date}' GROUP BY b.idmbrg ORDER BY SUM(jd.qtytotal) DESC LIMIT 10`
+    );
+
+    var arr_data = data.map((list, index) => {
+        list.jumlah = parseFloat(list.jumlah);
+        return list;
+    })
+    
+    res.json({
+        message: "Success",
+        data: arr_data
+    });
+}
+
+exports.getDataGrafik = async (req, res) => {
+    let start = req.query.start || today;
+    let end = req.query.end || today;
+    let jenis = req.query.jenis;
+
+    start = new Date(start);
+
+    var diff = await fun.getDateDiff(start, end);
+
+    var arr_data = [];
+    var total = 0;
+    for (var i = 0; i <= diff; i++) {
+        var tgl = start;
+        if (i > 0) {
+            tgl.setDate(tgl.getDate() + 1)
+            tgl.toLocaleDateString();    
+        }
+        
+        let tgl2 = tgl.toISOString();
+        tgl2 = tgl2.slice(0, 10);
+        var sql = '';
+        if (jenis == 'jual') { 
+            sql = await query.dashboard_grafikjual(tgl2)
+        } else if (jenis == 'beli') {
+            sql = `SELECT SUM(netto) AS jumlah FROM mgaptbeli WHERE tgltbeli = '${tgl2}' and hapus=0`
+        } else if (jenis == 'rjual') {
+            sql = `select sum(netto) as jumlah from mgartrjual where tgltrjual = '${tgl2}' and hapus=0`
+        } else if (jenis == 'rbeli') {
+            sql = `SELECT SUM(netto) AS jumlah FROM mgaptrbeli WHERE tgltrbeli = '${tgl2}' and hapus=0`
+        } else if (jenis == 'kmasuk') {
+            sql = `SELECT SUM(jmlkas) AS jumlah FROM mgkblkartukas WHERE tgltrans = '${tgl2}' and jmlkas >= 0`
+        } else if (jenis == 'kkeluar') {
+            sql = `SELECT SUM(abs(jmlkas)) AS jumlah FROM mgkblkartukas WHERE tgltrans = '${tgl2}' and jmlkas <=0`
+        } else if (jenis == 'bmasuk') {
+            sql = `SELECT SUM(jmlrek) AS jumlah FROM mgkblkartubank WHERE jmlrek>=0 and tgltrans = '${tgl2}'`
+        } else if (jenis == 'bkeluar') {
+            sql = `SELECT SUM(abs(jmlrek)) AS jumlah FROM mgkblkartubank WHERE jmlrek<=0 and tgltrans = '${tgl2}'`
+        } else if (jenis == 'hutang') {
+            sql = await query.dashboard_grafikhutang(tgl2);
+        } else if (jenis == 'piutang') {
+            sql = await query.dashboard_grafikpiutang(tgl2);
+        } else if (jenis == 'labarugi') {
+            sql = await query.dashboard_grafiklabarugi(tgl2);
+        } 
+
+        if (sql != '') {
+            const data = await fun.getDataFromQuery(
+                sql
+            );
+            
+            var arr_item = await data.map((list, index) => { 
+                var newdate = new Date(tgl);
+                var jumlah = parseFloat(list.jumlah || 0);
+                total += jumlah;
+                arr_data.push({
+                    "tanggal": newdate,
+                    "nilai" : jumlah
+                })
+            })
+        }
+    }
+
+    res.json({
+        message: "Success get data grafik" + jenis,
+        total:total,
+        data: arr_data
+    })
+}
