@@ -446,26 +446,26 @@ exports.pembelian = async (req, res) => {
     let end = req.body.end || '2024-02-17';
     let jenis = req.body.jenis || 1;
 
-    let cabang = req.body.cabang;
+    let cabang = req.body.cabang || "";
     let qcabang = "";
     let qcabang_count = "";
-    if (cabang && cabang != "") {
+    if (cabang != "") {
         qcabang = "and b.idmcabang=" + cabang;
         qcabang_count = "and j.idmcabang=" + cabang;
     }
 
-    let supplier = req.body.supplier;
+    let supplier = req.body.supplier || "";
     let qsupplier = "";
     let qsupplier_count = "";
-    if (supplier && supplier != "") {
+    if (supplier != "") {
         qsupplier = "and b.idmsup=" + supplier;
         qsupplier_count = "and j.idmsup=" + supplier;
     }
 
-    let barang = req.body.barang;
+    let barang = req.body.barang || "";
     let qbarang = "";
     let qbarang_count = "";
-    if (barang && barang != "") {
+    if (barang != "") {
         qbarang = "and bb.idmbrg=" + barang;
         qbarang_count = "and jd.idmbrg=" + barang;
     }
@@ -655,7 +655,7 @@ exports.pembelian = async (req, res) => {
                 "grandtotal": parseFloat(list.netto),
                 "bayar": parseFloat(list.jmlbayartunai),
                 "kredit": parseFloat(list.jmlbayarkredit),
-                "sisa": parseFloat(list.jmlbayarkredit + list.jmlbayartunai - list.netto),
+                "sisa": parseFloat(list.jmlbayarkredit) + parseFloat(list.jmlbayartunai) - parseFloat(list.netto),
                 "item": arr_brg,
 
             }
@@ -683,7 +683,7 @@ exports.pembelian = async (req, res) => {
                 }
             }))
         } else if (group == "supplier") {
-            let sql = `SELECT s.* FROM mgapmsup s LEFT OUTER JOIN mgaptbeli b ON s.idmsup = b.idmsup LEFT OUTER JOIN mgaptbelid bd ON b.idtbeli = bd.idtbeli WHERE s.Aktif = 1 AND s.hapus = 0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qbarang} ${qsupplier} ${qcabang} GROUP BY s.nmmsup HAVING COUNT(b.idtbeli)>0`;
+            let sql = `SELECT s.idmsup, s.nmmsup FROM mgapmsup s LEFT OUTER JOIN mgaptbeli b ON s.idmsup = b.idmsup LEFT OUTER JOIN mgaptbelid bd ON b.idtbeli = bd.idtbeli WHERE s.Aktif = 1 AND s.hapus = 0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qbarang} ${qsupplier} ${qcabang} GROUP BY s.nmmsup HAVING COUNT(b.idtbeli)>0`;
             const filter = await sequelize.query(sql, {
                 raw: false,
             });
@@ -705,7 +705,7 @@ exports.pembelian = async (req, res) => {
                 }
             }))
         } else if (group == "barang") {
-            let sql = `SELECT b.* FROM mginmbrg b LEFT OUTER JOIN mgaptbelid bd ON b.IdMBrg = bd.idmbrg LEFT OUTER JOIN mgaptbeli bb ON bd.idtbeli = bb.idtbeli WHERE b.aktif = 1 AND b.hapus=0 AND bb.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.Idmbrg HAVING COUNT(bb.IdTbeli)>0`;
+            let sql = `SELECT b.idmbrg,b.nmmbrg FROM mginmbrg b LEFT OUTER JOIN mgaptbelid bd ON b.IdMBrg = bd.idmbrg LEFT OUTER JOIN mgaptbeli bb ON bd.idtbeli = bb.idtbeli WHERE b.aktif = 1 AND b.hapus=0 AND bb.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.Idmbrg HAVING COUNT(bb.IdTbeli)>0`;
             const filter = await sequelize.query(sql, {
                 raw: false,
             });
@@ -1031,8 +1031,18 @@ exports.bank = async (req, res) => {
             }
         }))
 
+        var grandtotal = await fun.countDataFromQuery(
+            sequelize,
+            `SELECT sum(TablePosRek.PosRek) as total FROM (SELECT TransAll.IdMCabang, IdMRek, Sum(JmlRek) as PosRek FROM (Select k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' as TglTrans, IdMCabang, IdMRek, 0 as JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 AND PosRek <> 0 AND MUserMRek.IdMUser=1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`
+        );
+
+        var count = {
+            grandtotal : parseFloat(grandtotal)
+        }
+
         res.json({
             message: "Success",
+            countData: count,
             data: arr_data
         })
     } else if (jenis == 2) {
