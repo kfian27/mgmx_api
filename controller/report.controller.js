@@ -8,13 +8,11 @@ let today = new Date().toJSON().slice(0, 10);
 exports.getListCabang = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
     let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
@@ -22,13 +20,11 @@ exports.getListCustomer = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
     let sql = `select IdMCust as ID, NmMCust as nama from mgarmcust where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
@@ -36,13 +32,11 @@ exports.getListSupplier = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
     let sql = `select idmsup as ID, nmmsup as nama from mgapmsup where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
@@ -50,26 +44,22 @@ exports.getListGudang = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
     let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 exports.getListBarang = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
     let sql = `SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg GROUP BY b.idmbrg`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
@@ -77,13 +67,11 @@ exports.getListBank = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
     let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
@@ -91,13 +79,23 @@ exports.getListKas = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
     let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
+    });
+}
+
+exports.getListSales = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
+    let sql = `select idmsales as ID, nmmsales as nama from mgarmsales where aktif=1 and hapus=0`;
+    const data = await fun.getDataFromQuery(sequelize,sql);
+
+    res.json({
+        message: "Success",
+        data: data
     });
 }
 

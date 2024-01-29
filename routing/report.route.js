@@ -12,6 +12,7 @@ router.get("/getListGudang", upload.none(), reportController.getListGudang);
 router.get("/getListBarang", upload.none(), reportController.getListBarang);
 router.get("/getListBank", upload.none(), reportController.getListBank);
 router.get("/getListKas", upload.none(), reportController.getListKas);
+router.get("/getListSales", upload.none(), reportController.getListSales);
 router.post("/penjualan", upload.none(), reportController.penjualan);
 router.post("/pembelian", upload.none(), reportController.pembelian);
 router.post("/stock", upload.none(), reportController.stock);
