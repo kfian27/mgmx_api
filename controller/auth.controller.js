@@ -82,7 +82,7 @@ exports.setCompany = async (req, res) => {
         let token = jwt.sign(user[0], process.env.JWT_SECRET);
         res.json({
           message: "User retrieved successfully.",
-          data: token,
+          token: token,
         });
       } else {
         res.status(400).json({

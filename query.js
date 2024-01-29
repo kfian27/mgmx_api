@@ -884,3 +884,697 @@ exports.dashboard_totalpiutang = async (date = "") => {
 
     return sql;
 }
+
+exports.dashboard_grafikjual = async (tgl2 = "") => { 
+    var sqldiscount =`
+        (SUM( 
+            ( 
+                SELECT SUM(
+                    IF (( 
+                        SELECT komisi 
+                        FROM   mginmbrgdfoodcourt 
+                        WHERE  idmbrg = tjuald.idmbrg 
+                        AND    tglberlaku = 
+                            ( 
+                                SELECT MAX(tglberlaku) 
+                                FROM   mginmbrgdfoodcourt 
+                                WHERE  idmbrg = tjuald.idmbrg 
+                                AND    tglberlaku <= tjual.tgltjual)
+                        )<>0,
+                                    
+                    (tjuald.subtotal - (100/(100+ 
+                        ( 
+                        SELECT komisi 
+                        FROM   mginmbrgdfoodcourt 
+                        WHERE  idmbrg = tjuald.idmbrg 
+                        AND    tglberlaku = 
+                            ( 
+                                SELECT MAX(tglberlaku) 
+                                FROM   mginmbrgdfoodcourt 
+                                WHERE  idmbrg = tjuald.idmbrg 
+                                AND    tglberlaku <= tjual.tgltjual)
+                        ) 
+                            ) * tjuald.subtotal)
+                    ), tjuald.subtotal)
+                    ) 
+                FROM   mgartjuald tjuald 
+                WHERE  idtjual=tjual.idtjual
+            )
+        )
+    )`;
+    var sql = `select ${sqldiscount} as jumlah from mgartjual TJual where tgltjual = '${tgl2}%' and hapus=0`;
+    return sql;
+}
+
+exports.dashboard_grafikhutang = async (tgl2 = "") => { 
+    let sql = `select
+        MSup.KdMSup,
+        MSup.NmMSup,
+        MSup.Aktif,
+        sum(TablePosHut.PosHut) as jumlah
+    from
+        (
+        select
+            IdMSup,
+            SUM(JmlHut) as PosHut
+        from
+            (
+            select
+                TglTrans,
+                IdMSup,
+                JmlHut
+            from
+                (
+                select
+                    IdMSup ,
+                    0 as JenisTrans ,
+                    IdTSAHut as IdTrans ,
+                    BuktiTSAHut as BuktiTrans ,
+                    CONCAT(DATE(TglTSAHut), ' ', TIME(TglUpdate)) as TglTrans ,
+                    JmlHut ,
+                    'Saldo Awal' as Keterangan
+                from
+                    MGAPTSAHut
+                where
+                    JmlHut <> 0
+            union all
+                select
+                    IdMSup ,
+                    1 as JenisTrans ,
+                    IdTBeli as IdTrans ,
+                    if(BuktiTBeli = '',
+                    BuktiTLPB,
+                    BuktiTBeli) as BuktiTrans ,
+                    CONCAT(DATE(TglTBeli), ' ', TIME(TglUpdate)) as TglTrans ,
+                    (Netto - JmlBayarTunai) as JmlHut ,
+                    CONCAT('Pembelian ', BuktiTBeli) as Keterangan
+                from
+                    MGAPTBeli
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and (Netto - JmlBayarTunai) <> 0
+                    and HapusLPB = 0
+                    and VoidLPB = 0
+                    and BuktiTBeli <> ''
+            union all
+                select
+                    IdMSup ,
+                    1.1 as JenisTrans ,
+                    IdTBeliLain as IdTrans ,
+                    BuktiTBeliLain as BuktiTrans ,
+                    CONCAT(DATE(TglTBeliLain), ' ', TIME(TglUpdate)) as TglTrans ,
+                    (JmlBayarKredit) as JmlHut ,
+                    CONCAT('Biaya Lain-Lain ', BuktiTBeliLain) as Keterangan
+                from
+                    MGAPTBeliLain
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and (JmlBayarKredit) <> 0
+            union all
+                select
+                    IdMSup ,
+                    2 as JenisTrans ,
+                    IdTRBeli as IdTrans ,
+                    BuktiTRBeli as BuktiTrans ,
+                    CONCAT(DATE(TglTRBeli), ' ', TIME(TglUpdate)) as TglTrans ,
+                    - (Netto - JmlBayarTunai) as JmlHut ,
+                    CONCAT('Retur Pembelian ', BuktiTRBeli) as Keterangan
+                from
+                    MGAPTRBeli
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and JenisTRBeli = 0
+                    and (Netto - JmlBayarTunai) <> 0
+            union all
+                select
+                    IdMSup ,
+                    3 as JenisTrans ,
+                    IdTPBeli as IdTrans ,
+                    BuktiTPBeli as BuktiTrans ,
+                    CONCAT(DATE(TglTPBeli), ' ', TIME(TglUpdate)) as TglTrans ,
+                    - Total as JmlHut ,
+                    CONCAT('Potongan Pembelian ', BuktiTPBeli) as Keterangan
+                from
+                    MGAPTPBeli
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and Total <> 0
+            union all
+                select
+                    IdMSup ,
+                    4 as JenisTrans ,
+                    IdTBHut as IdTrans ,
+                    BuktiTBHut as BuktiTrans ,
+                    CONCAT(DATE(TglTBHut), ' ', TIME(TglUpdate)) as TglTrans ,
+                    - Total as JmlHut ,
+                    CONCAT('Pembayaran Hutang ', BuktiTBHut) as Keterangan
+                from
+                    MGAPTBHut
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and Total <> 0
+            union all
+                select
+                    hut.IdMSup ,
+                    4.1 as JenisTrans ,
+                    Hut.IdTBHut as IdTrans ,
+                    BuktiTBHut as BuktiTrans ,
+                    CONCAT(DATE(Hut.TglTBHut), ' ', TIME(Hut.TglUpdate)) as tgltrans ,
+                    HutDB.JmlBayar as JmlHut ,
+                    CONCAT('Titipan Giro ', Hut.BuktiTBHut, ' (', giro.kdmgiro, ')') as Keterangan
+                from
+                    MGAPTBHUTDB HutDB
+                left outer join MGAPTBHut Hut on
+                    (hut.idmcabang = hutDB.idmcabang
+                        and hut.idtbhut = hutdb.idtbhut)
+                left outer join mgapmsup sup on
+                    (sup.idmsup = hut.idmsup)
+                left outer join MGKBMGiro giro on
+                    (giro.idmcabang = HutDB.IdMCabangMRef
+                        and giro.IdMGiro = HutDB.IdMRef)
+                where
+                    (Hut.Hapus = 0
+                        and Hut.Void = 0)
+                    and HutDB.JenisMRef = 'G'
+            union all
+                select
+                    sup.idmsup ,
+                    4.2 as JenisTrans ,
+                    m.idtgirocair as IdTrans ,
+                    m.BuktiTGiroCair as BuktiTrans ,
+                    CONCAT(DATE(m.TglTGiroCair), ' ', TIME(m.TglUpdate)) as TglTrans ,
+                    - HutDB.JmlBayar as JmlHut ,
+                    CONCAT('Giro Cair ', m.Buktitgirocair, ' (', giro.kdmgiro, ')') as Keterangan
+                from
+                    MGKBTGiroCairD d
+                left outer join MGKBTGiroCair m on
+                    (m.IdMCabang = d.IdMCabang
+                        and d.idtgirocair = m.idtgirocair)
+                left outer join MGKBMGiro giro on
+                    (giro.idmcabang = d.idmcabangmgiro
+                        and giro.idmgiro = d.idmgiro)
+                left outer join MGAPMSup sup on
+                    (sup.idmsup = giro.idmsup
+                        and giro.jenismgiro = 'K')
+                left outer join MGAPTBHutDB HutDB on
+                    (HutDB.IdMCabangMRef = giro.IdMCabang
+                        and HutDB.IdMRef = giro.IdMGiro
+                        and HutDB.JenisMRef = 'G')
+                left outer join MGAPTBHut Hut on
+                    (Hut.IdMCabang = HutDB.IdMCabang
+                        and hut.idtbhut = hutDB.idtbhut)
+                where
+                    (m.Hapus = 0
+                        and m.Void = 0)
+                    and m.JenisTGiroCair = 'K'
+                    and HUTDB.JenisMRef = 'G'
+                    and HUT.Void = 0
+                    and HUT.Hapus = 0
+            union all
+                select
+                    Sup.idmsup ,
+                    4.3 as JenisTrans ,
+                    m.idtgirotolak as IdTrans ,
+                    m.buktitgirotolak as BuktiTrans ,
+                    CONCAT(DATE(m.tgltgirotolak), ' ', TIME(m.tglupdate)) as TglTrans ,
+                    HutDB.jmlbayar as JmlHut ,
+                    CONCAT('Giro Tolak ', m.buktitgirotolak, ' (', giro.kdmgiro, ')') as keterangan
+                from
+                    MGKBTGiroTolakD d
+                left outer join MGKBTGiroTolak m on
+                    (m.IdMCabang = d.IdMCabang
+                        and m.IdTGiroTolak = d.IdTGiroTolak)
+                left outer join MGKBMGiro giro on
+                    (giro.IdMCabang = d.IdMCabangMGiro
+                        and giro.IdMGiro = d.IdMGiro)
+                left outer join MGAPMSup sup on
+                    (sup.IdMSup = giro.IdMSup
+                        and giro.JenisMGiro = 'K')
+                left outer join MGAPTBHutDB HutDB on
+                    (HutDB.IdMCabangMRef = giro.IdMCabang
+                        and HutDB.IdMRef = giro.IdMGiro
+                        and HutDB.JenisMRef = 'G')
+                left outer join MGAPTBHut Hut on
+                    (Hut.IdMCabang = HutDB.IdMCabang
+                        and Hut.IdTBHut = HutDB.IdTBHut)
+                where
+                    (m.Hapus = 0
+                        and m.Void = 0)
+                    and m.JenisTGiroTolak = 'K'
+                    and HutDB.JenisMRef = 'G'
+                    and Hut.Void = 0
+                    and Hut.Hapus = 0
+            union all
+                select
+                    Sup.IdMSup as IdMSup ,
+                    4.4 as JenisTrans ,
+                    m.IdTGiroGanti as IdTrans ,
+                    m.BuktiTGiroGanti as BuktiTrans ,
+                    CONCAT(DATE(m.tgltgiroganti), ' ', TIME(m.tglupdate)) as tgltrans ,
+                    -d.JmlBayar as JmlHut ,
+                    CONCAT('Penggantian Giro ', m.buktitgiroganti, ' (', giro.kdmgiro, ')') as Keterangan
+                from
+                    MGKBTGiroGantiDG d
+                left outer join MGKBTGiroGanti m on
+                    (m.IdMCabang = d.IdMCabang
+                        and m.IDTGiroGanti = d.IDTGiroGanti)
+                left outer join MGKBMGiro giro on
+                    (giro.IdMCabang = d.IdMCabangMGiro
+                        and giro.IdMGiro = d.IdMGiro)
+                left outer join MGAPMSup Sup on
+                    (Sup.IdMSup = giro.IdMSup
+                        and Giro.JenisMGiro = 'K')
+                left outer join MGAPTBHutDB HutDB on
+                    (HutDB.IdMCabangMRef = giro.IdMCabang
+                        and HutDB.IdMRef = Giro.IdMGiro
+                        and HutDB.JenisMREF = 'G')
+                left outer join MGAPTBHut Hut on
+                    (Hut.IdMCabang = HutDB.IdMCabang
+                        and Hut.IdTBHut = HutDB.IdTBHut)
+                where
+                    (m.Hapus = 0
+                        and m.Void = 0)
+                    and m.JenisTGiroGanti = 'K'
+                    and HutDB.JenisMRef = 'G'
+                    and Hut.Void = 0
+                    and Hut.Hapus = 0
+            union all
+                select
+                    IdMSup ,
+                    5 as JenisTrans ,
+                    IdTKorHut as IdTrans ,
+                    BuktiTKorHut as BuktiTrans ,
+                    CONCAT(DATE(TglTKorHut), ' ', TIME(TglUpdate)) as TglTrans ,
+                    Total as JmlHut ,
+                    CONCAT('Koreksi Hutang ', BuktiTKorHut) as Keterangan
+                from
+                    MGAPTKorHut
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and Total <> 0) Tbl
+        union all
+            select
+                '${tgl2}' as TglTrans,
+                IdMSup,
+                0 as PosHut
+            from
+                MGAPMSup ) TransAll
+        where
+            TglTrans = '${tgl2}'
+        group by
+            IdMSup ) TablePosHut
+    left outer join MGAPMSup MSup on
+        (TablePosHut.IdMSup = MSup.IdMSup)
+    where
+        MSup.Hapus = 0
+        and MSup.Aktif = 1`;
+    
+    return sql;
+}
+
+exports.dashboard_grafikpiutang = async (tgl2 = "") => { 
+    let sql = `select
+        MSup.KdMSup,
+        MSup.NmMSup,
+        MSup.Aktif,
+        sum(TablePosHut.PosHut) as jumlah
+    from
+        (
+        select
+            IdMSup,
+            SUM(JmlHut) as PosHut
+        from
+            (
+            select
+                TglTrans,
+                IdMSup,
+                JmlHut
+            from
+                (
+                select
+                    IdMSup ,
+                    0 as JenisTrans ,
+                    IdTSAHut as IdTrans ,
+                    BuktiTSAHut as BuktiTrans ,
+                    CONCAT(DATE(TglTSAHut), ' ', TIME(TglUpdate)) as TglTrans ,
+                    JmlHut ,
+                    'Saldo Awal' as Keterangan
+                from
+                    MGAPTSAHut
+                where
+                    JmlHut <> 0
+            union all
+                select
+                    IdMSup ,
+                    1 as JenisTrans ,
+                    IdTBeli as IdTrans ,
+                    if(BuktiTBeli = '',
+                    BuktiTLPB,
+                    BuktiTBeli) as BuktiTrans ,
+                    CONCAT(DATE(TglTBeli), ' ', TIME(TglUpdate)) as TglTrans ,
+                    (Netto - JmlBayarTunai) as JmlHut ,
+                    CONCAT('Pembelian ', BuktiTBeli) as Keterangan
+                from
+                    MGAPTBeli
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and (Netto - JmlBayarTunai) <> 0
+                    and HapusLPB = 0
+                    and VoidLPB = 0
+                    and BuktiTBeli <> ''
+            union all
+                select
+                    IdMSup ,
+                    1.1 as JenisTrans ,
+                    IdTBeliLain as IdTrans ,
+                    BuktiTBeliLain as BuktiTrans ,
+                    CONCAT(DATE(TglTBeliLain), ' ', TIME(TglUpdate)) as TglTrans ,
+                    (JmlBayarKredit) as JmlHut ,
+                    CONCAT('Biaya Lain-Lain ', BuktiTBeliLain) as Keterangan
+                from
+                    MGAPTBeliLain
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and (JmlBayarKredit) <> 0
+            union all
+                select
+                    IdMSup ,
+                    2 as JenisTrans ,
+                    IdTRBeli as IdTrans ,
+                    BuktiTRBeli as BuktiTrans ,
+                    CONCAT(DATE(TglTRBeli), ' ', TIME(TglUpdate)) as TglTrans ,
+                    - (Netto - JmlBayarTunai) as JmlHut ,
+                    CONCAT('Retur Pembelian ', BuktiTRBeli) as Keterangan
+                from
+                    MGAPTRBeli
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and JenisTRBeli = 0
+                    and (Netto - JmlBayarTunai) <> 0
+            union all
+                select
+                    IdMSup ,
+                    3 as JenisTrans ,
+                    IdTPBeli as IdTrans ,
+                    BuktiTPBeli as BuktiTrans ,
+                    CONCAT(DATE(TglTPBeli), ' ', TIME(TglUpdate)) as TglTrans ,
+                    - Total as JmlHut ,
+                    CONCAT('Potongan Pembelian ', BuktiTPBeli) as Keterangan
+                from
+                    MGAPTPBeli
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and Total <> 0
+            union all
+                select
+                    IdMSup ,
+                    4 as JenisTrans ,
+                    IdTBHut as IdTrans ,
+                    BuktiTBHut as BuktiTrans ,
+                    CONCAT(DATE(TglTBHut), ' ', TIME(TglUpdate)) as TglTrans ,
+                    - Total as JmlHut ,
+                    CONCAT('Pembayaran Hutang ', BuktiTBHut) as Keterangan
+                from
+                    MGAPTBHut
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and Total <> 0
+            union all
+                select
+                    hut.IdMSup ,
+                    4.1 as JenisTrans ,
+                    Hut.IdTBHut as IdTrans ,
+                    BuktiTBHut as BuktiTrans ,
+                    CONCAT(DATE(Hut.TglTBHut), ' ', TIME(Hut.TglUpdate)) as tgltrans ,
+                    HutDB.JmlBayar as JmlHut ,
+                    CONCAT('Titipan Giro ', Hut.BuktiTBHut, ' (', giro.kdmgiro, ')') as Keterangan
+                from
+                    MGAPTBHUTDB HutDB
+                left outer join MGAPTBHut Hut on
+                    (hut.idmcabang = hutDB.idmcabang
+                        and hut.idtbhut = hutdb.idtbhut)
+                left outer join mgapmsup sup on
+                    (sup.idmsup = hut.idmsup)
+                left outer join MGKBMGiro giro on
+                    (giro.idmcabang = HutDB.IdMCabangMRef
+                        and giro.IdMGiro = HutDB.IdMRef)
+                where
+                    (Hut.Hapus = 0
+                        and Hut.Void = 0)
+                    and HutDB.JenisMRef = 'G'
+            union all
+                select
+                    sup.idmsup ,
+                    4.2 as JenisTrans ,
+                    m.idtgirocair as IdTrans ,
+                    m.BuktiTGiroCair as BuktiTrans ,
+                    CONCAT(DATE(m.TglTGiroCair), ' ', TIME(m.TglUpdate)) as TglTrans ,
+                    - HutDB.JmlBayar as JmlHut ,
+                    CONCAT('Giro Cair ', m.Buktitgirocair, ' (', giro.kdmgiro, ')') as Keterangan
+                from
+                    MGKBTGiroCairD d
+                left outer join MGKBTGiroCair m on
+                    (m.IdMCabang = d.IdMCabang
+                        and d.idtgirocair = m.idtgirocair)
+                left outer join MGKBMGiro giro on
+                    (giro.idmcabang = d.idmcabangmgiro
+                        and giro.idmgiro = d.idmgiro)
+                left outer join MGAPMSup sup on
+                    (sup.idmsup = giro.idmsup
+                        and giro.jenismgiro = 'K')
+                left outer join MGAPTBHutDB HutDB on
+                    (HutDB.IdMCabangMRef = giro.IdMCabang
+                        and HutDB.IdMRef = giro.IdMGiro
+                        and HutDB.JenisMRef = 'G')
+                left outer join MGAPTBHut Hut on
+                    (Hut.IdMCabang = HutDB.IdMCabang
+                        and hut.idtbhut = hutDB.idtbhut)
+                where
+                    (m.Hapus = 0
+                        and m.Void = 0)
+                    and m.JenisTGiroCair = 'K'
+                    and HUTDB.JenisMRef = 'G'
+                    and HUT.Void = 0
+                    and HUT.Hapus = 0
+            union all
+                select
+                    Sup.idmsup ,
+                    4.3 as JenisTrans ,
+                    m.idtgirotolak as IdTrans ,
+                    m.buktitgirotolak as BuktiTrans ,
+                    CONCAT(DATE(m.tgltgirotolak), ' ', TIME(m.tglupdate)) as TglTrans ,
+                    HutDB.jmlbayar as JmlHut ,
+                    CONCAT('Giro Tolak ', m.buktitgirotolak, ' (', giro.kdmgiro, ')') as keterangan
+                from
+                    MGKBTGiroTolakD d
+                left outer join MGKBTGiroTolak m on
+                    (m.IdMCabang = d.IdMCabang
+                        and m.IdTGiroTolak = d.IdTGiroTolak)
+                left outer join MGKBMGiro giro on
+                    (giro.IdMCabang = d.IdMCabangMGiro
+                        and giro.IdMGiro = d.IdMGiro)
+                left outer join MGAPMSup sup on
+                    (sup.IdMSup = giro.IdMSup
+                        and giro.JenisMGiro = 'K')
+                left outer join MGAPTBHutDB HutDB on
+                    (HutDB.IdMCabangMRef = giro.IdMCabang
+                        and HutDB.IdMRef = giro.IdMGiro
+                        and HutDB.JenisMRef = 'G')
+                left outer join MGAPTBHut Hut on
+                    (Hut.IdMCabang = HutDB.IdMCabang
+                        and Hut.IdTBHut = HutDB.IdTBHut)
+                where
+                    (m.Hapus = 0
+                        and m.Void = 0)
+                    and m.JenisTGiroTolak = 'K'
+                    and HutDB.JenisMRef = 'G'
+                    and Hut.Void = 0
+                    and Hut.Hapus = 0
+            union all
+                select
+                    Sup.IdMSup as IdMSup ,
+                    4.4 as JenisTrans ,
+                    m.IdTGiroGanti as IdTrans ,
+                    m.BuktiTGiroGanti as BuktiTrans ,
+                    CONCAT(DATE(m.tgltgiroganti), ' ', TIME(m.tglupdate)) as tgltrans ,
+                    -d.JmlBayar as JmlHut ,
+                    CONCAT('Penggantian Giro ', m.buktitgiroganti, ' (', giro.kdmgiro, ')') as Keterangan
+                from
+                    MGKBTGiroGantiDG d
+                left outer join MGKBTGiroGanti m on
+                    (m.IdMCabang = d.IdMCabang
+                        and m.IDTGiroGanti = d.IDTGiroGanti)
+                left outer join MGKBMGiro giro on
+                    (giro.IdMCabang = d.IdMCabangMGiro
+                        and giro.IdMGiro = d.IdMGiro)
+                left outer join MGAPMSup Sup on
+                    (Sup.IdMSup = giro.IdMSup
+                        and Giro.JenisMGiro = 'K')
+                left outer join MGAPTBHutDB HutDB on
+                    (HutDB.IdMCabangMRef = giro.IdMCabang
+                        and HutDB.IdMRef = Giro.IdMGiro
+                        and HutDB.JenisMREF = 'G')
+                left outer join MGAPTBHut Hut on
+                    (Hut.IdMCabang = HutDB.IdMCabang
+                        and Hut.IdTBHut = HutDB.IdTBHut)
+                where
+                    (m.Hapus = 0
+                        and m.Void = 0)
+                    and m.JenisTGiroGanti = 'K'
+                    and HutDB.JenisMRef = 'G'
+                    and Hut.Void = 0
+                    and Hut.Hapus = 0
+            union all
+                select
+                    IdMSup ,
+                    5 as JenisTrans ,
+                    IdTKorHut as IdTrans ,
+                    BuktiTKorHut as BuktiTrans ,
+                    CONCAT(DATE(TglTKorHut), ' ', TIME(TglUpdate)) as TglTrans ,
+                    Total as JmlHut ,
+                    CONCAT('Koreksi Hutang ', BuktiTKorHut) as Keterangan
+                from
+                    MGAPTKorHut
+                where
+                    Hapus = 0
+                    and Void = 0
+                    and Total <> 0 ) Tbl
+        union all
+            select
+                '${tgl2}' as TglTrans,
+                IdMSup,
+                0 as PosHut
+            from
+                MGAPMSup ) TransAll
+        where
+            TglTrans = '${tgl2}'
+        group by
+            IdMSup ) TablePosHut
+    left outer join MGAPMSup MSup on
+        (TablePosHut.IdMSup = MSup.IdMSup)
+    where
+        MSup.Hapus = 0
+        and MSup.Aktif = 1`;
+    return sql;
+}
+
+
+exports.dashboard_grafiklabarugi = async (tgl2 = "") => { 
+    var sql1 = `select
+        Tgl,
+        sum((NilaiJual - NilaiHPP)) as jumlah
+    from
+        (
+        select
+            IdMCabang,
+            Tgl,
+            SUM(NilaiJual) as NilaiJual,
+            SUM(NilaiHPP) as NilaiHPP,
+            SUM(NilaiBeli) as NilaiBeli
+        from
+            (
+            select
+                IdMCabang as IdMCabang,
+                Tgltjual as Tgl,
+                SUM(Qty * HrgStn) as NilaiJual,
+                SUM(Qty * HPP) as NilaiHPP,
+                SUM(Qty * HrgBeliAk) as NilaiBeli
+            from
+                (
+                select
+                    m.IdMCabang,
+                    m.Tgltjual,
+                    (d.HrgStn - coalesce(d.DiscV, 0)) * (1 - (coalesce(m.DiscV, 0)/ m.Bruto)) as HrgStn,
+                    coalesce(d.HPP, 0) as HPP,
+                    d.qtyTotal as Qty,
+                    beli.HrgBeliAk
+                from
+                    mgartjuald d
+                left outer join mgartjual m on
+                    (m.IdMCabang = d.IdMCabang
+                        and m.Idtjual = d.Idtjual)
+                left outer join (
+                    select
+                        MAX(TglBeliAk) as TglBeliAk,
+                        MAX(HrgBeliAk) as HrgBeliAk,
+                        IdMCabang,
+                        IdMbrg
+                    from
+                        (
+                        select
+                            m.TglTBeli as TglBeliAk,
+                            m.TglCreate,
+                            m.IdMCabang,
+                            d.IdMBrg,
+                            coalesce(d.HrgStn * ((100 - d.DiscP) / 100) * ((100 - m.DiscP) / 100) * ((100 + 0) / 100), 0) as HrgBeliAk
+                        from
+                            MGAPTBeliD d
+                        left outer join MGAPTBeli m on
+                            (d.IdMCabang = m.IdMCabang
+                                and d.IdTBeli = m.IdTBeli)
+                        where
+                            m.Hapus = 0
+                            and m.Void = 0
+                    union all
+                        select
+                            TglTSABrg as TglBeliAk,
+                            TglCreate,
+                            IdMCabang,
+                            IdMBrg,
+                            coalesce(HPP, 0) as HrgBeliAk
+                        from
+                            MGINTSABrg) TabelBeli
+                    group by
+                        idmcabang,
+                        IdMBrg
+                    order by
+                        TglBeliAk desc,
+                        IdMCabang,
+                        IdMBrg) beli on
+                    (beli.IdMCabang = m.IdMCabang
+                        and beli.IdMbrg = d.IdMbrg)
+                where
+                    m.Hapus = 0
+                    and m.Void = 0
+                    and m.Tgltjual = '${tgl2}') Jual
+            group by
+                IdMCabang,
+                Tgltjual) TblTrans
+        group by
+            IdMCabang,
+            Tgl) tblall
+    left outer join MGSYMCabang MCabang on
+        (TblAll.IdMCabang = MCabang.IdMCabang)
+    where
+        (MCabang.Hapus = 0)`;
+    
+    var sql2 = `SELECT tglttransfer as tgl,  coalesce(SUM(Jumlah),0) AS Jumlah
+        FROM (
+            SELECT m.IdMCabang, m.tglttransfer,-SUM(JMLBAYAR) AS Jumlah
+            FROM MGKBTTransferD d 
+            LEFT OUTER JOIN MGKBTTransfer m ON (m.IdMCabang = d.IdMCabang AND m.IdTTransfer = d.IdTTransfer) 
+            LEFT OUTER JOIN MGGLMPrk p ON (p.IdMPrk = d.IdMRef AND d.JenisMRef = 'P' AND p.Periode = 0)
+            WHERE d.jenismref = 'P'
+            AND m.jenisttransfer = 'K'
+            AND p.jenismprkd IN (10, 11, 13)
+            AND m.Hapus = 0 AND m.Void = 0 
+            AND m.TglTTransfer = '${tgl2}'
+            GROUP BY m.tglttransfer
+            
+        ) TableBiayaKasKeluar
+        GROUP BY IdMCabang,tglttransfer`;
+    var sql = `select tgl,sum(jumlah) as jumlah from (${sql1} union all ${sql2}) x group by tgl order by tgl`;
+
+    return sql;
+}

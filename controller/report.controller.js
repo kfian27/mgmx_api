@@ -1,95 +1,107 @@
-const db = require("../models");
-const sequelize = db.sequelize;
+// const db = require("../models");
+// const sequelize = db.sequelize;
 
 const fun = require("../mgmx");
 
 let today = new Date().toJSON().slice(0, 10);
 
 exports.getListCabang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
     let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
 exports.getListCustomer = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select IdMCust as ID, NmMCust as nama from mgarmcust where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
 exports.getListSupplier = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmsup as ID, nmmsup as nama from mgapmsup where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
 exports.getListGudang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 exports.getListBarang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg GROUP BY b.idmbrg`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
 exports.getListBank = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
     });
 }
 
 exports.getListKas = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0`;
-    const data = await sequelize.query(sql, {
-        raw: false,
-    });
+    const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
         message: "Success",
-        data: data[0]
+        data: data
+    });
+}
+
+exports.getListSales = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
+    let sql = `select idmsales as ID, nmmsales as nama from mgarmsales where aktif=1 and hapus=0`;
+    const data = await fun.getDataFromQuery(sequelize,sql);
+
+    res.json({
+        message: "Success",
+        data: data
     });
 }
 
 
 exports.penjualan = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let start = req.body.start || '2008-01-17';
     let end = req.body.end || '2024-02-17';
@@ -117,15 +129,19 @@ exports.penjualan = async (req, res) => {
 
 
     const count_penjualan = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COUNT(j.idtjual) as total FROM mgartjual j LEFT OUTER JOIN mgartjuald jd ON jd.idtjual = j.idtjual WHERE j.hapus=0 ${qcabang} ${qcustomer} ${qbarang} and j.tgltjual between '${start}%' and '${end}%'`
     );
     const count_produk = await fun.countDataFromQuery(
+        sequelize,
         `SELECT SUM(jd.qtytotal) as total FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual = j.IdTJual WHERE j.tgltjual between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qcustomer}`
     );
     const count_pendapatan = await fun.countDataFromQuery(
+        sequelize,
         `SELECT SUM(j.netto) as total FROM mgartjual j WHERE j.tgltjual between '${start}%' and '${end}%' and j.hapus=0 ${qcabang} ${qcustomer} ${qbarang}`
     );
     const count_hpp = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COALESCE((SELECT (jd.QtyTotal * b.reserved_dec1) AS hpp FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual=j.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.idmbrg WHERE j.tgltjual between '${start}%' and '${end}%' ${qbarang} ${qcustomer} ${qbarang} order by jd.IdTJualD desc limit 1),0) as total`
     );
 
@@ -422,31 +438,32 @@ exports.penjualan = async (req, res) => {
 };
 
 exports.pembelian = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let start = req.body.start || '2008-01-17';
     let end = req.body.end || '2024-02-17';
     let jenis = req.body.jenis || 1;
 
-    let cabang = req.body.cabang;
+    let cabang = req.body.cabang || "";
     let qcabang = "";
     let qcabang_count = "";
-    if (cabang && cabang != "") {
+    if (cabang != "") {
         qcabang = "and b.idmcabang=" + cabang;
         qcabang_count = "and j.idmcabang=" + cabang;
     }
 
-    let supplier = req.body.supplier;
+    let supplier = req.body.supplier || "";
     let qsupplier = "";
     let qsupplier_count = "";
-    if (supplier && supplier != "") {
+    if (supplier != "") {
         qsupplier = "and b.idmsup=" + supplier;
         qsupplier_count = "and j.idmsup=" + supplier;
     }
 
-    let barang = req.body.barang;
+    let barang = req.body.barang || "";
     let qbarang = "";
     let qbarang_count = "";
-    if (barang && barang != "") {
+    if (barang != "") {
         qbarang = "and bb.idmbrg=" + barang;
         qbarang_count = "and jd.idmbrg=" + barang;
     }
@@ -454,12 +471,15 @@ exports.pembelian = async (req, res) => {
     let group = req.body.group;
 
     const count_pembelian = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang_count} ${qsupplier_count} ${qbarang_count} and j.tgltbeli between '${start}%' and '${end}%'`
     );
     const count_produk = await fun.countDataFromQuery(
+        sequelize,
         `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count}`
     );
     const count_pengeluaran = await fun.countDataFromQuery(
+        sequelize,
         `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count} order by j.idtbeli desc limit 1),0) as total`
     );
 
@@ -633,7 +653,7 @@ exports.pembelian = async (req, res) => {
                 "grandtotal": parseFloat(list.netto),
                 "bayar": parseFloat(list.jmlbayartunai),
                 "kredit": parseFloat(list.jmlbayarkredit),
-                "sisa": parseFloat(list.jmlbayarkredit + list.jmlbayartunai - list.netto),
+                "sisa": parseFloat(list.jmlbayarkredit) + parseFloat(list.jmlbayartunai) - parseFloat(list.netto),
                 "item": arr_brg,
 
             }
@@ -661,7 +681,7 @@ exports.pembelian = async (req, res) => {
                 }
             }))
         } else if (group == "supplier") {
-            let sql = `SELECT s.* FROM mgapmsup s LEFT OUTER JOIN mgaptbeli b ON s.idmsup = b.idmsup LEFT OUTER JOIN mgaptbelid bd ON b.idtbeli = bd.idtbeli WHERE s.Aktif = 1 AND s.hapus = 0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qbarang} ${qsupplier} ${qcabang} GROUP BY s.nmmsup HAVING COUNT(b.idtbeli)>0`;
+            let sql = `SELECT s.idmsup, s.nmmsup FROM mgapmsup s LEFT OUTER JOIN mgaptbeli b ON s.idmsup = b.idmsup LEFT OUTER JOIN mgaptbelid bd ON b.idtbeli = bd.idtbeli WHERE s.Aktif = 1 AND s.hapus = 0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qbarang} ${qsupplier} ${qcabang} GROUP BY s.nmmsup HAVING COUNT(b.idtbeli)>0`;
             const filter = await sequelize.query(sql, {
                 raw: false,
             });
@@ -683,7 +703,7 @@ exports.pembelian = async (req, res) => {
                 }
             }))
         } else if (group == "barang") {
-            let sql = `SELECT b.* FROM mginmbrg b LEFT OUTER JOIN mgaptbelid bd ON b.IdMBrg = bd.idmbrg LEFT OUTER JOIN mgaptbeli bb ON bd.idtbeli = bb.idtbeli WHERE b.aktif = 1 AND b.hapus=0 AND bb.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.Idmbrg HAVING COUNT(bb.IdTbeli)>0`;
+            let sql = `SELECT b.idmbrg,b.nmmbrg FROM mginmbrg b LEFT OUTER JOIN mgaptbelid bd ON b.IdMBrg = bd.idmbrg LEFT OUTER JOIN mgaptbeli bb ON bd.idtbeli = bb.idtbeli WHERE b.aktif = 1 AND b.hapus=0 AND bb.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.Idmbrg HAVING COUNT(bb.IdTbeli)>0`;
             const filter = await sequelize.query(sql, {
                 raw: false,
             });
@@ -717,6 +737,7 @@ exports.pembelian = async (req, res) => {
 };
 
 exports.stock = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     // posisi stock
@@ -867,6 +888,7 @@ exports.stock = async (req, res) => {
 }
 
 exports.kas = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     // posisi kas
@@ -897,8 +919,17 @@ exports.kas = async (req, res) => {
             }
         }))
 
+        var grandtotal = await fun.countDataFromQuery(
+            sequelize,
+            `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
+        );
+
+        var count = {
+            grandtotal: grandtotal
+        }
         res.json({
             message: "Success",
+            countData: count,
             data: arr_data
         })
     }
@@ -908,10 +939,10 @@ exports.kas = async (req, res) => {
         let start = req.body.start || today;
         let end = req.body.end || today;
 
-        let kas = req.body.kas || "";
+        let mkas = req.body.mkas || "";
         let qkas = "";
-        if (kas != "") {
-            qkas = "AND k.idmkas=" + kas;
+        if (mkas != "") {
+            qkas = "AND k.idmkas=" + mkas;
         }
 
         let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' GROUP BY c.nmmcabang`;
@@ -966,6 +997,7 @@ exports.kas = async (req, res) => {
 }
 
 exports.bank = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     // posisi bank
@@ -997,8 +1029,18 @@ exports.bank = async (req, res) => {
             }
         }))
 
+        var grandtotal = await fun.countDataFromQuery(
+            sequelize,
+            `SELECT sum(TablePosRek.PosRek) as total FROM (SELECT TransAll.IdMCabang, IdMRek, Sum(JmlRek) as PosRek FROM (Select k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' as TglTrans, IdMCabang, IdMRek, 0 as JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 AND PosRek <> 0 AND MUserMRek.IdMUser=1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`
+        );
+
+        var count = {
+            grandtotal : parseFloat(grandtotal)
+        }
+
         res.json({
             message: "Success",
+            countData: count,
             data: arr_data
         })
     } else if (jenis == 2) {
@@ -1093,6 +1135,7 @@ exports.bank = async (req, res) => {
 }
 
 exports.hutang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
     
@@ -1290,6 +1333,7 @@ exports.hutang = async (req, res) => {
         }))
 
         const total = await fun.countDataFromQuery(
+            sequelize,
             `SELECT MSup.KdMSup, MSup.NmMSup, MSup.Aktif
             , sum(TablePosHut.PosHut) as total
         FROM (
@@ -1832,6 +1876,8 @@ exports.hutang = async (req, res) => {
 }
 
 exports.piutang = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let jenis = req.body.jenis || 1;
 
     // posisi piutang
@@ -2657,7 +2703,7 @@ exports.piutang = async (req, res) => {
             , Coalesce(MCust.KdMCust, '') as KdMCust
             , coalesce(MCust.NmMCust, '') as NmMCust
             , Bcf.no_bcf
-            , CAST(TableKartuPiut.IdMCabangMCust AS INT) As IdMCabangMCust
+            , TableKartuPiut.IdMCabangMCust As IdMCabangMCust
             , TableKartuPiut.IdMCust
             , TableKartuPiut.IdMCabangTrans
             , TableKartuPiut.IdTrans
@@ -3450,6 +3496,8 @@ exports.piutang = async (req, res) => {
 }
 
 exports.labarugi = async (req, res) => {
+    const sequelize = await fun.connection(req.datacompany);
+
     let jenis = req.body.jenis || 1;
     let start = req.body.start || today;
     let end = req.body.end || today;

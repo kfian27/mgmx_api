@@ -2,6 +2,8 @@ const reportController = require("../controller/report.controller");
 const router = require("express").Router();
 const multer = require("multer");
 const upload = multer();
+const authMiddleware = require("../middleware/auth_company");
+router.use(authMiddleware);
 
 router.get("/getListCabang", upload.none(), reportController.getListCabang);
 router.get("/getListCustomer", upload.none(), reportController.getListCustomer);
@@ -10,6 +12,7 @@ router.get("/getListGudang", upload.none(), reportController.getListGudang);
 router.get("/getListBarang", upload.none(), reportController.getListBarang);
 router.get("/getListBank", upload.none(), reportController.getListBank);
 router.get("/getListKas", upload.none(), reportController.getListKas);
+router.get("/getListSales", upload.none(), reportController.getListSales);
 router.post("/penjualan", upload.none(), reportController.penjualan);
 router.post("/pembelian", upload.none(), reportController.pembelian);
 router.post("/stock", upload.none(), reportController.stock);

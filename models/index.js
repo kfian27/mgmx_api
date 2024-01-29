@@ -1,17 +1,17 @@
-const dbConfig = require("../config/db.config")(2);
+const dbConfig = require("../config/db.config")(0);
 const Sequelize = require("sequelize");
 const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
   host: dbConfig.HOST,
   dialect: dbConfig.dialect,
   operatorAlias: false,
-  port: (dbConfig.PORT || 3306),
+  port: dbConfig.PORT || 3306,
   pool: {
     max: dbConfig.pool.max,
     min: dbConfig.pool.min,
     acquire: dbConfig.pool.acquire,
     idle: dbConfig.pool.idle,
   },
-  logging: console.log,
+  // logging: console.log,
 });
 const db = {};
 db.Sequelize = Sequelize; // untuk all fungsi Sequelize
