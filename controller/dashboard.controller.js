@@ -308,11 +308,11 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
     // PENYESUAIAN STOCK
     let count_penstock = await fun.countDataFromQuery(
         sequelize,
-        `SELECT count(*) as total FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg = '${date}' ORDER BY pb.TglTPenyesuaianBrg DESC`
+        `SELECT count(*) as total FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg between '${start}' and '${end}' ORDER BY pb.TglTPenyesuaianBrg DESC`
     );
     const penstock = await fun.getDataFromQuery(
         sequelize,
-        `SELECT b.nmmbrg, pb.tgltpenyesuaianbrg, pb.buktitpenyesuaianbrg, pbd.qtytotal, s.nmmstn FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg = '${date}' ORDER BY pb.TglTPenyesuaianBrg DESC`
+        `SELECT b.nmmbrg, pb.tgltpenyesuaianbrg, pb.buktitpenyesuaianbrg, pbd.qtytotal, s.nmmstn FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg between '${start}' and '${end}' ORDER BY pb.TglTPenyesuaianBrg DESC`
     );
     var arr_penstock = await Promise.all(penstock.map(async (list, index) => {
         return {
@@ -334,11 +334,11 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
     // KOREKSI HUTANG
     let count_korhut = await fun.countDataFromQuery(
         sequelize,
-        `SELECT count(*) as total FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut = '${date}' ORDER BY h.TglTBHut DESC`
+        `SELECT count(*) as total FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut between '${start}' and '${end}' ORDER BY h.TglTBHut DESC`
     );
     const korhut = await fun.getDataFromQuery(
         sequelize,
-        `SELECT h.tgltbhut, h.buktitbhut,c.nmmcust,hd.jmlbayar FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut = '${date}' ORDER BY h.TglTBHut DESC`
+        `SELECT h.tgltbhut, h.buktitbhut,c.nmmcust,hd.jmlbayar FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut between '${start}' and '${end}' ORDER BY h.TglTBHut DESC`
     );
     var arr_korhut = await Promise.all(korhut.map(async (list, index) => {
         return {
@@ -358,7 +358,7 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
     // KOREKSI PIUTANG
     let count_korpiut = await fun.countDataFromQuery(
         sequelize,
-        `SELECT COUNT(*) AS total FROM mgartbpiut p LEFT OUTER JOIN mgartbpiutd pd ON p.IdTBPiut = pd.IdTBPiut LEFT OUTER JOIN mgaptbeli b ON pd.IdTrans = b.IdTBeli LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.IdMSup WHERE p.TglTBPiut = '${date}' ORDER BY p.TglTBPiut DESC`
+        `SELECT COUNT(*) AS total FROM mgartbpiut p LEFT OUTER JOIN mgartbpiutd pd ON p.IdTBPiut = pd.IdTBPiut LEFT OUTER JOIN mgaptbeli b ON pd.IdTrans = b.IdTBeli LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.IdMSup WHERE p.TglTBPiut between '${start}' and '${end}' ORDER BY p.TglTBPiut DESC`
     );
     const korpiut = await fun.getDataFromQuery(
         sequelize,
@@ -382,7 +382,7 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
     // TRANSAKSI JURNAL UMUM
     let count_jurnalumum = await fun.countDataFromQuery(
         sequelize,
-        `SELECT count(*) as total FROM mgglljurnalhrn jj where jj.tgltrans = '${date}' ORDER BY jj.TglTrans DESC`
+        `SELECT count(*) as total FROM mgglljurnalhrn jj where jj.tgltrans between '${start}' and '${end}' ORDER BY jj.TglTrans DESC`
     );
     const jurnalumum = await fun.getDataFromQuery(
         sequelize,
@@ -473,10 +473,12 @@ exports.getNilaiBisnis = async (req, res) => {
 exports.getBarangTerlaku = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
+    let start = req.query.start || today;
+    let end = req.query.end || today;
     let date = today;
     const data = await fun.getDataFromQuery(
         sequelize,
-        `SELECT b.nmmbrg as nama, SUM(jd.qtytotal) AS jumlah FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.tgltjual = '${date}' GROUP BY b.idmbrg ORDER BY SUM(jd.qtytotal) DESC LIMIT 10`
+        `SELECT b.nmmbrg as nama, SUM(jd.qtytotal) AS jumlah FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.tgltjual BETWEEN '${start}' AND '${end}' GROUP BY b.idmbrg ORDER BY SUM(jd.qtytotal) DESC LIMIT 10`
     );
 
     var arr_data = data.map((list, index) => {
@@ -556,7 +558,7 @@ exports.getDataGrafik = async (req, res) => {
     }
 
     res.json({
-        message: "Success get data grafik" + jenis,
+        message: "Success get data grafik " + jenis,
         total:total,
         data: arr_data
     })
