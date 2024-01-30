@@ -14,7 +14,7 @@ exports.pickDataFromQuery = async (sequelize, query = "") => {
             raw: false,
             plain: true
         })
-    return data.data || "";
+    return data.data || "0";
 }
 
 exports.getDataFromQuery = async (sequelize, query = "") => {
@@ -41,6 +41,8 @@ exports.execDataFromQuery = async (sequelize, query = "") => {
             message: err.message || "Some error occurred while updating the company."
         };
     });
+
+    return data;
 }
 
 exports.getDateDiff = async (start = "", end = "") => {
