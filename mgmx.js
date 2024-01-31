@@ -13,8 +13,9 @@ exports.pickDataFromQuery = async (sequelize, query = "") => {
         query, {
             raw: false,
             plain: true
-        })
-    return data.data || "0";
+    })
+    var pickdata = data ? data.data : "";
+    return pickdata;
 }
 
 exports.getDataFromQuery = async (sequelize, query = "") => {
@@ -33,12 +34,14 @@ exports.execDataFromQuery = async (sequelize, query = "") => {
     }).then(datanya => {
         return {
             code: 200,
-            message: 'success execute'
+            message: 'success execute',
+            data: datanya
         };
     }).catch((err) => {
         return {
             code: 500,
-            message: err.message || "Some error occurred while updating the company."
+            message: err.message || "Some error occurred while updating the company.",
+            data: null
         };
     });
 
