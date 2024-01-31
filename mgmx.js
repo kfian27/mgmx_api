@@ -14,7 +14,8 @@ exports.pickDataFromQuery = async (sequelize, query = "") => {
             raw: false,
             plain: true
     })
-    var pickdata = data ? data.data : "";
+    // nb: jika data tidak ditemukan hasilnya adalah null
+    var pickdata = data ? data.data : null;
     return pickdata;
 }
 

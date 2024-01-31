@@ -11,6 +11,7 @@ router.use(authMiddleware);
 router.post("/",upload.none(), soController.findAll);
 router.post("/create",upload.none(), soController.createSO);
 router.get("/view/:id", soController.viewSO);
+router.get("/getBarangSO/", soController.getBarangSO);
 router.put("/real/:id", soController.realSO);
 router.put("/update/:id", soController.updateSO);
 router.delete("/delete/:id", soController.deleteSO);

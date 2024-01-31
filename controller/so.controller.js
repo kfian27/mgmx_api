@@ -193,7 +193,7 @@ async function buktitransaksi(sequelize) {
     sql
   )
   var num = 1;
-  if (bso != "") {
+  if (bso != null) {
     num = parseFloat(bso) + 1;
   }
 
@@ -238,7 +238,7 @@ async function getidmbrg(sequelize, barcode) {
     sequelize,
     `SELECT idmbrg as data FROM mginmbrg where (kdmbrg = '${barcode}' or barcode = '${barcode}') and Hapus = 0 ORDER BY data DESC LIMIT 1`
   )
-  if (data == "") {
+  if (data == null) {
     return 0;
   }
   return data;
@@ -425,4 +425,39 @@ exports.updateSO = async (req, res) => {
     message: 'success',
     data: param
   })
+}
+
+exports.getBarangSO = async (req, res) => {
+  const sequelize = await fun.connection(req.datacompany);
+
+  let globalinfo_cabang = await fun.pickDataFromQuery(
+    sequelize,
+    `select idmcabang as data from mgsyglobalinfo where idglobalinfo != 0 order by idglobalinfo asc limit 1`
+  ) ?? 0;
+  let idmjeniscust = 0;
+  let sql = `select tbl.*, (tbl.hj1 - tbl.discv) as harga from ( 
+    SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama, barcode,kdmstn as satuan,
+      (select coalesce(sum(qtytotal),0) as sisaqty from mginlkartustockav where idmbrg = b.idmbrg and idmcabang = ${globalinfo_cabang} AND idmgd <> 10000000) as stock,
+      coalesce((select m.hj1 from mgarmhjfull m where m.idmbrg = b.idmbrg and m.idmjeniscust = ${idmjeniscust} order by TglUpdate desc limit 1),0) as hj1,
+      coalesce((select m.discv from mgarmhjfull m where m.idmbrg = b.idmbrg and m.idmjeniscust = ${idmjeniscust} order by TglUpdate desc limit 1),0) as discv
+      FROM mginmbrg b
+      where hapus = 0 and aktif=1
+  ) tbl`;
+
+  // let sql = `SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama, barcode,kdmstn as satuan,
+  // (select coalesce(sum(qtytotal),0) as sisaqty from mginlkartustockav where idmbrg = b.idmbrg and
+  // idmcabang = '${globalinfo_cabang}' AND idmgd <> 10000000) as stock, 0 as harga
+  // FROM mginmbrg b where hapus = 0 and aktif=1`;
+  const data = await fun.getDataFromQuery(sequelize, sql);
+  
+  var arr_data = data.map((brg, idx) => {
+    brg.stock = parseFloat(brg.stock);
+    brg.harga = parseFloat(brg.harga);
+    return brg;
+  })
+
+  res.json({
+      message: "Success",
+      data: arr_data
+  });
 }
