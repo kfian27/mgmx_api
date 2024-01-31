@@ -1,6 +1,7 @@
 const allDB = [
   {
-    HOST: "mge-qc",
+    // HOST: "mge-qc",
+    HOST: "192.168.18.150",
     USER: "root",
     PASSWORD: "mgemge",
     DB: "mgmx_web",

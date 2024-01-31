@@ -11,6 +11,7 @@ const satuanRoute = require("./routing/satuan.route");
 const customerRoute = require("./routing/customer.route");
 const authRoute = require("./routing/auth.route");
 const reportRoute = require("./routing/report.route");
+const penjualanRoute = require("./routing/penjualan.route");
 var path = require("path");
 const dashboardRoute = require("./routing/dashboard.route");
 
@@ -31,6 +32,7 @@ app.get("/", async (req, res) => {
 
 app.use("/api/dashboard", dashboardRoute);
 app.use("/api/so", soRoute);
+app.use("/api/penjualan", penjualanRoute);
 app.use("/api/report", reportRoute);
 app.use("/api/barang", barangRoute);
 app.use("/api/satuan", satuanRoute);
