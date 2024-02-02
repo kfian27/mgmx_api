@@ -9,10 +9,10 @@ const authMiddleware = require("../middleware/auth_company");
 router.use(authMiddleware);
 
 router.post("/",upload.none(), penjualan.findAll);
-// router.post("/create",upload.none(), penjualan.create);
+router.post("/create",upload.none(), penjualan.create);
 router.get("/view/:id", penjualan.view);
 router.put("/real/:id", penjualan.real);
-// router.put("/update/:id", penjualan.updateSO);
+router.put("/update/:id", penjualan.update);
 router.delete("/delete/:id", penjualan.delete);
 
 module.exports = router;

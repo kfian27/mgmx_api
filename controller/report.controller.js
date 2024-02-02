@@ -19,7 +19,7 @@ exports.getListCabang = async (req, res) => {
 exports.getListCustomer = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
 
-    let sql = `select IdMCust as ID, NmMCust as nama from mgarmcust where aktif=1 and hapus=0`;
+    let sql = `select IdMCust as ID, NmMCust as nama, Alamat as alamat from mgarmcust where aktif=1 and hapus=0`;
     const data = await fun.getDataFromQuery(sequelize,sql);
 
     res.json({
@@ -1939,7 +1939,7 @@ exports.piutang = async (req, res) => {
                 , Jual.JenisTJual as JenisInvoice 
                 , (Jual.JmlBayarKredit) AS JmlPiut 
                 , concat('Penjualan ', Jual.BuktiTJual) as Keterangan 
-                , Jual.Id_bcf
+                , -1 as Id_bcf
             FROM MGARTJual Jual
             WHERE Jual.Hapus = 0 AND Jual.Void = 0 
             AND (Jual.JmlBayarKredit) <> 0 
