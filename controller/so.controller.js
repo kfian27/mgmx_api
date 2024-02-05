@@ -164,6 +164,8 @@ exports.viewSO = async (req, res) => {
       "edit" : so.countedit,
       "idcust" : so.idmcust,
       "nmmcust" : so.nmmcust,
+      "idsales": 1,
+      "nmmsales" : 'sembarang',
       "alamat" : so.alamat,
       "telp" : so.telp1,
       "item": arr_brg
