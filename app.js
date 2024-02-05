@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.resolve("./public")));
 
 const db = require("./models/index");
-// db.sequelize.sync({ alter: true });
+db.sequelize.sync({ alter: true });
 
 app.get("/", async (req, res) => {
   // test comments
