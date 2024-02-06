@@ -149,7 +149,9 @@ exports.viewSO = async (req, res) => {
         "jumlah" : parseFloat(item.qtytotal),
         "harga": parseFloat(item.hrgstn),
         "diskon" : parseFloat(item.discv),
-        "total": parseFloat(item.subtotal)
+        "diskonp" : parseFloat(item.discp),
+        "total": parseFloat(item.subtotal),
+        "satuan": item.kdmstn
       }
     })
     var data = {

@@ -118,7 +118,7 @@ exports.view = async (req, res) => {
     var arr_data = {};
     if (so.length > 0) {
         so = so[0];
-        let sql1 = `SELECT jd.idtjuald, jd.idmbrg, jd.qtytotal, jd.hrgstn, jd.discv, jd.subtotal, b.kdmbrg, b.nmmbrg FROM mgartjuald jd LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE jd.idtjual = ${id}`;
+        let sql1 = `SELECT jd.idtjuald, jd.idmbrg, jd.qtytotal, jd.hrgstn, jd.discp, jd.discv, jd.subtotal, b.kdmbrg, b.nmmbrg FROM mgartjuald jd LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE jd.idtjual = ${id}`;
         const brg = await fun.getDataFromQuery(sequelize, sql1);
         var arr_brg = brg.map((item, index) => {
         return {
@@ -128,6 +128,7 @@ exports.view = async (req, res) => {
             "jumlah" : parseFloat(item.qtytotal),
             "harga": parseFloat(item.hrgstn),
             "diskon" : parseFloat(item.discv),
+            "diskonp" : parseFloat(item.discp),
             "total": parseFloat(item.subtotal)
         }
         })
