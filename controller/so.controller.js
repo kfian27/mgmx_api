@@ -130,15 +130,16 @@ exports.viewSO = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
   const id = req.params.id;
-  let sql = `SELECT j.idtsojual, j.buktitsojual, j.tgltsojual ,j.bruto, j.discp, j.discv, j.ppnp, j.ppnv, j.netto, j.jmlbayartunai, j.countedit, c.idmcust, c.nmmcust, c.alamat, c.telp1 FROM mgartsojual j LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust where j.idtsojual=${id}`;
+  let sql = `SELECT j.idtsojual, j.buktitsojual, j.tgltsojual ,j.bruto, j.discp, j.discv, j.ppnp, j.ppnv, j.netto, j.jmlbayartunai, j.countedit, c.idmcust, c.nmmcust, c.alamat, c.telp1, s.idmsales, s.nmmsales FROM mgartsojual j 
+  LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust
+  LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales
+  where j.idtsojual=${id}`;
   console.log('sql-man', sql)
   var so = await fun.getDataFromQuery(sequelize, sql);
   var arr_data = {};
   if (so.length > 0) {
     so = so[0];
-    let sql1 = `SELECT jd.idtsojuald, jd.idmbrg, jd.qtytotal, jd.hrgstn, jd.discv, jd.subtotal, b.kdmstn, b.kdmbrg, b.nmmbrg 
-    FROM mgartsojuald jd 
-    LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE jd.idtsojual = ${id}`;
+    let sql1 = `SELECT jd.idtsojuald, jd.idmbrg, jd.qtytotal, jd.hrgstn, jd.discp, jd.discv, jd.subtotal, b.kdmbrg, b.nmmbrg, b.kdmstn FROM mgartsojuald jd LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE jd.idtsojual = ${id}`;
     const brg = await fun.getDataFromQuery(sequelize, sql1);
     var arr_brg = brg.map((item, index) => {
       return {
@@ -148,8 +149,7 @@ exports.viewSO = async (req, res) => {
         "jumlah" : parseFloat(item.qtytotal),
         "harga": parseFloat(item.hrgstn),
         "diskon" : parseFloat(item.discv),
-        "total": parseFloat(itemS.subtotal),
-        "satuan" : "tes"
+        "total": parseFloat(item.subtotal)
       }
     })
     var data = {
@@ -167,8 +167,8 @@ exports.viewSO = async (req, res) => {
       "edit" : so.countedit,
       "idcust" : so.idmcust,
       "nmmcust" : so.nmmcust,
-      "idsales": 1,
-      "nmmsales" : 'sembarang',
+      "idsales": so.idmsales,
+      "nmmsales" : so.nmmsales,
       "alamat" : so.alamat,
       "telp" : so.telp1,
       "item": arr_brg
@@ -332,8 +332,8 @@ exports.createSO = async (req, res) => {
     console.log('man-mgartsojuald', sql)
     
   }
-  let query = `insert into mgartsojual (idmcabang, idtsojual, buktitsojual,statusrealisasi, tgltsojual, jenistjual, idmcabangmcust, idmcust,idmcabangmsales,idmsales, bruto, discp, discv, ppnp, ppnv, netto, jmlbayartunai, hapus, void, countedit, countprint, tglcreate,tglupdate,keterangan,idmkas,jmlbayarkredit,tgljtpiut,idtkontrak,jenistso,statusso,keteranganum,idmcabangmproject,idmproject,idmusercreate,idmuserupdate,buktitporeferensi,idmcabangmcustkirim,idmcustkirim,tgltermsojt,roundingvalue,jmlbayartunai,jenisekspedisi) 
-  values('${idmcabang}', '${idtjual}', '${buktitjual}','${statusrealisasi}', ${now}, '${jenistjual}', '${idmcabangmcust}', '${idmcust}','${idmcabangmsales}','${idmsales}', '${bruto}', '${discp}', '${discv}', '${ppnp}', '${ppnv}', '${netto}', ${jmlbayartunai}, '${hapus}', '${_void}', '${countedit}', '${countedit}', ${now},${now}, '${keterangan}','0','0',CURDATE(),'0','0','0','0','0','0','0','0','0','0','-1',CURDATE(),'0','0','0')`;
+  let query = `insert into mgartsojual (idmcabang, idtsojual, buktitsojual,statusrealisasi, tgltsojual, jenistjual, idmcabangmcust, idmcust,idmcabangmsales,idmsales, bruto, discp, discv, ppnp, ppnv, netto, jmlbayartunai, hapus, void, countedit, countprint, tglcreate,tglupdate,keterangan,idmkas,jmlbayarkredit,tgljtpiut,idtkontrak,jenistso,statusso,keteranganum,idmcabangmproject,idmproject,idmusercreate,idmuserupdate,buktitporeferensi,idmcabangmcustkirim,idmcustkirim,tgltermsojt,roundingvalue,jenisekspedisi) 
+  values('${idmcabang}', '${idtjual}', '${buktitjual}','${statusrealisasi}', ${now}, '${jenistjual}', '${idmcabangmcust}', '${idmcust}','${idmcabangmsales}','${idmsales}', '${bruto}', '${discp}', '${discv}', '${ppnp}', '${ppnv}', '${netto}', ${jmlbayartunai}, '${hapus}', '${_void}', '${countedit}', '${countedit}', ${now},${now}, '${keterangan}','0','0',CURDATE(),'0','0','0','0','0','0','0','0','0','0','-1',CURDATE(),'0','0')`;
   console.log('man-mgartsojual', query)
 
   // let query = `insert into mgartsojual (idmcabang, idtsojual, buktitsojual,statusrealisasi, tgltsojual, jenistjual, idmcabangmcust, idmcust,idmcabangmsales,idmsales, bruto, discp, discv, ppnp, ppnv, netto, hapus, void, countedit, countprint, tglcreate,tglupdate,keterangan,idmkas,jmlbayarkredit,tgljtpiut,idtkontrak,jenistso,statusso,keteranganum,idmcabangmproject,idmproject,idmusercreate,idmuserupdate,buktitporeferensi,idmcabangmcustkirim,idmcustkirim,tgltermsojt,roundingvalue,jmlbayartunai,jenisekspedisi) values('${idmcabang}', '${idtjual}', '${buktitjual}','${statusrealisasi}', '${tgltjual}', '${jenistjual}', '${idmcabangmcust}', '${idmcust}','${idmcabangmsales}','${idmsales}', '${bruto}', '${discp}', '${discv}', '${ppnp}', '${ppnv}', '${netto}', '${hapus}', '${_void}', '${countedit}', '${countedit}', '${tglcreate}','${tglcreate}', '${keterangan}','0','0','0','0','0','0','0','0','0','0','0','0','0','-1','0','0','0','0')`;
