@@ -761,87 +761,94 @@ exports.stock = async (req, res) => {
 
         var listitem = [];
         var listgudang = [];
-        var arr_data = await Promise.all(filter.map(async (fil, index) => {
+
+        result = filter.reduce(function (r, a) {
+            r[a.NmMGd] = r[a.NmMGd] || [];
+            r[a.NmMGd].push(a);
             
-            var item = {
-                "tes": 1,
-                "tes2" : 2
-            }
-            if (!listgudang.includes(fil.nmmgd)) {
-                listgudang.push(fil.NmMGd)
+            return r;
+        }, Object.create(null));
+        // var arr_data = await Promise.all(filter.map(async (fil, index) => {
+            
+        //     var item = {
+        //         "tes": 1,
+        //         "tes2" : 2
+        //     }
+        //     if (!listgudang.includes(fil.nmmgd)) {
+        //         listgudang.push(fil.NmMGd)
                 
-                listitem[fil.NmMGd] = {
-                    "gudang": fil.NmMGd,
-                    "list": item,
-                }
-            } else {
-                listitem[fil.NmMGd].list.push({item})
-            }
+        //         listitem[fil.NmMGd] = {
+        //             "gudang": fil.NmMGd,
+        //             "list": item,
+        //         }
+        //     } else {
+        //         listitem[fil.NmMGd].list.push({item})
+        //     }
             
-            // if (listgudang.length == 0 || (listgudang.length > 0 && fil.NmMGd != listgudang[0].gudang)){
-            //     listgudang.push({
-            //         "cabang": fil.NmMCabang,
-            //         "gudang": fil.NmMGd,
-            //         "list" : tesR
-            //     })
-            // }
+        //     // if (listgudang.length == 0 || (listgudang.length > 0 && fil.NmMGd != listgudang[0].gudang)){
+        //     //     listgudang.push({
+        //     //         "cabang": fil.NmMCabang,
+        //     //         "gudang": fil.NmMGd,
+        //     //         "list" : tesR
+        //     //     })
+        //     // }
 
-            console.log('tesman',fil.NmMGd)
-            // listitem.push({
-            //     "nmmbrg": '',
-            //     "tgl": '',
-            //     "bukti": 'dummy',
-            //     "satuan": 'dummy',
-            //     "qty": 0,
-            // });
-            // return {
-            //     "cabang": fil.NmMCabang,
-            //     "gudang": fil.NmMGd // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-            //     // "list": arr_brg
-            // }
-            // let sql1 = `SELECT k.idmbrg, b.kdmbrg, b.nmmbrg, SUM(k.qtytotal) AS qty, s.nmmstn FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.idmstn1 = s.idmstn WHERE tgltrans <= '${date}' AND k.idmcabang = ${fil.idmcabang} AND idmgd=${fil.idmgd} GROUP BY k.idmbrg`;
-            // const brg = await sequelize.query(sql1, {
-            //     raw: false,
-            // });
+        //     console.log('tesman',fil.NmMGd)
+        //     // listitem.push({
+        //     //     "nmmbrg": '',
+        //     //     "tgl": '',
+        //     //     "bukti": 'dummy',
+        //     //     "satuan": 'dummy',
+        //     //     "qty": 0,
+        //     // });
+        //     // return {
+        //     //     "cabang": fil.NmMCabang,
+        //     //     "gudang": fil.NmMGd // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
+        //     //     // "list": arr_brg
+        //     // }
+        //     // let sql1 = `SELECT k.idmbrg, b.kdmbrg, b.nmmbrg, SUM(k.qtytotal) AS qty, s.nmmstn FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.idmstn1 = s.idmstn WHERE tgltrans <= '${date}' AND k.idmcabang = ${fil.idmcabang} AND idmgd=${fil.idmgd} GROUP BY k.idmbrg`;
+        //     // const brg = await sequelize.query(sql1, {
+        //     //     raw: false,
+        //     // });
 
-            // var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
-            //     let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') <= '${date}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
-            //     const item = await sequelize.query(sql2, {
-            //         raw: false,
-            //     });
+        //     // var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
+        //     //     let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') <= '${date}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
+        //     //     const item = await sequelize.query(sql2, {
+        //     //         raw: false,
+        //     //     });
 
-            //     var saldo = 0;
-            //     var arr_item = item[0].map((item, index_dua) => {
-            //         saldo += parseFloat(item.saldo);
-            //         return {
-            //             'tanggal': item.tgltrans,
-            //             'keterangan': item.keterangan,
-            //             'satuan': item.nmmstn,
-            //             'debet': parseFloat(item.debet),
-            //             'kredit': parseFloat(item.kredit),
-            //             'saldo': parseFloat(item.saldo),
-            //             // 'debet': item.debet,
-            //             // 'kredit': item.kredit,
-            //             // 'saldo': item.saldo,
-            //         }
-            //     })
+        //     //     var saldo = 0;
+        //     //     var arr_item = item[0].map((item, index_dua) => {
+        //     //         saldo += parseFloat(item.saldo);
+        //     //         return {
+        //     //             'tanggal': item.tgltrans,
+        //     //             'keterangan': item.keterangan,
+        //     //             'satuan': item.nmmstn,
+        //     //             'debet': parseFloat(item.debet),
+        //     //             'kredit': parseFloat(item.kredit),
+        //     //             'saldo': parseFloat(item.saldo),
+        //     //             // 'debet': item.debet,
+        //     //             // 'kredit': item.kredit,
+        //     //             // 'saldo': item.saldo,
+        //     //         }
+        //     //     })
 
-            //     return {
-            //         "id": brg.idmbrg,
-            //         "kode": brg.kdmbrg,
-            //         "nama": brg.nmmbrg,
-            //         "qty": parseFloat(brg.qty),
-            //         "satuan": brg.nmmstn,
-            //         "listitem": arr_item,
-            //     }
-            // }))
+        //     //     return {
+        //     //         "id": brg.idmbrg,
+        //     //         "kode": brg.kdmbrg,
+        //     //         "nama": brg.nmmbrg,
+        //     //         "qty": parseFloat(brg.qty),
+        //     //         "satuan": brg.nmmstn,
+        //     //         "listitem": arr_item,
+        //     //     }
+        //     // }))
 
             
-        }))
+        // }))
 
         res.json({
             message: "Success",
-            data: listitem
+            data: result
         })
     }
 
