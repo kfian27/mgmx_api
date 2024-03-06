@@ -1089,7 +1089,7 @@ exports.kas = async (req, res) => {
     });
   }
 };
-
+//
 exports.bank = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
