@@ -1,6 +1,7 @@
 // const db = require("../models");
 // const sequelize = db.sequelize;
 const qstock = require("../class/query_report/stock");
+const qkas = require("../class/query_report/kas");
 
 const fun = require("../mgmx");
 
@@ -901,41 +902,33 @@ exports.kas = async (req, res) => {
 
     let jenis = req.body.jenis || 1;
     // posisi kas
-    if (jenis == 1) {
+    if (jenis == 1) {        
         let date = req.body.tanggal || today;
-        let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
-        const filter = await sequelize.query(sql, {
-            raw: false,
-        });
+        let q = await qkas.queryPosisiKasWI(date);
+        const kas = await fun.getDataFromQuery(sequelize, q);
+        
+        var grandtotal = 0;
+        var namaCabang = '';
 
-        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
-            let sql1 = `SELECT k.kdmkas, k.nmmkas, SUM(kas.jmlkas) AS total FROM mgkblkartukas kas LEFT OUTER JOIN mgkbmkas k ON kas.idmkas = k.idmkas WHERE k.aktif = 1 AND k.hapus = 0 AND STR_TO_DATE(kas.tgltrans, '%Y-%m-%d %H:%i:%s') <= '${date}' GROUP BY k.kdmkas`;
-            const kas = await sequelize.query(sql1, {
-                raw: false,
-            });
-
-            var arr_kas = await Promise.all(kas[0].map(async (item, index_satu) => {
-                return {
-                    "kode": item.kdmkas,
-                    "nama": item.nmmkas,
-                    "qty": parseFloat(item.total),
-                }
-            }))
-
+        var arr_kas = await Promise.all(kas.map(async (list, index) => {
+            grandtotal += parseFloat(list.PosKas);
+            namaCabang = list.NmMCabang;
             return {
-                "cabang": fil.nmmcabang,
-                "list": arr_kas
+                "kode": list.KdMKas,
+                "nama": list.NmMKas,
+                "qty": parseFloat(list.PosKas),
             }
         }))
-
-        var grandtotal = await fun.countDataFromQuery(
-            sequelize,
-            `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
-        );
+        
+        var arr_data = {
+            "cabang": namaCabang,
+            "list": arr_kas
+        }
 
         var count = {
             grandtotal: grandtotal
         }
+
         res.json({
             message: "Success",
             countData: count,
