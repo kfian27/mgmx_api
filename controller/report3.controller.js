@@ -1,13 +1,13 @@
 // const db = require("../models");
 // const sequelize = db.sequelize;
-const qstock = require("../class/query_report/stock");
+const tes = require("../class/query_report/stock");
 
 const fun = require("../mgmx");
 
 let today = new Date().toJSON().slice(0, 10);
 
 exports.tesRahman = async (req, res) => { 
-    let q = await qstock.queryPosisiStockWI();
+    let q = await tes.queryPosisiStockWI();
     res.json({
         message: "Success",
         data: q
