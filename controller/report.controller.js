@@ -748,64 +748,108 @@ exports.pembelian = async (req, res) => {
 
 exports.stock = async (req, res) => {
     const sequelize = await fun.connection(req.datacompany);
+    console.log('tesman')
 
     let jenis = req.body.jenis || 1;
     // posisi stock
     if (jenis == 1) {
-        let date = req.body.tanggal || '2024-01-19';
-        let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd WHERE c.hapus = 0 AND k.tgltrans <= '${date}' GROUP BY c.nmmcabang HAVING COUNT(k.IdTrans)>0`;
-        const filter = await sequelize.query(sql, {
-            raw: false,
-        });
+        let date = req.body.tanggal || today;
+        let qsql = await qstock.queryPosisiStockWI(date);
+        const filter = await fun.getDataFromQuery(
+            sequelize,
+            qsql
+        );
 
-        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
-            let sql1 = `SELECT k.idmbrg, b.kdmbrg, b.nmmbrg, SUM(k.qtytotal) AS qty, s.nmmstn FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.idmstn1 = s.idmstn WHERE tgltrans <= '${date}' AND k.idmcabang = ${fil.idmcabang} AND idmgd=${fil.idmgd} GROUP BY k.idmbrg`;
-            const brg = await sequelize.query(sql1, {
-                raw: false,
-            });
+        var listitem = [];
+        var listgudang = [];
 
-            var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
-                let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') <= '${date}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
-                const item = await sequelize.query(sql2, {
-                    raw: false,
-                });
+        result = filter.reduce(function (r, a) {
+            r[a.NmMGd] = r[a.NmMGd] || [];
+            r[a.NmMGd].push(a);
+            
+            return r;
+        }, Object.create(null));
+        // var arr_data = await Promise.all(filter.map(async (fil, index) => {
+            
+        //     var item = {
+        //         "tes": 1,
+        //         "tes2" : 2
+        //     }
+        //     if (!listgudang.includes(fil.nmmgd)) {
+        //         listgudang.push(fil.NmMGd)
+                
+        //         listitem[fil.NmMGd] = {
+        //             "gudang": fil.NmMGd,
+        //             "list": item,
+        //         }
+        //     } else {
+        //         listitem[fil.NmMGd].list.push({item})
+        //     }
+            
+        //     // if (listgudang.length == 0 || (listgudang.length > 0 && fil.NmMGd != listgudang[0].gudang)){
+        //     //     listgudang.push({
+        //     //         "cabang": fil.NmMCabang,
+        //     //         "gudang": fil.NmMGd,
+        //     //         "list" : tesR
+        //     //     })
+        //     // }
 
-                var saldo = 0;
-                var arr_item = item[0].map((item, index_dua) => {
-                    saldo += parseFloat(item.saldo);
-                    return {
-                        'tanggal': item.tgltrans,
-                        'keterangan': item.keterangan,
-                        'satuan': item.nmmstn,
-                        'debet': parseFloat(item.debet),
-                        'kredit': parseFloat(item.kredit),
-                        'saldo': parseFloat(item.saldo),
-                        // 'debet': item.debet,
-                        // 'kredit': item.kredit,
-                        // 'saldo': item.saldo,
-                    }
-                })
+        //     console.log('tesman',fil.NmMGd)
+        //     // listitem.push({
+        //     //     "nmmbrg": '',
+        //     //     "tgl": '',
+        //     //     "bukti": 'dummy',
+        //     //     "satuan": 'dummy',
+        //     //     "qty": 0,
+        //     // });
+        //     // return {
+        //     //     "cabang": fil.NmMCabang,
+        //     //     "gudang": fil.NmMGd // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
+        //     //     // "list": arr_brg
+        //     // }
+        //     // let sql1 = `SELECT k.idmbrg, b.kdmbrg, b.nmmbrg, SUM(k.qtytotal) AS qty, s.nmmstn FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.idmstn1 = s.idmstn WHERE tgltrans <= '${date}' AND k.idmcabang = ${fil.idmcabang} AND idmgd=${fil.idmgd} GROUP BY k.idmbrg`;
+        //     // const brg = await sequelize.query(sql1, {
+        //     //     raw: false,
+        //     // });
 
-                return {
-                    "id": brg.idmbrg,
-                    "kode": brg.kdmbrg,
-                    "nama": brg.nmmbrg,
-                    "qty": parseFloat(brg.qty),
-                    "satuan": brg.nmmstn,
-                    "listitem": arr_item,
-                }
-            }))
+        //     // var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
+        //     //     let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') <= '${date}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
+        //     //     const item = await sequelize.query(sql2, {
+        //     //         raw: false,
+        //     //     });
 
-            return {
-                "cabang": fil.nmmcabang,
-                "gudang": fil.nmmgd, // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-                "list": arr_brg
-            }
-        }))
+        //     //     var saldo = 0;
+        //     //     var arr_item = item[0].map((item, index_dua) => {
+        //     //         saldo += parseFloat(item.saldo);
+        //     //         return {
+        //     //             'tanggal': item.tgltrans,
+        //     //             'keterangan': item.keterangan,
+        //     //             'satuan': item.nmmstn,
+        //     //             'debet': parseFloat(item.debet),
+        //     //             'kredit': parseFloat(item.kredit),
+        //     //             'saldo': parseFloat(item.saldo),
+        //     //             // 'debet': item.debet,
+        //     //             // 'kredit': item.kredit,
+        //     //             // 'saldo': item.saldo,
+        //     //         }
+        //     //     })
+
+        //     //     return {
+        //     //         "id": brg.idmbrg,
+        //     //         "kode": brg.kdmbrg,
+        //     //         "nama": brg.nmmbrg,
+        //     //         "qty": parseFloat(brg.qty),
+        //     //         "satuan": brg.nmmstn,
+        //     //         "listitem": arr_item,
+        //     //     }
+        //     // }))
+
+            
+        // }))
 
         res.json({
             message: "Success",
-            data: arr_data
+            data: result
         })
     }
 
@@ -1149,6 +1193,7 @@ exports.hutang = async (req, res) => {
             raw: false,
         });
 
+        
         var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
             let sql1 = `SELECT MSup.kdmsup, MSup.nmmsup, MSup.aktif, TablePosHut.poshut
                 FROM (
@@ -1317,10 +1362,10 @@ exports.hutang = async (req, res) => {
                 raw: false,
             });
 
-
+            var total1 = 0;
             var arr_item = await Promise.all(kas[0].map(async (item, index_satu) => {
                 var poshut = parseFloat(item.poshut);
-                // total += poshut;
+                total1 += poshut;
                 return {
                     "kode": item.kdmsup,
                     "nama": item.nmmsup,
@@ -1330,6 +1375,7 @@ exports.hutang = async (req, res) => {
 
             return {
                 "cabang": fil.nmmcabang,
+                "total" : total1,
                 "list": arr_item
             }
         }))
@@ -1866,7 +1912,7 @@ exports.hutang = async (req, res) => {
 
             return {
                 "customer": fil.nmmsup,
-                "detail": detail
+                "list": detail
             }
         }))
 
