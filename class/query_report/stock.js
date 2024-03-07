@@ -1,9 +1,9 @@
 exports.queryPosisiStockWI = async (tanggal) => {
     var sql = `
     SELECT * FROM (
-        SELECT MCabang.KdMCabang, MCabang.NmMCabang
-            , MGd.KdMGd, MGd.NmMGd
-            , MBrg.KdMBrg, MBrg.NmMBrg
+        SELECT MCabang.IdMCabang, MCabang.KdMCabang, MCabang.NmMCabang
+            , MGd.IdMGd, MGd.KdMGd, MGd.NmMGd
+            , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg
             , MJenisBrg.KdMJenisBrg, MJenisBrg.NmMJenisBrg
             , IF(IsNull(MStn1.KdMStn) = '', MStn1.KdMStn, '') as KdMStn1
             , IF(IsNull(MStn2.KdMStn) = '', MStn2.KdMStn, '') as KdMStn2
@@ -66,4 +66,63 @@ exports.queryPosisiStockWI = async (tanggal) => {
     `;
 
     return sql;
+}
+
+
+
+exports.queryKartuStockWI = async (start, end) => { 
+  var sql = `Select * from (
+    SELECT MCabang.KdMCabang
+         , MCabang.NmMCabang
+         , MGd.KdMGd
+         , MGd.NmMGd
+         , MBrg.KdMBrg
+         , MBrg.NmMBrg
+         , TableKartuStock.IdMBrg
+         , TableKartuStock.IdMCabang
+         , Urut
+         , BuktiTrans
+         , cast(TglTrans as datetime) as TglTrans
+         , TableKartuStock.Keterangan, Saldo, QtyTotal
+         , IF(Urut = 0, 0, IF(IF(IsNull(QtyTotal), 0, QtyTotal) > 0, IF(IsNull(QtyTotal), 0, QtyTotal), 0)) As Debit
+         , IF(Urut = 0, 0, IF(IF(IsNull(QtyTotal), 0, QtyTotal) >= 0, 0, IF(IsNull(QtyTotal), 0, -QtyTotal))) As Kredit
+         , IF(IsNull(HPP), 0, HPP) As HPP
+         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'UKURAN_BRG'), '') AS EditUKURAN_BRG
+         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'KMK'), '') AS EditKMK
+         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'MERK'), '') AS EditMERK
+    FROM (
+    SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, 0 as IdTransD, 000 As BuktiTrans, cast('2024-03-01 00:00:00' as DateTime) As TglTrans, 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan FROM (
+      SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal FROM MGINLKartuStock where TglTrans < '2024-03-01 00:00:00'
+    ) TableSaldoAwal
+    GROUP BY IdMCabang, IdMGd, IdMBrg
+    UNION ALL
+    SELECT IdMCabang, IdMGd, IdMBrg, 1 as Urut, JenisTrans, IdTrans, IdTransD, BuktiTrans, TglTrans, SUM(QtyTotal) AS QtyTotal, 0, HPP, Keterangan FROM MGINLKartuStock where TglTrans >= '${start} 00:00:00' and TglTrans < '${end} 00:00:00' and IdMGd <> 1000000
+     GROUP BY IdMCabang, IdMGd, IdMBrg, IdTrans, JenisTrans, HrgStn 
+    UNION ALL
+    SELECT IdMCabang, IdMGd, IdMBrg, IF (JenisTrans = 'ITM', 2, IF (JenisTrans = 'ITK', 3, 4)) AS Urut, JenisTrans, IdTrans, IdTransD, BuktiTrans, TglTrans, SUM(QtyTotal) AS QtyTotal, 0, HPP, Keterangan FROM MGINLKartuStock where TglTrans >= '${start} 00:00:00' and TglTrans < '${end} 00:00:00' and IdMGd = 1000000
+     GROUP BY IdMCabang, IdMGd, IdMBrg, IdTrans, JenisTrans, HrgStn
+    ) TableKartuStock LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuStock.IdMCabang = MCabang.IdMCabang)
+                      LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
+                      LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
+    WHERE MCabang.Hapus = 0
+      AND ((MGd.KdMGd LIKE '%%'
+      AND MGd.NmMGd LIKE '%%')
+      AND MGd.IdMGd <> 1000000)
+        AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
+      AND MBrg.KdMBrg LIKE '%%'
+      AND MBrg.NmMBrg LIKE '%%'
+      AND MBrg.Reserved_int1 <> 4
+    ORDER BY TableKartuStock.IdMCabang
+    , TableKartuStock.IdMGd
+    , MBrg.KdMBrg, Urut, cast(TglTrans As Date), JenisTrans, IdTrans, IdTransD
+    ) Tabel1
+     WHERE 
+       EditUKURAN_BRG Like '%%'
+     AND 
+       EditKMK Like '%%'
+     AND 
+       EditMERK Like '%%'
+    `;
+  
+  return sql;
 }

@@ -808,6 +808,7 @@ exports.stock = async (req, res) => {
         var arr_listitem = [];
 
         var list = {
+            "id": fil.IdMBrg,
             "kode": fil.KdMBrg,
             "nama": fil.NmMBrg,
             "qty": parseFloat(fil.PosQty),
@@ -818,7 +819,9 @@ exports.stock = async (req, res) => {
           listgudang.push(fil.NmMGd);
 
           arr_list.push({
+            "id_cabang": fil.IdMCabang,
             "cabang": fil.NmMCabang,
+            "id_gudang": fil.IdMGd,
             "gudang": fil.NmMGd,
             "list": [list],
           });
@@ -970,7 +973,7 @@ exports.kas = async (req, res) => {
       grandtotal: grandtotal,
     };
     res.json({
-      message: "Success",
+      message: "Success man",
       countData: count,
       data: arr_data,
     });
