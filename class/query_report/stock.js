@@ -70,7 +70,21 @@ exports.queryPosisiStockWI = async (tanggal) => {
 
 
 
-exports.queryKartuStockWI = async (start, end) => { 
+exports.queryKartuStockWI = async (start, end, cabang, gudang, barang) => { 
+  let qcabang = "";
+    if (cabang != "") {
+      qcabang = "AND MCabang.IdMCabang=" + cabang;
+  }
+  
+  let qgudang = "";
+    if (gudang != "") {
+      qgudang = "AND MGd.IdMGd = " + gudang;
+  }
+  
+  let qbarang = "";
+    if (barang != "") {
+      qbarang = "AND MBrg.IdMBrg = " + barang;
+    }
   var sql = `Select * from (
     SELECT MCabang.KdMCabang
          , MCabang.NmMCabang
@@ -78,6 +92,7 @@ exports.queryKartuStockWI = async (start, end) => {
          , MGd.NmMGd
          , MBrg.KdMBrg
          , MBrg.NmMBrg
+         , MBrg.KdMStn 
          , TableKartuStock.IdMBrg
          , TableKartuStock.IdMCabang
          , Urut
@@ -91,8 +106,8 @@ exports.queryKartuStockWI = async (start, end) => {
          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'KMK'), '') AS EditKMK
          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'MERK'), '') AS EditMERK
     FROM (
-    SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, 0 as IdTransD, 000 As BuktiTrans, cast('2024-03-01 00:00:00' as DateTime) As TglTrans, 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan FROM (
-      SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal FROM MGINLKartuStock where TglTrans < '2024-03-01 00:00:00'
+    SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, 0 as IdTransD, 000 As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans, 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan FROM (
+      SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal FROM MGINLKartuStock where TglTrans < '${start} 00:00:00'
     ) TableSaldoAwal
     GROUP BY IdMCabang, IdMGd, IdMBrg
     UNION ALL
@@ -111,7 +126,7 @@ exports.queryKartuStockWI = async (start, end) => {
         AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
       AND MBrg.KdMBrg LIKE '%%'
       AND MBrg.NmMBrg LIKE '%%'
-      AND MBrg.Reserved_int1 <> 4
+      AND MBrg.Reserved_int1 <> 4 ${qcabang} ${qgudang} ${qbarang}
     ORDER BY TableKartuStock.IdMCabang
     , TableKartuStock.IdMGd
     , MBrg.KdMBrg, Urut, cast(TglTrans As Date), JenisTrans, IdTrans, IdTransD

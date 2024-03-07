@@ -800,11 +800,11 @@ exports.stock = async (req, res) => {
   if (jenis == 1) {
     let date = req.body.tanggal || today;
     let qsql = await qstock.queryPosisiStockWI(date);
-    const filter = await fun.getDataFromQuery(sequelize, qsql);
+    const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
     var listgudang = [];
-    var arr_data = await Promise.all(filter.map(async (fil, index) => {
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
         var arr_listitem = [];
 
         var list = {
@@ -844,86 +844,63 @@ exports.stock = async (req, res) => {
     let end = req.body.end || today;
 
     let cabang = req.body.cabang || "";
-    let qcabang = "";
-    if (cabang != "") {
-      qcabang = "AND c.idmcabang=" + cabang;
-    }
-
     let gudang = req.body.gudang || "";
-    let qgudang = "";
-    if (gudang != "") {
-      qgudang = "AND g.idmgd = " + gudang;
-    }
-
     let barang = req.body.barang || "";
-    let qbarang = "";
-    if (barang != "") {
-      qbarang = "AND b.idmbrg = " + barang;
-    }
-    console.log("logbrg", qbarang);
-    console.log("logstart", start);
-    console.log("logend", end);
 
-    let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' ${qcabang} ${qgudang} GROUP BY c.nmmcabang`;
-    const filter = await sequelize.query(sql, {
-      raw: false,
-    });
+    // console.log("logbrg", qbarang);
+    // console.log("logstart", start);
+    // console.log("logend", end);
 
-    var arr_data = await Promise.all(
-      filter[0].map(async (fil, index) => {
-        console.log("fil", fil);
-        let sql1 = `select b.idmbrg, b.kdmbrg, b.nmmbrg from mginmbrg b left outer join mginlkartustock k on b.idmbrg = k.idmbrg where k.idmcabang = ${fil.idmcabang} and k.idmgd = ${fil.idmgd} ${qbarang} group by b.idmbrg`;
-        const brg = await sequelize.query(sql1, {
-          raw: false,
-        });
+    let qsql = await qstock.queryKartuStockWI(start,end,cabang,gudang,barang);
+    const data = await fun.getDataFromQuery(sequelize, qsql);
 
-        var arr_brg = await Promise.all(
-          brg[0].map(async (brg, index_satu) => {
-            console.log("brg", brg);
+    var arr_list = [];
+    var listgudang = [];
+    var listbarang = [];
+    var arr_listitem = [];
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
 
-            let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT '${start}' as tgltrans, idmbrg, idtrans, 'Saldo awal' AS keterangan, (0) AS debet, (0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') < '${start}' AND idmbrg = ${brg.idmbrg} UNION ALL SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') between '${start}' AND '${end}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
-            const item = await sequelize.query(sql2, {
-              raw: false,
-            });
-
-            var saldo = 0;
-            var arr_item = item[0].map((item, index_dua) => {
-              saldo += parseFloat(item.saldo);
-              return {
-                tanggal: item.tgltrans,
-                keterangan: item.keterangan,
-                satuan: item.nmmstn,
-                debet: parseFloat(item.debet),
-                kredit: parseFloat(item.kredit),
-                saldo: parseFloat(item.saldo),
-                // 'debet': item.debet,
-                // 'kredit': item.kredit,
-                // 'saldo': item.saldo,
-              };
-            });
-
-            return {
-              // "id": brg.idmbrg,
-              kode: brg.kdmbrg,
-              nama: brg.nmmbrg,
-              // "qty": parseFloat(brg.qty),
-              // "satuan": brg.nmmstn,
-              listitem: arr_item,
-            };
-          })
-        );
-
-        return {
-          cabang: fil.nmmcabang,
-          gudang: fil.nmmgd, // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-          list: arr_brg,
+      var list = {
+          "tanggal": fil.TglTrans,
+          "keterangan": fil.Keterangan,
+          "satuan": fil.KdMStn,
+          "debet": parseFloat(fil.Debit),
+          "kredit": parseFloat(fil.Kredit),
+          "saldo": parseFloat(fil.Saldo),
         };
+          
+        var barang = {
+          "kode": fil.KdMBrg,
+          "nama": fil.NmMBrg,
+          "listitem": [list]
+        }
+      
+        if (!listgudang.includes(fil.NmMGd)) {
+          listgudang.push(fil.NmMGd);
+
+          if (!listbarang.includes(fil.IdMBrg)) { 
+            listbarang.push(fil.IdMBrg);
+            arr_listitem.push(barang)
+          } else {
+            let idx = listbarang.indexOf(fil.IdMBrg);
+            arr_listitem[idx].listitem.push(list);
+          }
+          arr_list.push({
+            "cabang": fil.NmMCabang,
+            "gudang": fil.NmMGd,
+            "list": [barang],
+          });
+        } else {
+          
+          let idx = listgudang.indexOf(fil.NmMGd);
+          arr_list[idx].list.push(barang);
+        }
       })
     );
 
     res.json({
       message: "Success kartu",
-      data: arr_data,
+      data: arr_list,
     });
   }
 };
