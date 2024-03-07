@@ -765,8 +765,8 @@ exports.stock = async (req, res) => {
 
         result = filter.reduce(function (r, a) {
             r[a.NmMGd] = r[a.NmMGd] || [];
-            r[a.NmMGd].push(a);
-            
+            r[a.NmMGd].push(a);            
+
             return r;
         }, Object.create(null));
         // var arr_data = await Promise.all(filter.map(async (fil, index) => {
