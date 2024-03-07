@@ -802,85 +802,36 @@ exports.stock = async (req, res) => {
     let qsql = await qstock.queryPosisiStockWI(date);
     const filter = await fun.getDataFromQuery(sequelize, qsql);
 
-    var listitem = [];
+    var arr_list = [];
     var listgudang = [];
-    var arr_data = await Promise.all(
-      filter.map(async (fil, index) => {
-        // var item = fil;
+    var arr_data = await Promise.all(filter.map(async (fil, index) => {
+        var arr_listitem = [];
+
+        var list = {
+            "kode": fil.KdMBrg,
+            "nama": fil.NmMBrg,
+            "qty": parseFloat(fil.PosQty),
+            "satuan": fil.KdMStn1
+        };
+          
         if (!listgudang.includes(fil.NmMGd)) {
           listgudang.push(fil.NmMGd);
 
-          listitem.push({
-            gudang: fil.NmMGd,
-            list: [fil],
+          arr_list.push({
+            "cabang": fil.NmMCabang,
+            "gudang": fil.NmMGd,
+            "list": [list],
           });
         } else {
-          let cek = listgudang.indexOf(fil.NmMGd);
-          listitem[cek].list.push(fil);
+          let idx = listgudang.indexOf(fil.NmMGd);
+          arr_list[idx].list.push(list);
         }
-
-        // if (listgudang.length == 0 || (listgudang.length > 0 && fil.NmMGd != listgudang[0].gudang)){
-        //     listgudang.push({
-        //         "cabang": fil.NmMCabang,
-        //         "gudang": fil.NmMGd,
-        //         "list" : tesR
-        //     })
-        // }
-
-        // listitem.push({
-        //     "nmmbrg": '',
-        //     "tgl": '',
-        //     "bukti": 'dummy',
-        //     "satuan": 'dummy',
-        //     "qty": 0,
-        // });
-        // return {
-        //     "cabang": fil.NmMCabang,
-        //     "gudang": fil.NmMGd // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-        //     // "list": arr_brg
-        // }
-        // let sql1 = `SELECT k.idmbrg, b.kdmbrg, b.nmmbrg, SUM(k.qtytotal) AS qty, s.nmmstn FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.idmstn1 = s.idmstn WHERE tgltrans <= '${date}' AND k.idmcabang = ${fil.idmcabang} AND idmgd=${fil.idmgd} GROUP BY k.idmbrg`;
-        // const brg = await sequelize.query(sql1, {
-        //     raw: false,
-        // });
-
-        // var arr_brg = await Promise.all(brg[0].map(async (brg, index_satu) => {
-        //     let sql2 = `SELECT s.tgltrans, s.keterangan, ss.nmmstn, s.debet, s.kredit, SUM(s.saldo) as saldo FROM (SELECT tgltrans, idmbrg, idtrans, keterangan, IF(qtytotal >= 0, qtytotal, 0) AS debet, IF(qtytotal <= 0, qtytotal, 0) AS kredit, SUM(qtytotal) AS saldo FROM mginlkartustock WHERE STR_TO_DATE(tgltrans, '%Y-%m-%d') <= '${date}' AND idmbrg = ${brg.idmbrg} GROUP BY idtrans) s LEFT OUTER JOIN mginmbrg b ON b.idmbrg = s.idmbrg LEFT OUTER JOIN mginmstn ss ON ss.idmstn = b.idmstn1 GROUP BY s.keterangan ORDER BY s.tgltrans ASC`;
-        //     const item = await sequelize.query(sql2, {
-        //         raw: false,
-        //     });
-
-        //     var saldo = 0;
-        //     var arr_item = item[0].map((item, index_dua) => {
-        //         saldo += parseFloat(item.saldo);
-        //         return {
-        //             'tanggal': item.tgltrans,
-        //             'keterangan': item.keterangan,
-        //             'satuan': item.nmmstn,
-        //             'debet': parseFloat(item.debet),
-        //             'kredit': parseFloat(item.kredit),
-        //             'saldo': parseFloat(item.saldo),
-        //             // 'debet': item.debet,
-        //             // 'kredit': item.kredit,
-        //             // 'saldo': item.saldo,
-        //         }
-        //     })
-
-        //     return {
-        //         "id": brg.idmbrg,
-        //         "kode": brg.kdmbrg,
-        //         "nama": brg.nmmbrg,
-        //         "qty": parseFloat(brg.qty),
-        //         "satuan": brg.nmmstn,
-        //         "listitem": arr_item,
-        //     }
-        // }))
       })
     );
 
     res.json({
       message: "Success",
-      data: listitem,
+      data: arr_list,
     });
   }
 

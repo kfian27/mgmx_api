@@ -31,7 +31,7 @@ exports.queryPosisiStockWI = async (tanggal) => {
         FROM (
           SELECT IdMCabang, IdMGd, IdMBrg, Sum(QtyTotal) as PosQty, Sum(QtyTotal * HPP) as PosValue 
             FROM MGINLKartuStock LKartu
-          WHERE TglTrans < '2024-03-06 00:00:00'
+          WHERE TglTrans < '${tanggal} 00:00:00'
           GROUP BY IdMCabang, IdMGd, IdMBrg
         ) TablePosQty LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosQty.IdMCabang = MCabang.IdMCabang)
                       LEFT OUTER JOIN MGSYMGd MGd ON (TablePosQty.IdMCabang = MGd.IdMCabang AND TablePosQty.IdMGd = MGd.IdMGd)
@@ -43,8 +43,6 @@ exports.queryPosisiStockWI = async (tanggal) => {
                       LEFT OUTER JOIN MGINMStn MStn4 ON (MBrg.IdMStn4 = MStn4.IdMStn)
                       LEFT OUTER JOIN MGINMStn MStn5 ON (MBrg.IdMStn5 = MStn5.IdMStn)
         WHERE MCabang.Hapus = 0
-          AND MCabang.KdMCabang LIKE '%AIH%'
-          AND MCabang.NmMCabang LIKE '%ALAM INDAH HARMONI%'
           AND MGd.Hapus = 0
           AND ((MGd.KdMGd LIKE '%%'
           AND MGd.NmMGd LIKE '%%')
