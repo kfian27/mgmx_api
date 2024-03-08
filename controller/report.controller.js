@@ -984,109 +984,87 @@ exports.kas = async (req, res) => {
         let date = req.body.tanggal || today;
         let q = await qkas.queryPosisiKasWI(date);
         const kas = await fun.getDataFromQuery(sequelize, q);
-        
+
+        var listitem = [];
+        var listcabang = [];
         var grandtotal = 0;
-        var namaCabang = '';
-
-        var arr_data = await Promise.all(filter[0].map(async (fil, index) => {
-            let sql1 = `SELECT k.kdmkas, k.nmmkas, SUM(kas.jmlkas) AS total FROM mgkblkartukas kas LEFT OUTER JOIN mgkbmkas k ON kas.idmkas = k.idmkas WHERE k.aktif = 1 AND k.hapus = 0 AND STR_TO_DATE(kas.tgltrans, '%Y-%m-%d %H:%i:%s') <= '${date}' GROUP BY k.kdmkas`;
-            const kas = await sequelize.query(sql1, {
-                raw: false,
-            });
-
-            var arr_kas = await Promise.all(kas[0].map(async (item, index_satu) => {
-                return {
-                    "kode": item.kdmkas,
-                    "nama": item.nmmkas,
-                    "qty": parseFloat(item.total),
-                }
-            }))
-
-            return {
-                "cabang": fil.nmmcabang,
-                "list": arr_kas
+        var arr_data = await Promise.all(kas.map(async (fil, index) => {
+            grandtotal += parseFloat(fil.PosKas)
+            var data_kas = {
+              kode : fil.KdMKas,
+              nama : fil.NmMKas,
+              qty : fil.PosKas
+            };
+            if (!listcabang.includes(fil.NmMCabang)) {              
+              listcabang.push(fil.NmMCabang);
+              listitem.push({
+                cabang: fil.NmMCabang,
+                list: [data_kas],
+              });
+            } else {
+              let cek = listcabang.indexOf(fil.NmMCabang);
+              listitem[cek].list.push(data_kas);
             }
-        }))
-
-        var grandtotal = await fun.countDataFromQuery(
-            sequelize,
-            `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
+          })
         );
 
         var count = {
-            grandtotal: grandtotal
+          grandtotal : grandtotal
         }
 
         res.json({
             message: "Success",
             countData: count,
-            data: arr_data
+            data: listitem
         })
     }
 
-  // kartu kas
-  else if (jenis == 2) {
-    let start = req.body.start || today;
-    let end = req.body.end || today;
+    // kartu kas
+    else if (jenis == 2) {
+      let start = req.body.start || today;
+      let end = req.body.end || today;
 
-    let mkas = req.body.mkas || "";
-    let qkas = "";
-    if (mkas != "") {
-      qkas = "AND k.idmkas=" + mkas;
-    }
+      let mkas = req.body.mkas || "";
+      let filter_kas = "";
+      if (mkas != "") {
+          filter_kas = "AND TableKartuKas.IdMKas = " + mkas;
+      }
 
-    let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans <= '${today}' GROUP BY c.nmmcabang`;
-    const filter = await sequelize.query(sql, {
-      raw: false,
-    });
+      let q = await qkas.queryKartuKasWI(start,end,filter_kas);
+      const kas = await fun.getDataFromQuery(sequelize, q);
 
-    var arr_data = await Promise.all(
-      filter[0].map(async (fil, index) => {
-        let sql1 = `SELECT k.IdMKas, k.KdMKas, k.NmMKas FROM mgkblkartukas kas LEFT OUTER JOIN mgkbmkas k ON kas.idmkas = k.idmkas WHERE kas.idmcabang = ${fil.idmcabang} ${qkas} AND k.Aktif=1 AND k.Hapus=0 AND STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') <= '${today}' GROUP BY k.idmkas`;
-        const kas = await sequelize.query(sql1, {
-          raw: false,
-        });
+      var listitem = [];
+      var listcabang = [];
+      var listkas = [];
+      var arr_data = await Promise.all(
+        kas.map(async (fil, index) => {
+          var data_kas = {
+            tanggal : fil.TglTrans
+          };
+          if (!listcabang.includes(fil.NmMCabang)) {
+            listcabang.push(fil.NmMCabang);
+            if(!listkas.includes(fil.KdMKas)){
+              listkas.push(fil.KdMKas);
+              listitem.push({
+                cabang: fil.NmMCabang,
+                list: [data_kas],
+              });
+            }else{
+              let cek = listkas.indexOf(fil.NmMKas);
+              listitem[cek].list.push(data_kas);
+            }            
+          } else {
+            let cek = listcabang.indexOf(fil.NmMCabang);
+            listitem[cek].list.push(data_kas);
+          }
+        })
+      );
 
-        var arr_list = await Promise.all(
-          kas[0].map(async (list, index_satu) => {
-            let idmkas = list.IdMKas;
-            let sql2 = `SELECT k.tgltrans, k.buktitrans, k.keterangan, k.debit, k.kredit, SUM(k.saldo) AS saldo FROM (SELECT kas.TglTrans, '-' AS buktitrans, 'Saldo Awal' AS keterangan, 0 AS debit, 0 AS kredit, SUM(kas.jmlkas) AS saldo FROM mgkblkartukas kas WHERE STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') < '${start}' AND kas.idmkas=${idmkas} UNION ALL SELECT kas.TglTrans, kas.BuktiTrans, kas.Keterangan, IF(kas.jmlkas>=0,kas.jmlkas,0) AS debit, IF(kas.jmlkas<0,kas.jmlkas,0) AS kredit, SUM(kas.jmlkas) AS saldo FROM mgkblkartukas kas WHERE STR_TO_DATE(kas.TglTrans, '%Y-%m-%d') BETWEEN '${start}' AND '${end}' AND kas.idmkas=${idmkas} GROUP BY kas.BuktiTrans) k GROUP BY k.buktitrans ORDER BY k.tgltrans ASC`;
-            const item = await sequelize.query(sql2, {
-              raw: false,
-            });
-
-            var saldo = 0;
-            var arr_item = item[0].map((item, index_dua) => {
-              saldo += parseFloat(item.saldo);
-              return {
-                tanggal: item.tgltrans,
-                keterangan: item.keterangan,
-                debet: parseFloat(item.debit),
-                kredit: parseFloat(item.kredit),
-                saldo: parseFloat(item.saldo),
-              };
-            });
-
-            return {
-              kode: list.KdMKas,
-              nama: list.NmMKas,
-              listitem: arr_item,
-            };
-          })
-        );
-
-        return {
-          cabang: fil.nmmcabang,
-          list: arr_list,
-        };
+      res.json({
+          message: "Success",
+          data: listitem
       })
-    );
-
-    res.json({
-      message: "Success kartu",
-      data: arr_data,
-    });
-  }
+    }
 };
 
 exports.bank = async (req, res) => {
