@@ -24,7 +24,11 @@ exports.queryPosisiKasWI = async (date) => {
 }
 
 
-exports.queryKartuKasWI = async (start, end, qkas) => {
+exports.queryKartuKasWI = async (start, end, mkas) => {
+    let qkas = "";
+    if (mkas != "") {
+        qkas = "AND TableKartuKas.IdMKas = " + mkas;
+    }
     var sql = `SELECT TableKartuKas.IsDebetKredit 
                     , MCabang.KdMCabang
                     , MCabang.NmMCabang

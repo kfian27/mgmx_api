@@ -954,47 +954,96 @@ exports.kas = async (req, res) => {
     else if (jenis == 2) {
       let start = req.body.start || today;
       let end = req.body.end || today;
-
       let mkas = req.body.mkas || "";
-      let filter_kas = "";
-      if (mkas != "") {
-          filter_kas = "AND TableKartuKas.IdMKas = " + mkas;
-      }
 
-      let q = await qkas.queryKartuKasWI(start,end,filter_kas);
+      let q = await qkas.queryKartuKasWI(start,end,mkas);
       const kas = await fun.getDataFromQuery(sequelize, q);
 
-      var listitem = [];
+      var arr_list = [];
       var listcabang = [];
       var listkas = [];
-      var arr_data = await Promise.all(
-        kas.map(async (fil, index) => {
-          var data_kas = {
-            tanggal : fil.TglTrans
-          };
-          if (!listcabang.includes(fil.NmMCabang)) {
-            listcabang.push(fil.NmMCabang);
-            if(!listkas.includes(fil.KdMKas)){
-              listkas.push(fil.KdMKas);
-              listitem.push({
-                cabang: fil.NmMCabang,
-                list: [data_kas],
-              });
-            }else{
-              let cek = listkas.indexOf(fil.NmMKas);
-              listitem[cek].list.push(data_kas);
-            }            
-          } else {
-            let cek = listcabang.indexOf(fil.NmMCabang);
-            listitem[cek].list.push(data_kas);
+      var arr_listitem = [];
+      // var arr_data = await Promise.all(kas.map(async (fil, index) => {
+      //     var list = {
+      //       "tanggal": fil.TglTrans,
+      //       "keterangan": fil.Keterangan,
+      //       "debet": parseFloat(fil.Debit),
+      //       "kredit": parseFloat(fil.Kredit),
+      //       "saldo": parseFloat(fil.Saldo),
+      //     };
+            
+      //     var data_kas = {
+      //       "kode": fil.KdMKas,
+      //       "nama": fil.NmMKas,
+      //       "listitem": [list]
+      //     }
+        
+      //     if (!listcabang.includes(fil.NmMCabang)) {
+      //       listcabang.push(fil.NmMCabang);
+
+      //       if (!listkas.includes(fil.KdMKas)) { 
+      //         listkas.push(fil.KdMKas);
+      //         arr_listitem.push(data_kas)
+      //       } else {
+      //         let idx = listkas.indexOf(fil.KdMKas);
+      //         arr_listitem[idx].listitem.push(list);
+      //       }
+      //       arr_list.push({
+      //         "cabang": fil.NmMCabang,
+      //         "list": [data_kas],
+      //       });
+      //     } else {            
+      //       let idx = listcabang.indexOf(fil.NmMCabang);
+      //       arr_list[idx].list.push(data_kas);
+      //     }
+      //   })
+      // );
+
+      var arr_data = await Promise.all(kas.map(async (fil, index) => {
+        var list = {
+          "tanggal": fil.TglTrans,
+          "keterangan": fil.Keterangan,
+          "debet": parseFloat(fil.Debit),
+          "kredit": parseFloat(fil.Kredit),
+          "saldo": parseFloat(fil.Saldo),
+        };
+          
+        var data_kas = {
+          "kode": fil.KdMKas,
+          "nama": fil.NmMKas,
+          "listitem": [list]
+        }
+      
+        if (!listcabang.includes(fil.NmMCabang)) {
+          listcabang.push(fil.NmMCabang);
+          if (!listkas.includes(fil.KdMKas)) { 
+            listkas.push(fil.KdMKas);
           }
-        })
-      );
+          arr_list.push({
+            "cabang": fil.NmMCabang,
+            "list": data_kas,
+          });
+        } else {
+          let idx = listcabang.indexOf(fil.NmMCabang);          
+          // arr_list[idx].list.push(data_kas);
+          console.log(idx)
+          if (!listkas.includes(fil.KdMKas)) { 
+            listkas.push(fil.KdMKas);
+            arr_list[idx].list.push(data_kas);
+            console.log("di if")
+          } else {
+            let idx2 = listkas.indexOf(fil.KdMKas);
+            arr_list[idx].list.listitem.push(list);
+            console.log("di else" + idx2)
+          }
+        }
+      })
+    );
 
       res.json({
-          message: "Success",
-          data: listitem
-      })
+        message: "Success kartu",
+        data: arr_list,
+      });
     }
 };
 
