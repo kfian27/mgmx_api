@@ -860,44 +860,51 @@ exports.stock = async (req, res) => {
     var listbarang = [];
     var arr_listitem = [];
     var arr_data = await Promise.all(data.map(async (fil, index) => {
-
       var list = {
-          "tanggal": fil.TglTrans,
-          "keterangan": fil.Keterangan,
-          "satuan": fil.KdMStn,
-          "debet": parseFloat(fil.Debit),
-          "kredit": parseFloat(fil.Kredit),
-          "saldo": parseFloat(fil.Saldo),
-        };
-          
-        var barang = {
-          "kode": fil.KdMBrg,
-          "nama": fil.NmMBrg,
-          "listitem": [list]
-        }
-      
-        if (!listgudang.includes(fil.NmMGd)) {
-          listgudang.push(fil.NmMGd);
+        "tanggal": fil.TglTrans,
+        "keterangan": fil.Keterangan,
+        "satuan": fil.KdMStn,
+        "debet": parseFloat(fil.Debit),
+        "kredit": parseFloat(fil.Kredit),
+        "saldo": parseFloat(fil.Saldo),
+      };
+      //
+        
+      var barang = {
+        "kode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "listitem": [list]
+      }
 
-          if (!listbarang.includes(fil.IdMBrg)) { 
-            listbarang.push(fil.IdMBrg);
-            arr_listitem.push(barang)
-          } else {
-            let idx = listbarang.indexOf(fil.IdMBrg);
-            arr_listitem[idx].listitem.push(list);
-          }
-          arr_list.push({
-            "cabang": fil.NmMCabang,
-            "gudang": fil.NmMGd,
-            "list": [barang],
-          });
-        } else {
-          
-          let idx = listgudang.indexOf(fil.NmMGd);
+      var gudang = {
+        "cabang": fil.NmMCabang,
+        "gudang": fil.NmMGd,
+        "list": [barang],
+      }
+    
+      // gudang terbaru (gudang => barang => item)
+      if (!listgudang.includes(fil.NmMGd)) {
+        listgudang.push(fil.NmMGd);
+        listbarang.push(fil.KdMBrg);
+        //
+
+        arr_list.push(gudang);
+      }
+      // gudang yang sudah ada
+      else {
+        let idx = listgudang.indexOf(fil.NmMGd);
+        // barang terbaru di gudang yang sudah ada (barang => item)
+        if (!listbarang.includes(fil.KdMBrg)) { 
+          listbarang.push(fil.KdMBrg);
           arr_list[idx].list.push(barang);
         }
-      })
-    );
+        // barang yang sudah ada (item)
+        else {
+          let idx2 = listbarang.indexOf(fil.KdMBrg);
+          arr_list[idx].list[idx2].listitem.push(list);
+        }
+      }
+    }));
 
     res.json({
       message: "Success kartu",
