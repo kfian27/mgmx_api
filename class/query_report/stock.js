@@ -1,9 +1,10 @@
 const fun = require("../../mgmx");
+var companyWI = fun.companyWI;
 
+// tambahan IdMCabang, IdMGd, IdMBrg
 exports.queryPosisiStock = async (companyid,tanggal) => {
   console.log('companywi', fun.companyWI);
-  var sql = ``;
-  var companyWI = fun.companyWI;
+  var sql = ``;  
 
   if (companyid == companyWI) {
     sql = `
@@ -50,6 +51,8 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
                         LEFT OUTER JOIN MGINMStn MStn4 ON (MBrg.IdMStn4 = MStn4.IdMStn)
                         LEFT OUTER JOIN MGINMStn MStn5 ON (MBrg.IdMStn5 = MStn5.IdMStn)
           WHERE MCabang.Hapus = 0
+          AND MCabang.KdMCabang LIKE '%%'
+          AND MCabang.NmMCabang LIKE '%%'
             AND MGd.Hapus = 0
             AND ((MGd.KdMGd LIKE '%%'
             AND MGd.NmMGd LIKE '%%')
@@ -58,24 +61,26 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
             AND MBrg.Hapus = 0
             AND MBrg.KdMBrg LIKE '%%'
             AND MBrg.NmMBrg LIKE '%%'
-           and MBrg.Reserved_int1 <> 4
+            and MBrg.Reserved_int1 <> 4
             AND MJenisBrg.KdMJenisBrg LIKE '%%'
             AND MJenisBrg.NmMJenisBrg LIKE '%%'
             AND PosQty <> 0
           ORDER BY MCabang.KdMCabang, MGd.KdMGd, MJenisBrg.KdMJenisBrg, MBrg.NmMBrg
           ) as Tabel1 
-           WHERE 
-             EditUKURAN_BRG Like '%%'
-           AND 
-             EditKMK Like '%%'
-           AND 
-             EditMERK Like '%%'
+          WHERE 
+            EditUKURAN_BRG Like '%%'
+          AND 
+            EditKMK Like '%%'
+          AND 
+            EditMERK Like '%%'
       `;
   } else {
+    console.log('ini massal');
     sql = `SELECT * FROM (
-      SELECT MCabang.KdMCabang, MCabang.NmMCabang
-          , MGd.KdMGd, MGd.NmMGd
-          , MBrg.KdMBrg, MBrg.NmMBrg, MBrg.Reserved_dec4 As BeratMBrg
+      SELECT MCabang.IdMCabang, MCabang.KdMCabang, MCabang.NmMCabang
+          , MGd.IdMGd, MGd.KdMGd, MGd.NmMGd
+          , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg
+          , MBrg.Reserved_dec4 As BeratMBrg
           , MBrg.Keterangan
           , MJenisBrg.KdMJenisBrg, MJenisBrg.NmMJenisBrg
           , COALESCE(MStn1.KdMStn,'') AS KdMStn1
@@ -112,11 +117,11 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
         FROM (
           SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal as PosQty, QtyTotal * HPP as PosValue, 0 as HBT 
           FROM MGINLKartuStock LKartu
-          WHERE TglTrans < '2024-04-01 00:00:00'
+          WHERE TglTrans < '${tanggal} 23:59:59'
         UNION ALL
           SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal as PosQty,  HPP as PosValue, 0 as HBT 
           FROM MGINLKartuStock LKartu
-          WHERE TglTrans < '2024-04-01 00:00:00'
+          WHERE TglTrans < '${tanggal} 23:59:59'
             AND BuktiTrans Like '%Pembulatan%'
         )TblGabung
         GROUP BY IdMCabang, IdMGd, IdMBrg
@@ -168,145 +173,148 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
 
 
 
-exports.queryKartuStock = async (start, end, cabang, gudang, barang) => { 
+exports.queryKartuStock = async (companyid, start, end, cabang, gudang, barang) => { 
   let qcabang = "";
-    if (cabang != "") {
-      qcabang = "AND MCabang.IdMCabang=" + cabang;
+  if (cabang != "") {
+    qcabang = "AND MCabang.IdMCabang=" + cabang;
   }
   
   let qgudang = "";
-    if (gudang != "") {
-      qgudang = "AND MGd.IdMGd = " + gudang;
+  if (gudang != "") {
+    qgudang = "AND MGd.IdMGd = " + gudang;
   }
   
   let qbarang = "";
-    if (barang != "") {
-      qbarang = "AND MBrg.IdMBrg = " + barang;
-    }
-  var sql = `Select * from (
-    SELECT MCabang.KdMCabang
-         , MCabang.NmMCabang
-         , MGd.KdMGd
-         , MGd.NmMGd
-         , MBrg.KdMBrg
-         , MBrg.NmMBrg
-         , MBrg.KdMStn 
-         , TableKartuStock.IdMBrg
-         , TableKartuStock.IdMCabang
-         , Urut
-         , BuktiTrans
-         , cast(TglTrans as datetime) as TglTrans
-         , TableKartuStock.Keterangan, Saldo, QtyTotal
-         , IF(Urut = 0, 0, IF(IF(IsNull(QtyTotal), 0, QtyTotal) > 0, IF(IsNull(QtyTotal), 0, QtyTotal), 0)) As Debit
-         , IF(Urut = 0, 0, IF(IF(IsNull(QtyTotal), 0, QtyTotal) >= 0, 0, IF(IsNull(QtyTotal), 0, -QtyTotal))) As Kredit
-         , IF(IsNull(HPP), 0, HPP) As HPP
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'UKURAN_BRG'), '') AS EditUKURAN_BRG
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'KMK'), '') AS EditKMK
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'MERK'), '') AS EditMERK
-    FROM (
-    SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, 0 as IdTransD, 000 As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans, 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan FROM (
-      SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal FROM MGINLKartuStock where TglTrans < '${start} 00:00:00'
-    ) TableSaldoAwal
-    GROUP BY IdMCabang, IdMGd, IdMBrg
-    UNION ALL
-    SELECT IdMCabang, IdMGd, IdMBrg, 1 as Urut, JenisTrans, IdTrans, IdTransD, BuktiTrans, TglTrans, SUM(QtyTotal) AS QtyTotal, 0, HPP, Keterangan FROM MGINLKartuStock where TglTrans >= '${start} 00:00:00' and TglTrans <= '${end} 23:59:59' and IdMGd <> 1000000
-     GROUP BY IdMCabang, IdMGd, IdMBrg, IdTrans, JenisTrans, HrgStn 
-    UNION ALL
-    SELECT IdMCabang, IdMGd, IdMBrg, IF (JenisTrans = 'ITM', 2, IF (JenisTrans = 'ITK', 3, 4)) AS Urut, JenisTrans, IdTrans, IdTransD, BuktiTrans, TglTrans, SUM(QtyTotal) AS QtyTotal, 0, HPP, Keterangan FROM MGINLKartuStock where TglTrans >= '${start} 00:00:00' and TglTrans <= '${end} 23:59:59' and IdMGd = 1000000
-     GROUP BY IdMCabang, IdMGd, IdMBrg, IdTrans, JenisTrans, HrgStn
-    ) TableKartuStock LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuStock.IdMCabang = MCabang.IdMCabang)
-                      LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
-                      LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
-    WHERE MCabang.Hapus = 0
-      AND ((MGd.KdMGd LIKE '%%'
-      AND MGd.NmMGd LIKE '%%')
-      AND MGd.IdMGd <> 1000000)
-        AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
-      AND MBrg.KdMBrg LIKE '%%'
-      AND MBrg.NmMBrg LIKE '%%'
-      AND MBrg.Reserved_int1 <> 4 ${qcabang} ${qgudang} ${qbarang}
-    ORDER BY TableKartuStock.IdMCabang
-    , TableKartuStock.IdMGd
-    , MBrg.KdMBrg, Urut, cast(TglTrans As Date), JenisTrans, IdTrans, IdTransD
-    ) Tabel1
-     WHERE 
-       EditUKURAN_BRG Like '%%'
-     AND 
-       EditKMK Like '%%'
-     AND 
-       EditMERK Like '%%'
-    `;
-  
-  sql = `Select * from (
-    SELECT MCabang.KdMCabang
-         , MCabang.NmMCabang
-         , MGd.KdMGd
-         , MGd.NmMGd
-         , MBrg.KdMBrg
-         , MBrg.NmMBrg
-         , TableKartuStock.IdMBrg
-         , TableKartuStock.IdMCabang
-         , Urut
-         , TableKartuStock.BuktiTrans
-         , IF(JenisTrans = 'ISA', 1,
-           IF(JenisTrans = 'PBL', 2,
-           IF(JenisTrans = 'IPY', 3,
-           IF(JenisTrans = 'LSB', 3.5,
-           IF(JenisTrans = 'LSH', 3.6,
-           IF(JenisTrans = 'PRB', 4,
-           IF(JenisTrans = 'IKA', 5,
-           IF(JenisTrans = 'IKT', 6,
-           IF(JenisTrans = 'ITK', 7,
-           IF(JenisTrans = 'ITM', 8,
-           IF(JenisTrans = 'PPB', 9,
-           IF(JenisTrans = 'PPH', 10,
-           IF(JenisTrans = 'RJL', 11,
-           IF(JenisTrans = 'RJP', 12,
-           IF(JenisTrans = 'RRJ', 13,
-           IF(JenisTrans = 'ITM', 14,
-           IF(JenisTrans = 'ITK', 15,
-           16))))))))))))))))) as UrutTrans
-         , cast(TglTrans as datetime) as TglTrans
-         , TableKartuStock.TglCreate
-         , TableKartuStock.Keterangan, Saldo, TableKartuStock.QtyTotal
-         , IF(Urut = 0, 0, IF(IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, TableKartuStock.QtyTotal) > 0, IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, TableKartuStock.QtyTotal), 0)) As Debit
-         , IF(Urut = 0, 0, IF(IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, TableKartuStock.QtyTotal) >= 0, 0, IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, -TableKartuStock.QtyTotal))) As Kredit
-         , IF(COALESCE(TableKartuStock.HPP,0)=0, 0, TableKartuStock.HPP) As HPP
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '01'), '') AS Edit01
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '02'), '') AS Edit02
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '03'), '') AS Edit03
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '04'), '') AS Edit04
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '05'), '') AS Edit05
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '06'), '') AS Edit06
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '07'), '') AS Edit07
-         , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '08'), '') AS Edit08
-    FROM (
-    SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, '' as JenisTrans, 0 as IdTrans, 0 as IdTransD, '' As BuktiTrans, cast('2024-03-01 00:00:00' as DateTime) As TglTrans
-          , 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan, Max(TglCreate) as TglCreate FROM (
-      SELECT TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg
-             , TblStock.QtyTotal, TblStock.JenisTrans, IF(TblStock.TglCreate = '1900-01-01 00:00:00', TblStock.TglTrans, TblStock.TglCreate) AS TglCreate
-      FROM MGINLKartuStock TblStock
-      where TblStock.TglTrans < '2024-03-01 00:00:00'
-    ) TableSaldoAwal
-    GROUP BY TableSaldoAwal.IdMCabang, TableSaldoAwal.IdMGd, TableSaldoAwal.IdMBrg
-    UNION ALL
-    SELECT TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, 1 as Urut, TblStock.JenisTrans, TblStock.IdTrans, TblStock.IdTransD, TblStock.BuktiTrans, TblStock.TglTrans
-           , SUM(TblStock.QtyTotal) AS QtyTotal, 0, TblStock.HPP, TblStock.Keterangan, IF(TblStock.TglCreate = '1900-01-01 00:00:00', TblStock.TglTrans, TblStock.TglCreate) AS TglCreate
-    FROM MGINLKartuStock TblStock 
-    where TglTrans >= '2024-03-01 00:00:00' and TglTrans < '2024-04-01 00:00:00' and TblStock.IdMGd <> 1000000
-     GROUP BY TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, TblStock.IdTrans, TblStock.JenisTrans, TblStock.HrgStn 
-    UNION ALL
-    SELECT TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, IF (TblStock.JenisTrans = 'ITM', 2, IF (TblStock.JenisTrans = 'ITK', 3, 4)) AS Urut, TblStock.JenisTrans, TblStock.IdTrans, TblStock.IdTransD, TblStock.BuktiTrans, TblStock.TglTrans
-           , SUM(TblStock.QtyTotal) AS QtyTotal, 0, TblStock.HPP, TblStock.Keterangan, IF(TblStock.TglCreate = '1900-01-01 00:00:00', TblStock.TglTrans, TblStock.TglCreate) AS TglCreate
-    FROM MGINLKartuStock  TblStock
-    where TglTrans >= '2024-03-01 00:00:00' and TglTrans < '2024-04-01 00:00:00' and TblStock.IdMGd = 1000000
-     GROUP BY TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, TblStock.IdTrans, TblStock.JenisTrans, TblStock.HrgStn
-    ) TableKartuStock LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuStock.IdMCabang = MCabang.IdMCabang)
-                      LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
-                      LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
-    WHERE MCabang.Hapus = 0
-      AND MCabang.KdMCabang LIKE '%SDM%'
-      AND MCabang.NmMCabang LIKE '%SEJATI TEMBOK%'
+  if (barang != "") {
+    qbarang = "AND MBrg.IdMBrg = " + barang;
+  }
+  var sql = ``;
+  if (companyid == companyWI) {
+    sql = `Select * from (
+      SELECT MCabang.KdMCabang
+          , MCabang.NmMCabang
+          , MGd.KdMGd
+          , MGd.NmMGd
+          , MBrg.KdMBrg
+          , MBrg.NmMBrg
+          , MBrg.KdMStn 
+          , TableKartuStock.IdMBrg
+          , TableKartuStock.IdMCabang
+          , Urut
+          , BuktiTrans
+          , cast(TglTrans as datetime) as TglTrans
+          , TableKartuStock.Keterangan, Saldo, QtyTotal
+          , IF(Urut = 0, 0, IF(IF(IsNull(QtyTotal), 0, QtyTotal) > 0, IF(IsNull(QtyTotal), 0, QtyTotal), 0)) As Debit
+          , IF(Urut = 0, 0, IF(IF(IsNull(QtyTotal), 0, QtyTotal) >= 0, 0, IF(IsNull(QtyTotal), 0, -QtyTotal))) As Kredit
+          , IF(IsNull(HPP), 0, HPP) As HPP
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'UKURAN_BRG'), '') AS EditUKURAN_BRG
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'KMK'), '') AS EditKMK
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = 'MERK'), '') AS EditMERK
+      FROM (
+      SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, 0 as IdTransD, 000 As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans, 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan FROM (
+        SELECT IdMCabang, IdMGd, IdMBrg, QtyTotal FROM MGINLKartuStock where TglTrans < '${start} 00:00:00'
+      ) TableSaldoAwal
+      GROUP BY IdMCabang, IdMGd, IdMBrg
+      UNION ALL
+      SELECT IdMCabang, IdMGd, IdMBrg, 1 as Urut, JenisTrans, IdTrans, IdTransD, BuktiTrans, TglTrans, SUM(QtyTotal) AS QtyTotal, 0, HPP, Keterangan FROM MGINLKartuStock where TglTrans >= '${start} 00:00:00' and TglTrans <= '${end} 23:59:59' and IdMGd <> 1000000
+       GROUP BY IdMCabang, IdMGd, IdMBrg, IdTrans, JenisTrans, HrgStn 
+      UNION ALL
+      SELECT IdMCabang, IdMGd, IdMBrg, IF (JenisTrans = 'ITM', 2, IF (JenisTrans = 'ITK', 3, 4)) AS Urut, JenisTrans, IdTrans, IdTransD, BuktiTrans, TglTrans, SUM(QtyTotal) AS QtyTotal, 0, HPP, Keterangan FROM MGINLKartuStock where TglTrans >= '${start} 00:00:00' and TglTrans <= '${end} 23:59:59' and IdMGd = 1000000
+       GROUP BY IdMCabang, IdMGd, IdMBrg, IdTrans, JenisTrans, HrgStn
+      ) TableKartuStock LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuStock.IdMCabang = MCabang.IdMCabang)
+                        LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
+                        LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
+      WHERE MCabang.Hapus = 0
+        AND ((MGd.KdMGd LIKE '%%'
+        AND MGd.NmMGd LIKE '%%')
+        AND MGd.IdMGd <> 1000000)
+          AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
+        AND MBrg.KdMBrg LIKE '%%'
+        AND MBrg.NmMBrg LIKE '%%'
+        AND MBrg.Reserved_int1 <> 4 ${qcabang} ${qgudang} ${qbarang}
+      ORDER BY TableKartuStock.IdMCabang
+      , TableKartuStock.IdMGd
+      , MBrg.KdMBrg, Urut, cast(TglTrans As Date), JenisTrans, IdTrans, IdTransD
+      ) Tabel1
+      WHERE 
+        EditUKURAN_BRG Like '%%'
+      AND 
+        EditKMK Like '%%'
+      AND 
+        EditMERK Like '%%'
+      `;
+  } else {
+    
+    sql = `Select * from (
+      SELECT MCabang.KdMCabang
+          , MCabang.NmMCabang
+          , MGd.KdMGd
+          , MGd.NmMGd
+          , MBrg.KdMBrg
+          , MBrg.NmMBrg
+          , TableKartuStock.IdMBrg
+          , TableKartuStock.IdMCabang
+          , Urut
+          , TableKartuStock.BuktiTrans
+          , IF(JenisTrans = 'ISA', 1,
+            IF(JenisTrans = 'PBL', 2,
+            IF(JenisTrans = 'IPY', 3,
+            IF(JenisTrans = 'LSB', 3.5,
+            IF(JenisTrans = 'LSH', 3.6,
+            IF(JenisTrans = 'PRB', 4,
+            IF(JenisTrans = 'IKA', 5,
+            IF(JenisTrans = 'IKT', 6,
+            IF(JenisTrans = 'ITK', 7,
+            IF(JenisTrans = 'ITM', 8,
+            IF(JenisTrans = 'PPB', 9,
+            IF(JenisTrans = 'PPH', 10,
+            IF(JenisTrans = 'RJL', 11,
+            IF(JenisTrans = 'RJP', 12,
+            IF(JenisTrans = 'RRJ', 13,
+            IF(JenisTrans = 'ITM', 14,
+            IF(JenisTrans = 'ITK', 15,
+            16))))))))))))))))) as UrutTrans
+          , cast(TglTrans as datetime) as TglTrans
+          , TableKartuStock.TglCreate
+          , TableKartuStock.Keterangan, Saldo, TableKartuStock.QtyTotal
+          , IF(Urut = 0, 0, IF(IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, TableKartuStock.QtyTotal) > 0, IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, TableKartuStock.QtyTotal), 0)) As Debit
+          , IF(Urut = 0, 0, IF(IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, TableKartuStock.QtyTotal) >= 0, 0, IF(COALESCE(TableKartuStock.QtyTotal,0)=0, 0, -TableKartuStock.QtyTotal))) As Kredit
+          , IF(COALESCE(TableKartuStock.HPP,0)=0, 0, TableKartuStock.HPP) As HPP
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '01'), '') AS Edit01
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '02'), '') AS Edit02
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '03'), '') AS Edit03
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '04'), '') AS Edit04
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '05'), '') AS Edit05
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '06'), '') AS Edit06
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '07'), '') AS Edit07
+          , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg = MBrg.idmbrg AND mgol.Hapus = 0 and mgol.kdmgol = '08'), '') AS Edit08
+      FROM (
+      SELECT IdMCabang, IdMGd, IdMBrg, 0 As Urut, '' as JenisTrans, 0 as IdTrans, 0 as IdTransD, '' As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans
+            , 0 As QtyTotal, sum(QtyTotal) As Saldo, 0 as HPP, 'Saldo Awal' As Keterangan, Max(TglCreate) as TglCreate FROM (
+        SELECT TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg
+              , TblStock.QtyTotal, TblStock.JenisTrans, IF(TblStock.TglCreate = '1900-01-01 00:00:00', TblStock.TglTrans, TblStock.TglCreate) AS TglCreate
+        FROM MGINLKartuStock TblStock
+        where TblStock.TglTrans < '${start} 00:00:00'
+      ) TableSaldoAwal
+      GROUP BY TableSaldoAwal.IdMCabang, TableSaldoAwal.IdMGd, TableSaldoAwal.IdMBrg
+      UNION ALL
+      SELECT TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, 1 as Urut, TblStock.JenisTrans, TblStock.IdTrans, TblStock.IdTransD, TblStock.BuktiTrans, TblStock.TglTrans
+            , SUM(TblStock.QtyTotal) AS QtyTotal, 0, TblStock.HPP, TblStock.Keterangan, IF(TblStock.TglCreate = '1900-01-01 00:00:00', TblStock.TglTrans, TblStock.TglCreate) AS TglCreate
+      FROM MGINLKartuStock TblStock 
+      where TglTrans >= '${start} 00:00:00' and TglTrans <= '${end} 23:59:59' and TblStock.IdMGd <> 1000000
+       GROUP BY TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, TblStock.IdTrans, TblStock.JenisTrans, TblStock.HrgStn 
+      UNION ALL
+      SELECT TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, IF (TblStock.JenisTrans = 'ITM', 2, IF (TblStock.JenisTrans = 'ITK', 3, 4)) AS Urut, TblStock.JenisTrans, TblStock.IdTrans, TblStock.IdTransD, TblStock.BuktiTrans, TblStock.TglTrans
+            , SUM(TblStock.QtyTotal) AS QtyTotal, 0, TblStock.HPP, TblStock.Keterangan, IF(TblStock.TglCreate = '1900-01-01 00:00:00', TblStock.TglTrans, TblStock.TglCreate) AS TglCreate
+      FROM MGINLKartuStock  TblStock
+      where TglTrans >= '${start} 00:00:00' and TglTrans <= '${end} 23:59:59' and TblStock.IdMGd = 1000000
+       GROUP BY TblStock.IdMCabang, TblStock.IdMGd, TblStock.IdMBrg, TblStock.IdTrans, TblStock.JenisTrans, TblStock.HrgStn
+      ) TableKartuStock LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuStock.IdMCabang = MCabang.IdMCabang)
+                        LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
+                        LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
+      WHERE MCabang.Hapus = 0
+      AND MCabang.KdMCabang LIKE '%%'
+      AND MCabang.NmMCabang LIKE '%%'
       AND ((MGd.KdMGd LIKE '%%'
       AND MGd.NmMGd LIKE '%%')
       OR MGd.IdMGd = 1000000)
@@ -316,27 +324,30 @@ exports.queryKartuStock = async (start, end, cabang, gudang, barang) => {
       AND MBrg.Reserved_int1 <> 4
       AND MBrg.Reserved_int1 <> 2
       AND MBrg.Reserved_int1 <> 3
-    ORDER BY TableKartuStock.IdMCabang
-    , TableKartuStock.IdMGd
-    , MBrg.KdMBrg, cast(TglTrans As Date), Urut, UrutTrans, TableKartuStock.TglCreate, JenisTrans, TableKartuStock.IdTrans, TableKartuStock.IdTransD
-    ) Tabel1
-     WHERE 
-       Edit01 Like '%%'
-     AND 
-       Edit02 Like '%%'
-     AND 
-       Edit03 Like '%%'
-     AND 
-       Edit04 Like '%%'
-     AND 
-       Edit05 Like '%%'
-     AND 
-       Edit06 Like '%%'
-     AND 
-       Edit07 Like '%%'
-     AND 
-       Edit08 Like '%%'
+      ${qcabang} ${qgudang} ${qbarang}
+      ORDER BY TableKartuStock.IdMCabang
+      , TableKartuStock.IdMGd
+      , MBrg.KdMBrg, cast(TglTrans As Date), Urut, UrutTrans, TableKartuStock.TglCreate, JenisTrans, TableKartuStock.IdTrans, TableKartuStock.IdTransD
+      ) Tabel1
+      WHERE 
+        Edit01 Like '%%'
+      AND 
+        Edit02 Like '%%'
+      AND 
+        Edit03 Like '%%'
+      AND 
+        Edit04 Like '%%'
+      AND 
+        Edit05 Like '%%'
+      AND 
+        Edit06 Like '%%'
+      AND 
+        Edit07 Like '%%'
+      AND 
+        Edit08 Like '%%'
     `
+  }
+  
   
   return sql;
 }
