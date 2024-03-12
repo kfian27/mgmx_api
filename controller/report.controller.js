@@ -1095,24 +1095,24 @@ exports.bank = async (req, res) => {
         }
       
         // cabang terbaru (cabang => bank => item)
-        if (!listcabang.includes(fil.NmMCabang)) {
-          listcabang.push(fil.NmMCabang);
+        if (!listcabang.includes(fil.KdMCabang)) {
+          listcabang.push(fil.KdMCabang);
           listbank.push(fil.KdMRek);
 
           arr_list.push(cabang);
         }
         // cabang yang sudah ada
         else {
-          let idx = listcabang.indexOf(fil.NmMCabang);
+          let idx = listcabang.indexOf(fil.KdMCabang);
           // bank terbaru di cabang yang sudah ada (bank => item)
           if (!listbank.includes(fil.KdMRek)) { 
             listbank.push(fil.KdMRek);
-            arr_list[idx].list.push(cabang);
+            arr_list[idx].list.push(bank);
           }
           // bank yang sudah ada (item)
           else {
             let idx2 = listbank.indexOf(fil.KdMRek);
-            // arr_list[idx].list[idx2].listitem.push(list);
+            arr_list[idx].list[idx2].listitem.push(list);
           }
         }
       }));
