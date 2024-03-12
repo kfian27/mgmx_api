@@ -962,42 +962,6 @@ exports.kas = async (req, res) => {
       var arr_list = [];
       var listcabang = [];
       var listkas = [];
-      var arr_listitem = [];
-      // var arr_data = await Promise.all(kas.map(async (fil, index) => {
-      //     var list = {
-      //       "tanggal": fil.TglTrans,
-      //       "keterangan": fil.Keterangan,
-      //       "debet": parseFloat(fil.Debit),
-      //       "kredit": parseFloat(fil.Kredit),
-      //       "saldo": parseFloat(fil.Saldo),
-      //     };
-            
-      //     var data_kas = {
-      //       "kode": fil.KdMKas,
-      //       "nama": fil.NmMKas,
-      //       "listitem": [list]
-      //     }
-        
-      //     if (!listcabang.includes(fil.NmMCabang)) {
-      //       listcabang.push(fil.NmMCabang);
-
-      //       if (!listkas.includes(fil.KdMKas)) { 
-      //         listkas.push(fil.KdMKas);
-      //         arr_listitem.push(data_kas)
-      //       } else {
-      //         let idx = listkas.indexOf(fil.KdMKas);
-      //         arr_listitem[idx].listitem.push(list);
-      //       }
-      //       arr_list.push({
-      //         "cabang": fil.NmMCabang,
-      //         "list": [data_kas],
-      //       });
-      //     } else {            
-      //       let idx = listcabang.indexOf(fil.NmMCabang);
-      //       arr_list[idx].list.push(data_kas);
-      //     }
-      //   })
-      // );
 
       var arr_data = await Promise.all(kas.map(async (fil, index) => {
         var list = {
@@ -1024,17 +988,13 @@ exports.kas = async (req, res) => {
             "list": data_kas,
           });
         } else {
-          let idx = listcabang.indexOf(fil.NmMCabang);          
-          // arr_list[idx].list.push(data_kas);
-          console.log(idx)
+          let idx = listcabang.indexOf(fil.NmMCabang);
           if (!listkas.includes(fil.KdMKas)) { 
             listkas.push(fil.KdMKas);
             arr_list[idx].list.push(data_kas);
-            console.log("di if")
           } else {
             let idx2 = listkas.indexOf(fil.KdMKas);
             arr_list[idx].list.listitem.push(list);
-            console.log("di else" + idx2)
           }
         }
       })

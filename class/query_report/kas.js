@@ -4,7 +4,7 @@ exports.queryPosisiKasWI = async (date) => {
             SELECT TransAll.IdMCabang, IdMKas, Sum(JmlKas) as PosKas FROM (
                 Select k.TglTrans, k.IdMCabang, k.IdMKas, k.JmlKas FROM MGKBLKartuKas k
                     UNION ALL
-                    SELECT '2024-03-31 00:00:00' as TglTrans, IdMCabang, IdMKas, 0 as JmlKas FROM MGKBMKas
+                    SELECT '${date} 00:00:00' as TglTrans, IdMCabang, IdMKas, 0 as JmlKas FROM MGKBMKas
                     ) TransAll
                     WHERE TglTrans < '${date} 00:00:00'
                     GROUP BY TransAll.IdMCabang, IdMKas
