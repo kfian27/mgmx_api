@@ -8,7 +8,7 @@ const fun = require("../mgmx");
 let today = new Date().toJSON().slice(0, 10);
 
 exports.tesRahman = async (req, res) => {
-  let q = await qstock.queryPosisiStockWI();
+  let q = await qstock.queryPosisiStock();
   res.json({
     message: "Success",
     data: q,
@@ -794,13 +794,14 @@ exports.pembelian = async (req, res) => {
 
 exports.stock = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
-  console.log("tesman");
+  const companyid = req.datacompany.id;
+  console.log("tesman", companyid);
 
   let jenis = req.body.jenis || 1;
   // posisi stock
   if (jenis == 1) {
     let date = req.body.tanggal || today;
-    let qsql = await qstock.queryPosisiStockWI(date);
+    let qsql = await qstock.queryPosisiStock(companyid,date);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -852,7 +853,7 @@ exports.stock = async (req, res) => {
     // console.log("logstart", start);
     // console.log("logend", end);
 
-    let qsql = await qstock.queryKartuStockWI(start,end,cabang,gudang,barang);
+    let qsql = await qstock.queryKartuStock(start,end,cabang,gudang,barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
