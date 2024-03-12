@@ -1,7 +1,6 @@
 // const db = require("../models");
 // const sequelize = db.sequelize;
 const qstock = require("../class/query_report/stock");
-const qkas = require("../class/query_report/kas");
 
 const fun = require("../mgmx");
 
@@ -914,19 +913,21 @@ exports.stock = async (req, res) => {
 };
 
 exports.kas = async (req, res) => {
+  const qkas = require("../class/query_report/kas");
   const sequelize = await fun.connection(req.datacompany);
+  let idcompany = req.datacompany.id;
 
     let jenis = req.body.jenis || 1;
     // posisi kas
     if (jenis == 1) {        
         let date = req.body.tanggal || today;
-        let q = await qkas.queryPosisiKasWI(date);
-        const kas = await fun.getDataFromQuery(sequelize, q);
+        let q = await qkas.queryPosisiKas(date, idcompany);
+        const data = await fun.getDataFromQuery(sequelize, q);
 
         var listitem = [];
         var listcabang = [];
         var grandtotal = 0;
-        var arr_data = await Promise.all(kas.map(async (fil, index) => {
+        var arr_data = await Promise.all(data.map(async (fil, index) => {
             grandtotal += parseFloat(fil.PosKas)
             var data_kas = {
               kode : fil.KdMKas,
@@ -963,14 +964,13 @@ exports.kas = async (req, res) => {
       let end = req.body.end || today;
       let mkas = req.body.mkas || "";
 
-      let q = await qkas.queryKartuKasWI(start,end,mkas);
-      const kas = await fun.getDataFromQuery(sequelize, q);
+      let q = await qkas.queryKartuKas(start,end,mkas);
+      const data = await fun.getDataFromQuery(sequelize, q);
 
       var arr_list = [];
       var listcabang = [];
       var listkas = [];
-
-      var arr_data = await Promise.all(kas.map(async (fil, index) => {
+      var arr_data = await Promise.all(data.map(async (fil, index) => {
         var list = {
           "tanggal": fil.TglTrans,
           "keterangan": fil.Keterangan,
@@ -979,33 +979,39 @@ exports.kas = async (req, res) => {
           "saldo": parseFloat(fil.Saldo),
         };
           
-        var data_kas = {
+        var kas = {
           "kode": fil.KdMKas,
           "nama": fil.NmMKas,
           "listitem": [list]
         }
+
+        var cabang = {
+          "cabang": fil.NmMCabang,
+          "list": [kas],
+        }
       
+        // cabang terbaru (cabang => kas => item)
         if (!listcabang.includes(fil.NmMCabang)) {
           listcabang.push(fil.NmMCabang);
-          if (!listkas.includes(fil.KdMKas)) { 
-            listkas.push(fil.KdMKas);
-          }
-          arr_list.push({
-            "cabang": fil.NmMCabang,
-            "list": data_kas,
-          });
-        } else {
+          listkas.push(fil.KdMKas);
+
+          arr_list.push(cabang);
+        }
+        // cabang yang sudah ada
+        else {
           let idx = listcabang.indexOf(fil.NmMCabang);
+          // kas terbaru di cabang yang sudah ada (kas => item)
           if (!listkas.includes(fil.KdMKas)) { 
             listkas.push(fil.KdMKas);
-            arr_list[idx].list.push(data_kas);
-          } else {
+            arr_list[idx].list.push(cabang);
+          }
+          // kas yang sudah ada (item)
+          else {
             let idx2 = listkas.indexOf(fil.KdMKas);
-            arr_list[idx].list.listitem.push(list);
+            arr_list[idx].list[idx2].listitem.push(list);
           }
         }
-      })
-    );
+      }));
 
       res.json({
         message: "Success kartu",
@@ -1015,149 +1021,107 @@ exports.kas = async (req, res) => {
 };
 
 exports.bank = async (req, res) => {
-  const sequelize = await fun.connection(req.datacompany);
+    const qbank = require("../class/query_report/bank");
+    const qkas = require("../class/query_report/kas");
+    const sequelize = await fun.connection(req.datacompany);
 
-  let jenis = req.body.jenis || 1;
-  // posisi bank
-  if (jenis == 1) {
-    let date = req.body.tanggal || "2024-01-19";
-    let sql = `SELECT idmcabang, nmmcabang FROM mgsymcabang where aktif=1 and hapus=0`;
-    const filter = await sequelize.query(sql, {
-      raw: false,
-    });
+    let jenis = req.body.jenis || 1;
+    // posisi bank
+    if (jenis == 1) {        
+        let date = req.body.tanggal || today;
+        let q = await qbank.queryPosisiBank(date);
+        const data = await fun.getDataFromQuery(sequelize, q);
 
-    var arr_data = await Promise.all(
-      filter[0].map(async (fil, index) => {
-        let sql1 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif,bank.nmmbank, MRek.kdmrek, MRek.nmmrek, MRek.Aktif, TablePosRek.PosRek FROM (SELECT TransAll.IdMCabang, IdMRek, SUM(JmlRek) AS PosRek FROM (SELECT k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' AS TglTrans, IdMCabang, IdMRek, 0 AS JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) LEFT OUTER JOIN mgkbmbank bank ON mrek.IDMBANK=bank.IDMBANK WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`;
-        const bank = await sequelize.query(sql1, {
-          raw: false,
-        });
-
-        var arr_item = await Promise.all(
-          bank[0].map(async (item, index_satu) => {
-            return {
-              bank: item.nmmbank,
-              kode: item.kdmrek,
-              nama: item.nmmrek,
-              qty: parseFloat(item.PosRek),
+        var listitem = [];
+        var listcabang = [];
+        var grandtotal = 0;
+        var arr_data = await Promise.all(data.map(async (fil, index) => {
+            var data_bank = {
+              bank : fil.NMMBANK,
+              kode : fil.KdMRek,
+              nama : fil.NmMRek,
+              qty : fil.PosRek
             };
+            if (!listcabang.includes(fil.NmMCabang)) {              
+              listcabang.push(fil.NmMCabang);
+              listitem.push({
+                cabang: fil.NmMCabang,
+                list: [data_bank],
+              });
+            } else {
+              let cek = listcabang.indexOf(fil.NmMCabang);
+              listitem[cek].list.push(data_bank);
+            }
           })
         );
 
-        return {
-          cabang: fil.nmmcabang,
-          list: arr_item,
-        };
-      })
-    );
-
-    var grandtotal = await fun.countDataFromQuery(
-      sequelize,
-      `SELECT sum(TablePosRek.PosRek) as total FROM (SELECT TransAll.IdMCabang, IdMRek, Sum(JmlRek) as PosRek FROM (Select k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' as TglTrans, IdMCabang, IdMRek, 0 as JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 AND PosRek <> 0 AND MUserMRek.IdMUser=1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`
-    );
-
-    var count = {
-      grandtotal: parseFloat(grandtotal),
-    };
-
-    res.json({
-      message: "Success",
-      countData: count,
-      data: arr_data,
-    });
-  } else if (jenis == 2) {
-    let start = req.body.start || today;
-    let end = req.body.end || today;
-
-    let bank = req.body.bank || "";
-    let qbank = "";
-    if (bank != "") {
-      qbank = "AND bank.idmbank=" + bank;
+        res.json({
+            message: "Success",
+            data: listitem
+        })
     }
 
-    let sql = `SELECT c.idmcabang, c.nmmcabang, g.idmgd, g.nmmgd, b.idmbrg, b.kdmbrg, b.NmMBrg FROM mgsymcabang c LEFT OUTER JOIN mginlkartustock k ON c.idmcabang = k.idmcabang LEFT OUTER JOIN mgsymgd g ON k.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg WHERE c.hapus = 0 AND k.tgltrans >= '${start}' AND k.tgltrans <= '${end}' GROUP BY c.nmmcabang`;
-    const filter = await sequelize.query(sql, {
-      raw: false,
-    });
+    // kartu bank
+    else if (jenis == 2) {
+      let start = req.body.start || today;
+      let end = req.body.end || today;
+      let mbank = req.body.mbank || "";
 
-    var arr_data = await Promise.all(
-      filter[0].map(async (fil, index) => {
-        let sql1 = `select mrek.idmrek, mrek.kdmrek, mrek.nmmrek, bank.idmbank, bank.nmmbank from mgkbmrek mrek left outer join mgkbmbank bank on mrek.idmbank = bank.idmbank where mrek.hapus=0 and mrek.aktif=1 and bank.aktif=1 and bank.hapus=0 ${qbank}`;
-        const bank_data = await sequelize.query(sql1, {
-          raw: false,
-        });
+      let q = await qbank.queryKartuBank(start,end,mbank);
+      const data = await fun.getDataFromQuery(sequelize, q);
 
-        var arr_list = await Promise.all(
-          bank_data[0].map(async (list, index_satu) => {
-            let sql2 = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MRek.KdMRek, MRek.NmMRek, TableKartuRek.IdMRek, TableKartuRek.IdMCabang, Urut, BuktiTrans, NoRef, CAST(TglTrans as DATE) as TglTrans, TableKartuRek.Keterangan, Saldo, JmlRek, IF(Urut = 0, 0, IF(COALESCE(JmlRek,0) > 0,COALESCE(JmlRek,0), 0)) As Debit, IF(Urut = 0, 0, IF(COALESCE(JmlRek,0) >= 0, 0, COALESCE(JmlRek,0))) As Kredit, MCabang.IdMCabang, IdTrans, JenisTrans
-                    FROM (
-                    SELECT IdMCabang, IdMRek, 0 As Urut, 0 as JenisTrans, 0 as IdTrans, '-' As BuktiTrans, cast('${start} 00:00:00' as DateTime) As TglTrans, 0 As JmlRek, sum(JmlRek) As Saldo, 'Saldo Sebelumnya' As Keterangan
-                        , '-' As NoRef FROM (
-                    SELECT IdMCabang, IdMRek, 0 As JmlRek FROM MGKBMRek
-                    UNION ALL
-                    SELECT IdMCabang, IdMRek, JmlRek FROM MGKBLKartuBank where CAST(TglTrans as DATE) < CAST('${start} 00:00:00' AS DATE)
-                    ) TableSaldoAwal
-                    GROUP BY IdMCabang, IdMRek
-                    UNION ALL
-                    SELECT IdMCabang, IdMRek, 1 as Urut, JenisTrans, IdTrans, BuktiTrans, TglTrans, JmlRek, 0, Keterangan 
-                        , NoRef
-                    FROM MGKBLKartuBank
-                    WHERE CAST(TglTrans as DATE) >= CAST('${start} 00:00:00' AS DATE) and CAST(TglTrans as DATE) <= CAST('${end} 00:00:00' AS DATE)
-                    ) TableKartuRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuRek.IdMCabang = MCabang.IdMCabang)
-                                    LEFT OUTER JOIN MGKBMRek MRek ON (TableKartuRek.IdMCabang = MRek.IdMCabang AND TableKartuRek.IdMRek = MRek.IdMRek)
-                        LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek)
-                        left outer join mgkbmbank bank on mrek.idmbank = bank.idmbank
-                    WHERE MCabang.Hapus = 0
-                    AND MRek.Hapus = 0
-                    AND MRek.IdMRek LIKE '%${list.idmrek}%'
-                    ${qbank}
-                    ORDER BY TableKartuRek.IdMCabang, TableKartuRek.IdMRek, Urut, TglTrans, JenisTrans, IdTrans`;
-            const barang = await sequelize.query(sql2, {
-              raw: false,
-            });
-
-            var saldo = 0;
-            var arr_item = await Promise.all(
-              barang[0].map(async (item, index_dua) => {
-                var total = parseFloat(item.Debit) + parseFloat(item.Kredit);
-                if (item.Saldo == 0) {
-                  total = parseFloat(item.Debit) + parseFloat(item.Kredit);
-                } else {
-                  total = parseFloat(item.Saldo);
-                }
-                saldo += parseFloat(total);
-
-                return {
-                  tanggal: item.TglTrans,
-                  keterangan: item.Keterangan,
-                  debet: parseFloat(item.Debit),
-                  kredit: parseFloat(Math.abs(item.Kredit)),
-                  saldo: parseFloat(saldo),
-                };
-              })
-            );
-
-            return {
-              bank: list.nmmbank,
-              kode: list.kdmrek,
-              nama: list.nmmrek,
-              list: arr_item,
-            };
-          })
-        );
-
-        return {
-          cabang: fil.nmmcabang,
-          list: arr_list,
+      var arr_list = [];
+      var listcabang = [];
+      var listbank = [];
+      var arr_data = await Promise.all(data.map(async (fil, index) => {
+        var list = {
+          "tanggal": fil.TglTrans,
+          "keterangan": fil.Keterangan,
+          "debet": parseFloat(fil.Debit),
+          "kredit": parseFloat(fil.Kredit),
+          "saldo": parseFloat(fil.Saldo),
         };
-      })
-    );
+          
+        var bank = {
+          "bank": fil.NMMBANK,
+          "kode": fil.KdMRek,
+          "nama": fil.NmMRek,
+          "listitem": [list]
+        }
 
-    res.json({
-      message: "Success",
-      data: arr_data,
-    });
-  }
+        var cabang = {
+          "cabang": fil.NmMCabang,
+          "list": [bank],
+        }
+      
+        // cabang terbaru (cabang => bank => item)
+        if (!listcabang.includes(fil.NmMCabang)) {
+          listcabang.push(fil.NmMCabang);
+          listbank.push(fil.KdMRek);
+
+          arr_list.push(cabang);
+        }
+        // cabang yang sudah ada
+        else {
+          let idx = listcabang.indexOf(fil.NmMCabang);
+          // bank terbaru di cabang yang sudah ada (bank => item)
+          if (!listbank.includes(fil.KdMRek)) { 
+            listbank.push(fil.KdMRek);
+            arr_list[idx].list.push(cabang);
+          }
+          // bank yang sudah ada (item)
+          else {
+            let idx2 = listbank.indexOf(fil.KdMRek);
+            // arr_list[idx].list[idx2].listitem.push(list);
+          }
+        }
+      }));
+
+      res.json({
+        message: "Success kartu",
+        data: arr_list,
+      });
+    }
 };
 
 exports.hutang = async (req, res) => {
