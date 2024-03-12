@@ -853,7 +853,7 @@ exports.stock = async (req, res) => {
     // console.log("logstart", start);
     // console.log("logend", end);
 
-    let qsql = await qstock.queryKartuStock(start,end,cabang,gudang,barang);
+    let qsql = await qstock.queryKartuStock(companyid,start,end,cabang,gudang,barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1203,6 +1203,7 @@ exports.bank = async (req, res) => {
 
 exports.hutang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
+  const companyid = req.datacompany.id;
   const qhutang = require("../class/query_report/hutang");
 
   let jenis = req.body.jenis || 1;
@@ -1210,7 +1211,7 @@ exports.hutang = async (req, res) => {
   // posisi hutang
   if (jenis == 1) {
     let date = req.body.tanggal || today;
-    let qsql = await qhutang.queryPosisiHutang(date);
+    let qsql = await qhutang.queryPosisiHutang(companyid,date);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1262,7 +1263,7 @@ exports.hutang = async (req, res) => {
     let start = req.body.start || today;
     let end = req.body.end || today;
 
-    let qsql = await qhutang.queryKartuHutang(start, end);
+    let qsql = await qhutang.queryKartuHutang(companyid, start, end);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1300,6 +1301,7 @@ exports.hutang = async (req, res) => {
 
 exports.piutang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
+  const companyid = req.datacompany.id;
   const qpiutang = require("../class/query_report/piutang");
 
   let jenis = req.body.jenis || 1;
@@ -1307,7 +1309,7 @@ exports.piutang = async (req, res) => {
   // posisi piutang
   if (jenis == 1) {
     let date = req.body.tanggal || today;
-    let qsql = await qpiutang.queryPosisiPiutang(date);
+    let qsql = await qpiutang.queryPosisiPiutang(companyid,date);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1353,24 +1355,28 @@ exports.piutang = async (req, res) => {
     let start = req.body.start || today;
     let end = req.body.end || today;
 
-    let qsql = await qpiutang.queryKartuPiutang(start, end);
+    let qsql = await qpiutang.queryKartuPiutang(companyid, start, end);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
     var listcustomer = [];
+    var saldo = 0;
     var arr_data = await Promise.all(data.map(async (item, index) => {
-
+      saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
       var list = {
         "tanggal": item.TglTrans,
         "bukti": item.BuktiTrans,
         "keterangan": item.Keterangan,
         "debit": parseFloat(item.Debit),
         "kredit": Math.abs(parseFloat(item.Kredit)),
-        "saldo": parseFloat(item.Debit),
+        "saldo": saldo,
       };
 
       if (!listcustomer.includes(item.KdMCust)) {
         listcustomer.push(item.KdMCust);
+        saldo = 0;
+        saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
+        list.saldo = saldo;
 
         arr_list.push({
           "customer": item.NmMCust,
