@@ -1,3 +1,4 @@
+exports.companyWI = 5;
 
 exports.countDataFromQuery = async (sequelize, query = "") => {
     var count_data = await sequelize.query(
