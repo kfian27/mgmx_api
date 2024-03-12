@@ -914,15 +914,15 @@ exports.stock = async (req, res) => {
 };
 
 exports.kas = async (req, res) => {
-  const qkas = require("../class/query_report/kas");
-  const sequelize = await fun.connection(req.datacompany);
-  let idcompany = req.datacompany.id;
+    const qkas = require("../class/query_report/kas");
+    const sequelize = await fun.connection(req.datacompany);
+    const companyid = req.datacompany.id;
 
     let jenis = req.body.jenis || 1;
     // posisi kas
     if (jenis == 1) {        
         let date = req.body.tanggal || today;
-        let q = await qkas.queryPosisiKas(date, idcompany);
+        let q = await qkas.queryPosisiKas(companyid,date);
         const data = await fun.getDataFromQuery(sequelize, q);
 
         var listitem = [];
@@ -965,7 +965,7 @@ exports.kas = async (req, res) => {
       let end = req.body.end || today;
       let mkas = req.body.mkas || "";
 
-      let q = await qkas.queryKartuKas(start,end,mkas);
+      let q = await qkas.queryKartuKas(companyid,start,end,mkas);
       const data = await fun.getDataFromQuery(sequelize, q);
 
       var arr_list = [];
@@ -1023,7 +1023,6 @@ exports.kas = async (req, res) => {
 
 exports.bank = async (req, res) => {
     const qbank = require("../class/query_report/bank");
-    const qkas = require("../class/query_report/kas");
     const sequelize = await fun.connection(req.datacompany);
 
     let jenis = req.body.jenis || 1;
