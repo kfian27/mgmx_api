@@ -1004,7 +1004,7 @@ exports.kas = async (req, res) => {
           // kas terbaru di cabang yang sudah ada (kas => item)
           if (!listkas.includes(fil.KdMKas)) { 
             listkas.push(fil.KdMKas);
-            arr_list[idx].list.push(cabang);
+            arr_list[idx].list.push(kas);
           }
           // kas yang sudah ada (item)
           else {
