@@ -73,146 +73,117 @@ exports.getDataBarang = async (req, res) => {
     });
 }
 
+
+
+// jual < create (backdate)
 exports.getWarningToday = async (req, res) => {
+    const q = require("../class/query_dashboard/warning_today");
     const sequelize = await fun.connection(req.datacompany);
+    const companyid = req.datacompany.id;
 
     // jual_lewatjt
-    let count_juallewatjt = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut < CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
-    );
-    const juallewatjt = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltjual, j.buktitjual,c.nmmcust, j.netto, j.tgljtpiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut < CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas' order by tgltjual desc`
-    );
+    var count_juallewatjt = 0;
+    let qsql_juallewatjt = await q.queryPenjualanJatuhTempo(companyid);
+    const juallewatjt = await fun.getDataFromQuery(sequelize,qsql_juallewatjt);
     var arr_juallewatjt = await Promise.all(juallewatjt.map(async (list, index) => {
+        count_juallewatjt++;
         return resList(list, 1);
     }))
 
     // jual_jthi
-    let count_jualjthi = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut = CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
-    );
-    const jualjthi = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltjual, j.buktitjual,c.nmmcust, j.netto, j.tgljtpiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut = CURDATE() GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
-    );
+    var count_jualjthi = 0;
+    let qsql_jualjthi = await q.queryPenjualanJatuhTempo(companyid, 1);
+    const jualjthi = await fun.getDataFromQuery(sequelize,qsql_jualjthi);
     var arr_jualjthi = await Promise.all(jualjthi.map(async (list, index) => {
+        count_jualjthi++;
         return resList(list, 1);
     }))
 
     // jual_jt7
-    let nw = 'DATE_ADD(CURDATE(), INTERVAL 6 DAY)';
-    let count_jualjt7 = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTJual, j.buktitjual,c.nmmcust, j.netto, j.TglJTPiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut between CURDATE() and ${nw} GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
-    );
-    const jualjt7 = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltjual, j.buktitjual,c.nmmcust, j.netto, j.tgljtpiut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar, IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgartbpiut p ON pd.IdTBPiut=p.IdTBPiut LEFT OUTER JOIN mgarmcust c ON j.idmcust=c.idmcust WHERE j.TglJTPiut between CURDATE() and ${nw} GROUP BY j.idtjual) tbl WHERE tbl.status='Belum lunas'`
-    );
+    var count_jualjt7 = 0;
+    let qsql_jualjt7 = await q.queryPenjualanJatuhTempo(companyid, 2);
+    const jualjt7 = await fun.getDataFromQuery(sequelize,qsql_jualjt7);
     var arr_jualjt7 = await Promise.all(jualjt7.map(async (list, index) => {
         return resList(list, 1);
     }))
 
     //jual_voideditbackdate
-    let count_jualvoid = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(*) AS total FROM mgartjual WHERE void = 1 AND hapus = 0`
-    );
-    let count_jualedit = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(*) AS total FROM mgartjual WHERE countedit > 0 AND hapus = 0`
-    );
-    let count_jualbackdate = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(*) AS total FROM mgartjual WHERE LEFT(tglcreate,10) <> LEFT(tgltjual,10) AND hapus = 0`
-    );
-    const jualvoideditbackdate = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT j.tgltjual, j.tglcreate, j.buktitjual, c.nmmcust, j.netto, IF(j.void=0,'Tidak','Ya') AS void, j.countedit, IF(LEFT(j.tglcreate,10) <> LEFT(j.tgltjual,10),'Ya','Tidak') AS backdate FROM mgartjual j LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust WHERE (LEFT(j.tglcreate,10) <> LEFT(j.tgltjual,10) AND j.hapus = 0) OR (j.countedit > 0 AND j.hapus = 0) OR (j.void = 1 AND j.hapus = 0)`
-    );
+    var count_jualvoid = 0
+    var count_jualedit = 0
+    var count_jualbackdate = 0
+    let qsql_jualvoideditbackdate = await q.queryPenjualanVoidEditBackdate(companyid);
+    const jualvoideditbackdate = await fun.getDataFromQuery(sequelize,qsql_jualvoideditbackdate);
     var arr_jualvoideditbackdate = await Promise.all(jualvoideditbackdate.map(async (list, index) => {
+        if (list.void == 'Ya') {
+            count_jualvoid++;
+        }
+        if (list.countedit > 0) {
+            count_jualedit++;
+        }
+        if (list.backdate == 'Ya') {
+            count_jualbackdate++;
+        }
         return resListTransaksi(list, 1);
     }))
 
     //  ======== BELI
     // beli_lewatjt
-    let count_belilewatjt = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTBeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut < CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas'`
-    );
-    const belilewatjt = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.tgljthut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut < CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
-    );
+    var count_belilewatjt = 0;
+    let qsql_belilewatjt = await q.queryPembelianJatuhTempo(companyid);
+    const belilewatjt = await fun.getDataFromQuery(sequelize,qsql_belilewatjt);
     var arr_belilewatjt = await Promise.all(belilewatjt.map(async (list, index) => {
+        count_belilewatjt++;
         return resList(list, 2);
     }))
 
     // beli_jthi
-    let count_belijthi = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTBeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut= CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas'`
-    );
-    const belijthi = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.tgljthut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut = CURDATE() GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
-    );
+    var count_belijthi = 0;
+    let qsql_belijthi = await q.queryPembelianJatuhTempo(companyid, 1);
+    const belijthi = await fun.getDataFromQuery(sequelize,qsql_belijthi);
     var arr_belijthi = await Promise.all(belijthi.map(async (list, index) => {
+        count_belijthi++;
         return resList(list, 2);
     }))
 
     // beli lewat 7 hari
-    let count_belijt7 = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(tbl.status) AS total FROM (SELECT j.tglcreate, j.TglTBeli, j.buktitbeli,c.nmmsup, j.netto, j.TglJThut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut between CURDATE() and '${nw}' GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas'`
-    );
-    const belijt7 = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT * FROM (SELECT j.tglcreate, j.tgltbeli, j.buktitbeli,c.nmmsup, j.netto, j.tgljthut, IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)AS jmlbayar,IF(IF(SUM(pd.JmlBayar),SUM(pd.JmlBayar),0)<j.netto,'Belum lunas','Lunas') AS STATUS FROM mgaptbeli j LEFT OUTER JOIN mgaptbhutd pd ON j.idtbeli = pd.idtrans LEFT OUTER JOIN mgaptbhut p ON pd.IdTBhut=p.IdTBhut LEFT OUTER JOIN mgapmsup c ON j.idmsup=c.idmsup WHERE j.TglJThut between CURDATE() and '${nw}' GROUP BY j.idtbeli) tbl WHERE tbl.status='Belum lunas' ORDER BY tgltbeli DESC`
-    );
+    var count_belijt7 = 0;
+    let qsql_belijt7 = await q.queryPembelianJatuhTempo(companyid, 2);
+    const belijt7 = await fun.getDataFromQuery(sequelize,qsql_belijt7);
     var arr_belijt7 = await Promise.all(belijt7.map(async (list, index) => {
+        count_belijt7++;
         return resList(list, 2);
     }))
 
     //beli voideditbackdate
-    let count_belivoid = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(*) AS total FROM mgaptbeli WHERE void = 1 AND hapus = 0`
-    );
-    let count_beliedit = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(*) AS total FROM mgaptbeli WHERE countedit > 0 AND hapus = 0`
-    );
-    let count_belibackdate = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT COUNT(*) AS total FROM mgaptbeli WHERE LEFT(tglcreate,10) <> LEFT(tgltbeli,10) AND hapus = 0`
-    );
-    const belivoideditbackdate = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT j.tgltbeli, j.tglcreate, j.buktitbeli, c.nmmsup, j.netto, IF(j.void=0,'Tidak','Ya') AS void, j.countedit, IF(LEFT(j.tglcreate,10) <> LEFT(j.tgltbeli,10),'Ya','Tidak') AS backdate FROM mgaptbeli j LEFT OUTER JOIN mgapmsup c ON j.idmsup = c.idmsup WHERE (LEFT(j.tglcreate,10) <> LEFT(j.tgltbeli,10) AND j.hapus = 0) OR (j.countedit > 0 AND j.hapus = 0) OR (j.void = 1 AND j.hapus = 0)`
-    );
+    var count_belivoid = 0;
+    var count_beliedit = 0;
+    var count_belibackdate = 0;
+    let qsql_belivoideditbackdate = await q.queryPembelianVoidEditBackdate(companyid);
+    const belivoideditbackdate = await fun.getDataFromQuery(sequelize, qsql_belivoideditbackdate);
     var arr_belivoideditbackdate = await Promise.all(belivoideditbackdate.map(async (list, index) => {
+        if (list.void == 'Ya') {
+            count_jualvoid++;
+        }
+        if (list.countedit > 0) {
+            count_jualedit++;
+        }
+        if (list.backdate == 'Ya') {
+            count_jualbackdate++;
+        }
         return resListTransaksi(list, 2);
     }))
 
 
     // ===== STOCK
-    let count_minstock = await fun.countDataFromQuery(
-        sequelize,
-        `select count(*) as total from (select max(b.idmbrg), b.kdmbrg, b.nmmbrg, sum(ks.QtyTotal) as stock, b.QtyMinStockCabang, b.QtyMinStockGd from mginmbrg b left outer join mginlkartustock ks on b.idmbrg = ks.idmbrg WHERE b.Hapus=0 AND b.Aktif=1 group by b.idmbrg having SUM(ks.QtyTotal) < b.QtyMinStockCabang or SUM(ks.QtyTotal) < b.QtyMinStockGd or SUM(ks.QtyTotal) <=0 or isnull(SUM(ks.QtyTotal))) tbl`
-    );
-    const minstock = await fun.getDataFromQuery(
-        sequelize,
-        `SELECT MAX(b.idmbrg), b.kdmbrg, b.nmmbrg, SUM(ks.QtyTotal) AS stock, b.QtyMinStockCabang, b.QtyMinStockGd FROM mginmbrg b LEFT OUTER JOIN mginlkartustock ks ON b.idmbrg = ks.idmbrg WHERE b.Hapus=0 AND b.Aktif=1 GROUP BY b.idmbrg HAVING SUM(ks.QtyTotal) < b.QtyMinStockCabang OR SUM(ks.QtyTotal) < b.QtyMinStockGd OR SUM(ks.QtyTotal) <=0 OR ISNULL(SUM(ks.QtyTotal))`
-    );
+    var count_minstock = 0;
+    let qsql_minstock = await q.queryMinStock(companyid, today);
+    const minstock = await fun.getDataFromQuery(sequelize,qsql_minstock);
     var arr_minstock = await Promise.all(minstock.map(async (list, index) => {
+        count_minstock++;
         return {
-            "kdmbrg" : list.kdmbrg,
-            "nmmbrg" : list.nmmbrg,
-            "stock" : parseFloat(list.stock || 0)
+            "kdmbrg" : list.KdMBrg,
+            "nmmbrg" : list.NmMBrg,
+            "stock" : parseFloat(list.PosQty || 0)
         }
     }))
 
@@ -220,23 +191,23 @@ exports.getWarningToday = async (req, res) => {
         // jual
         if (jenis == 1) {
             return {
-                "tanggal": list.tgltjual,
-                "notransaksi": list.buktitjual,
-                "nmmcust": list.nmmcust,
-                "netto": parseFloat(list.netto),
-                "tanggaljt": list.tgljtpiut,
-                "jmlbayar": parseFloat(list.jmlbayar)
+                "tanggal": list.TglTrans,
+                "notransaksi": list.BuktiTrans,
+                "nmmcust": list.NmMCust,
+                "netto": parseFloat(list.JmlPiut),
+                "tanggaljt": list.TglJTPiut,
+                "jmlbayar": parseFloat(list.JmlBayar)
             }
         }
         // beli
         else if (jenis == 2) {
             return {
-                "tanggal": list.tgltbeli,
-                "notransaksi": list.buktitbeli,
-                "nmmcust": list.nmmsup,
-                "netto": parseFloat(list.netto),
-                "tanggaljt": list.tgljthut,
-                "jmlbayar": parseFloat(list.jmlbayar)
+                "tanggal": list.TglTrans,
+                "notransaksi": list.BuktiTrans,
+                "nmmcust": list.NmMSup,
+                "netto": parseFloat(list.JmlHut),
+                "tanggaljt": list.TglJTHut,
+                "jmlbayar": parseFloat(list.BayarHut)
             }
         } else {
             return {};
