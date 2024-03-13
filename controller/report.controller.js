@@ -109,364 +109,148 @@ exports.getListSales = async (req, res) => {
 };
 
 exports.penjualan = async (req, res) => {
+  const qpenjualan = require("../class/query_report/penjualan");
   const sequelize = await fun.connection(req.datacompany);
+  const companyid = req.datacompany.id;
 
   let start = req.body.start || "2008-01-17";
   let end = req.body.end || "2024-02-17";
-  let jenis = req.body.jenis || 1;
 
-  let cabang = req.body.cabang;
-  let qcabang = "";
-  if (cabang && cabang != "") {
-    qcabang = "and j.idmcabang=" + cabang;
-  }
-
-  let customer = req.body.customer;
-  let qcustomer = "";
-  if (customer && customer != "") {
-    qcustomer = "and j.idmcust=" + customer;
-  }
-
-  let barang = req.body.barang;
-  let qbarang = "";
-  if (barang && barang != "") {
-    qbarang = "and jd.idmbrg=" + barang;
-  }
-
+  let cabang = req.body.cabang || "";
+  let customer = req.body.customer || "";
+  let barang = req.body.barang || "";
   let group = req.body.group;
 
-  const count_penjualan = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT COUNT(j.idtjual) as total FROM mgartjual j LEFT OUTER JOIN mgartjuald jd ON jd.idtjual = j.idtjual WHERE j.hapus=0 ${qcabang} ${qcustomer} ${qbarang} and j.tgltjual between '${start}%' and '${end}%'`
-  );
-  const count_produk = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT SUM(jd.qtytotal) as total FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual = j.IdTJual WHERE j.tgltjual between '${start}%' and '${end}%' ${qcabang} ${qbarang} ${qcustomer}`
-  );
-  const count_pendapatan = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT SUM(j.netto) as total FROM mgartjual j WHERE j.tgltjual between '${start}%' and '${end}%' and j.hapus=0 ${qcabang} ${qcustomer} ${qbarang}`
-  );
-  const count_hpp = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT COALESCE((SELECT (jd.QtyTotal * b.reserved_dec1) AS hpp FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON jd.IdTJual=j.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.idmbrg WHERE j.tgltjual between '${start}%' and '${end}%' ${qbarang} ${qcustomer} ${qbarang} order by jd.IdTJualD desc limit 1),0) as total`
-  );
-
-  var count = {
-    penjualan: count_penjualan,
-    produk_terjual: parseFloat(count_produk),
-    pendapatan: parseFloat(count_pendapatan),
-    profit: parseFloat(count_pendapatan) - parseFloat(count_hpp),
-  };
-
+  let jenis = req.body.jenis || 1;
+  // summary penjualan
   if (jenis == 1) {
-    async function barang_list(list) {
-      let sql2 = `SELECT jd.idtjuald, jd.idmbrg, jd.qtytotal, jd.hrgstn, jd.discv, jd.subtotal, b.kdmbrg, b.nmmbrg FROM mgartjuald jd LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE jd.idtjual = ${list.idtjual}`;
-      const brg = await sequelize.query(sql2, {
-        raw: false,
-      });
+      let q = await qpenjualan.querySummary(companyid,start,end,cabang,customer,barang);
+      const data = await fun.getDataFromQuery(sequelize, q);
 
-      var arr_brg = brg[0].map((brg, index_dua) => {
-        return {
-          id: brg.idtjuald,
-          barcode: brg.kdmbrg,
-          nama: brg.nmmbrg,
-          jumlah: brg.qtytotal,
-          harga: parseFloat(brg.hrgstn), // format
-          diskon: parseFloat(brg.discv), // format
-          total: parseFloat(brg.subtotal), // format
-        };
-      });
-
-      return {
-        id: list.idtjual,
-        tanggal: list.tgltjual, // date_format(date_create(list.tgltjual), "m - d - Y"),
-        transaksi: list.buktitjual,
-        customer: list.nmmcust,
-        subtotal: parseFloat(list.bruto), // "Rp & nbsp; ".number_format(list.bruto, 2),
-        diskon: parseFloat(list.discv), // "Rp & nbsp; ".number_format(list.discv, 2),
-        pajak: parseFloat(list.ppnv), // "Rp & nbsp; ".number_format(list.ppnv, 2),
-        grandtotal: parseFloat(list.netto), // "Rp & nbsp; ".number_format(list.netto, 2),
-        bayar: parseFloat(list.bayar), // "Rp & nbsp; ".number_format(list.bayar, 2),
-        sisa: parseFloat(list.sisa), // number_format(list.sisa),
-        sisabayar: parseFloat(list.sisa), // "Rp ".number_format(abs(list.sisa), 2),
-        listitem: arr_brg,
-      };
-    }
-
-    if (group == "cabang") {
-      let sql = `SELECT fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin group by fin.idmcabang`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let sql1 = `SELECT ca.nmmcabang,j. idtjual, j.tgltjual, j.buktitjual, c.nmmcust, s.nmmsales, j.bruto, j.discv, j.ppnv, j.netto, SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qbarang} ${qcabang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
-
-          return {
-            nama: "Cabang : " + fil.nmmcabang,
-            netto: parseFloat(fil.tagihan), // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            bayar: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            list: arr_list,
+      if(group == "cabang"){
+        var arr_list = [];
+        var listcabang = [];
+        var listbrg = [];
+        var arr_data = await Promise.all(data.map(async (fil, index) => {
+          var list = {
+            "id": fil.IdMBrg,
+            "barcode": fil.KdMBrg,
+            "nama": fil.NmMBrg,
+            "jumlah": parseFloat(fil.QtyTotal),
+            "harga": parseFloat(fil.HrgStn),
+            "diskon": parseFloat(fil.DiscPDetail),
+            "total": parseFloat(fil.SubTotal),
           };
-        })
-      );
-    } else if (group == "customer") {
-      let sql = `SELECT fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin GROUP BY fin.idmcust`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
+            
+          var data_per_nota = {
+            "id": index,
+            "tanggal": fil.TglTJualPOS,
+            "transaksi": fil.BuktiTJualPOS,
+            "customer": fil.NmMCust,
+            "subtotal": parseFloat(fil.bruto),
+            "diskon": parseFloat(fil.DiscV),
+            "pajak": parseFloat(fil.PPNV),
+            "grandtotal": parseFloat(fil.PPNV),
+            "bayar": parseFloat(fil.PPNV),
+            "sisa": parseFloat(fil.PPNV),
+            "sisabayar": parseFloat(fil.PPNV),
+            "listitem": [list]
+          }
 
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmcust = fil.idmcust;
-          let sql1 = `SELECT ca.nmmcabang,j. idtjual, j.tgltjual, j.buktitjual, c.idmcust, c.nmmcust, s.nmmsales, j.bruto, j.discv, j.ppnv, j.netto, SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qbarang} ${qcabang} ${qcustomer} and c.idmcust=${idmcust} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
+          var cabang = {
+            "nama": fil.NmMCabang,
+            "netto": fil.NmMCabang,
+            "sisa": fil.NmMCabang,
+            "bayar": fil.NmMCabang,
+            "list": [data_per_nota],
+          }
+        
+          // cabang terbaru (cabang => kas => item)
+          if (!listcabang.includes(fil.NmMCabang)) {
+            listcabang.push(fil.NmMCabang);
+            listbrg.push(fil.KdMKas);
 
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              var list_item = await barang_list(list);
-              list_item.sales = list.nmmsales;
-              return list_item;
-            })
-          );
+            arr_list.push(cabang);
+          }
+          // cabang yang sudah ada
+          else {
+            let idx = listcabang.indexOf(fil.NmMCabang);
+            // barang terbaru di cabang yang sudah ada (barang => item)
+            if (!listbrg.includes(fil.IdMBrg)) { 
+              listbrg.push(fil.IdMBrg);
+              arr_list[idx].list.push(data_per_nota);
+            }
+            // barang yang sudah ada (item)
+            else {
+              let idx2 = listbrg.indexOf(fil.IdMBrg);
+              arr_list[idx].list[idx2].listitem.push(list);
+            }
+          }
+        }));
 
-          return {
-            nama: "Customer : " + fil.nmmcust,
-            netto: parseFloat(fil.tagihan), // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            bayar: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "sales") {
-      let sql = `SELECT fin.idmsales, fin.nmmsales, fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT ca.idmcabang, ca.nmmcabang, s.idmsales, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE s.aktif=1 and s.hapus=0 and j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin GROUP BY fin.idmsales`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let sql1 = `SELECT ca.idmcabang, ca.nmmcabang, s.idmsales, s.nmmsales, j.idtjual, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE s.aktif=1 and s.hapus=0 and j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              var list_item = await barang_list(list);
-              list_item.sales = list.nmmsales;
-              return list_item;
-            })
-          );
-
-          return {
-            nama: "Sales : " + fil.nmmsales,
-            netto: parseFloat(fil.tagihan), // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            bayar: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "barang") {
-      let sql = `SELECT fin.idmbrg, fin.nmmbrg, fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT b.idmbrg, b.nmmbrg, ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar',IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang LEFT OUTER JOIN mgartjuald jd ON j.idtjual = jd.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin GROUP BY fin.idmbrg`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let sql1 = `SELECT j.idtjual, j.tgltjual, j.buktitjual, j.bruto, j.discv, j.ppnv, j.netto, b.idmbrg, b.nmmbrg, ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar',IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang LEFT OUTER JOIN mgartjuald jd ON j.idtjual = jd.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              var list_item = await barang_list(list);
-              list_item.sales = list.nmmsales;
-              return list_item;
-            })
-          );
-
-          return {
-            nama: "Barang : " + fil.nmmbrg,
-            netto: parseFloat(fil.tagihan), // "Rp&nbsp;"+ number_format(fil.tagihan, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            bayar: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            list: arr_list,
-          };
-        })
-      );
-    } else {
-      var count = {};
-      var arr_data = [];
-    }
-  } else if (jenis == 2) {
-    async function barang_list(list) {
-      let sql2 = `SELECT b.kdmbrg, b.nmmbrg, g.nmmgd, jd.qtytotal, s.nmmstn, jd.hrgstn, jd.discv, jd.ppnv, (jd.qtytotal * jd.hrgstn) AS dpp, (jd.qtytotal * jd.hrgstn - jd.discv + jd.ppnv) AS subtotal FROM mgartjuald jd LEFT OUTER JOIN mginmbrg b ON b.idmbrg = jd.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn LEFT OUTER JOIN mgsymgd g ON g.idmgd = jd.idmgd WHERE idtjual =  ${list.idtjual}`;
-      const brg = await sequelize.query(sql2, {
-        raw: false,
-      });
-
-      var arr_brg = brg[0].map((brg, index_dua) => {
-        return {
-          kode: brg.kdmbrg,
-          nama: brg.nmmbrg,
-          gudang: brg.nmmgd,
-          qty: brg.qtytotal,
-          satuan: brg.nmmstn,
-          hargasat: parseFloat(brg.hrgstn),
-          diskon: parseFloat(brg.discv),
-          pajak: parseFloat(brg.ppnv),
-          dpp: parseFloat(brg.dpp),
-          subtotal: parseFloat(brg.subtotal),
-        };
-      });
-
-      return {
-        id: list.idtjual,
-        tanggal: list.tgltjual,
-        transaksi: list.buktitjual,
-        customer: list.nmmcust,
-        subtotal: parseFloat(list.bruto),
-        diskon: parseFloat(list.discv),
-        pajak: parseFloat(list.ppnv),
-        grandtotal: parseFloat(list.netto),
-        sisa: parseFloat(list.sisa),
-        item: arr_brg,
-      };
-    }
-
-    if (group == "cabang") {
-      let sql = `select nmmcabang from mgsymcabang where aktif = 1 and hapus = 0`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let sql1 = `SELECT j.idtjual, j.tgltjual, j.buktitjual, c.nmmcust, j.bruto, j.discv, j.ppnv, j.netto, SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qbarang} ${qcabang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
-
-          return {
-            nama: fil.nmmcabang,
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "customer") {
-      let sql = `SELECT fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'Tagihan', SUM(fin.bayar) AS 'Bayar', SUM(fin.sisa) AS 'Sisa' FROM (SELECT ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'Tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'Bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'Sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin GROUP BY fin.idmcust`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmcust = fil.idmcust;
-          let sql1 = `SELECT ca.nmmcabang,j. idtjual, j.tgltjual, j.buktitjual, c.idmcust, c.nmmcust, s.nmmsales, j.bruto, j.discv, j.ppnv, j.netto, SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'Bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'Sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qbarang} ${qcabang} ${qcustomer} and c.idmcust=${idmcust} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
-
-          return {
-            nama: fil.nmmcust,
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "sales") {
-      let sql = `SELECT fin.idmsales, fin.nmmsales, fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'Tagihan', SUM(fin.bayar) AS 'Bayar', SUM(fin.sisa) AS 'Sisa' FROM (SELECT ca.idmcabang, ca.nmmcabang, s.idmsales, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'Nota', c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'Tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'Bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'Sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE s.aktif=1 and s.hapus=0 and j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin GROUP BY fin.idmsales`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let sql1 = `SELECT j.idtjual, j.bruto, j.discv, j.ppnv, j.netto, ca.idmcabang, ca.nmmcabang, s.idmsales, s.nmmsales, j.tgltjual, j.buktitjual, c.idmcust, c.nmmcust, j.bruto AS 'Subtotal', j.discv AS 'Diskon', j.ppnv AS 'Pajak', j.netto AS 'Tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'Bayar', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'Sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang WHERE s.aktif=1 and s.hapus=0 and j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
-
-          return {
-            nama: fil.nmmsales,
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "barang") {
-      let sql = `SELECT fin.idmbrg, fin.nmmbrg, fin.idmcust, fin.nmmcust, fin.idmcabang, fin.nmmcabang, SUM(fin.tagihan) AS 'Tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'Sisa' FROM (SELECT b.idmbrg, b.nmmbrg, ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'Tanggal', j.buktitjual AS 'nota', c.idmcust, c.nmmcust, j.bruto AS 'subtotal', j.discv AS 'diskon', j.ppnv AS 'pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'Bayar',IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang LEFT OUTER JOIN mgartjuald jd ON j.idtjual = jd.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.hapus=0 AND j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC) fin GROUP BY fin.idmbrg`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmbrg = fil.idmbrg;
-          let sql1 = `SELECT j.idtjual, j.tgltjual, j.buktitjual, j.bruto, j.discv, j.ppnv, j.netto, b.idmbrg, b.nmmbrg, ca.idmcabang, ca.nmmcabang, s.nmmsales, j.tgltjual AS 'tanggal', j.buktitjual AS 'nota', c.idmcust, c.nmmcust, j.bruto AS 'subtotal', j.discv AS 'diskon', j.ppnv AS 'pajak', j.netto AS 'tagihan', SUM(j.jmlbayartunai + IF(pd.jmlbayar>0,pd.jmlbayar,0)) AS 'bayar',IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)<=0,0,j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)) AS 'sisa', IF(j.netto - j.jmlbayartunai - IF(SUM(pd.jmlbayar)>0,SUM(pd.jmlbayar),0)>0,'Belum Lunas', 'Lunas') AS STATUS FROM mgartjual j LEFT OUTER JOIN mgartbpiutd pd ON j.idtjual = pd.idtrans LEFT OUTER JOIN mgarmcust c ON j.idmcust = c.idmcust LEFT OUTER JOIN mgarmsales s ON j.idmsales = s.idmsales LEFT OUTER JOIN mgsymcabang ca ON j.idmcabang = ca.idmcabang LEFT OUTER JOIN mgartjuald jd ON j.idtjual = jd.IdTJual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.hapus=0 AND b.idmbrg = ${idmbrg} and j.tgltjual BETWEEN '${start}' AND '${end}' ${qcabang} ${qbarang} ${qcustomer} GROUP BY j.idtjual ORDER BY j.tgltjual ASC`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              let list_item = await barang_list(list);
-              list_item.bayar = parseFloat(list.bayar);
-              return list_item;
-            })
-          );
-
-          return {
-            nama: fil.nmmbrg,
-            list: arr_list,
-          };
-        })
-      );
-    } else {
-      var count = {};
-      var arr_data = [];
-    }
+        res.json({
+          message: "Success",
+          data: arr_list,
+        });
+      }
   }
-  res.json({
-    message: "Success",
-    countData: count,
-    data: arr_data,
-  });
+
+  // detail penjualan
+  else if (jenis == 2) {
+    let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group);
+    const data = await fun.getDataFromQuery(sequelize, q);
+
+    var arr_list = [];
+    var listcabang = [];
+    var listkas = [];
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
+      var list = {
+        "tanggal": fil.TglTrans,
+        "keterangan": fil.Keterangan,
+        "debet": parseFloat(fil.Debit),
+        "kredit": parseFloat(fil.Kredit),
+        "saldo": parseFloat(fil.Saldo),
+      };
+        
+      var kas = {
+        "kode": fil.KdMKas,
+        "nama": fil.NmMKas,
+        "listitem": [list]
+      }
+
+      var cabang = {
+        "cabang": fil.NmMCabang,
+        "list": [kas],
+      }
+    
+      // cabang terbaru (cabang => kas => item)
+      if (!listcabang.includes(fil.NmMCabang)) {
+        listcabang.push(fil.NmMCabang);
+        listkas.push(fil.KdMKas);
+
+        arr_list.push(cabang);
+      }
+      // cabang yang sudah ada
+      else {
+        let idx = listcabang.indexOf(fil.NmMCabang);
+        // kas terbaru di cabang yang sudah ada (kas => item)
+        if (!listkas.includes(fil.KdMKas)) { 
+          listkas.push(fil.KdMKas);
+          arr_list[idx].list.push(cabang);
+        }
+        // kas yang sudah ada (item)
+        else {
+          let idx2 = listkas.indexOf(fil.KdMKas);
+          arr_list[idx].list[idx2].listitem.push(list);
+        }
+      }
+    }));
+
+    res.json({
+      message: "Success kartu",
+      data: arr_list,
+    });
+  }
 };
 
 exports.pembelian = async (req, res) => {
@@ -1024,12 +808,13 @@ exports.kas = async (req, res) => {
 exports.bank = async (req, res) => {
     const qbank = require("../class/query_report/bank");
     const sequelize = await fun.connection(req.datacompany);
+    const companyid = req.datacompany.id;
 
     let jenis = req.body.jenis || 1;
     // posisi bank
     if (jenis == 1) {        
         let date = req.body.tanggal || today;
-        let q = await qbank.queryPosisiBank(date);
+        let q = await qbank.queryPosisiBank(companyid, date);
         const data = await fun.getDataFromQuery(sequelize, q);
 
         var listitem = [];
@@ -1067,7 +852,7 @@ exports.bank = async (req, res) => {
       let end = req.body.end || today;
       let mbank = req.body.mbank || "";
 
-      let q = await qbank.queryKartuBank(start,end,mbank);
+      let q = await qbank.queryKartuBank(companyid,start,end,mbank);
       const data = await fun.getDataFromQuery(sequelize, q);
 
       var arr_list = [];
