@@ -300,73 +300,110 @@ exports.getWarningToday = async (req, res) => {
 }
 
 exports.getTransaksiAdjustKoreksi = async (req, res) => { 
-    const q = require("../class/query_dashboard/adjust_koreksi");
     const sequelize = await fun.connection(req.datacompany);
-    const companyid = req.datacompany.id;
 
     let start = req.query.start || today;
     let end = req.query.end || today;
     let date = today;
-
     // PENYESUAIAN STOCK
-    var count_penstock = 0;
-    let qsql = await q.queryPenyesuaianStok(companyid,start, end);
-    const penstock = await fun.getDataFromQuery(sequelize,qsql);
+    let count_penstock = await fun.countDataFromQuery(
+        sequelize,
+        `SELECT count(*) as total FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg between '${start}' and '${end}' ORDER BY pb.TglTPenyesuaianBrg DESC`
+    );
+    const penstock = await fun.getDataFromQuery(
+        sequelize,
+        `SELECT b.nmmbrg, pb.tgltpenyesuaianbrg, pb.buktitpenyesuaianbrg, pbd.qtytotal, s.nmmstn FROM mgintpenyesuaianbrg pb LEFT OUTER JOIN mgintpenyesuaianbrgd pbd ON pb.IdTPenyesuaianBrg = pbd.IdTPenyesuaianBrg LEFT OUTER JOIN mginmbrg b ON pbd.idmbrg = b.idmbrg LEFT OUTER JOIN mginmstn s ON b.IdMStn1 = s.idmstn WHERE pb.TglTPenyesuaianBrg between '${start}' and '${end}' and pb.Hapus = 0 ORDER BY pb.TglTPenyesuaianBrg DESC`
+    );
     var arr_penstock = await Promise.all(penstock.map(async (list, index) => {
-        count_penstock++;
         return {
-            "nmmbrg" : list.NmMBrg,
-            "tgl" : list.TglTPenyesuaianBrg,
-            "bukti" : list.BuktiTPenyesuaianBrg,
-            "satuan" : list.KdMStn1 || list.KdMStn2 || list.KdMStn3 || list.KdMStn4 || list.KdMStn5 || '',
-            "qty" : parseFloat(list.QtyTotal)
+            "nmmbrg" : list.nmmbrg,
+            "tgl" : list.tgltpenyesuaianbrg,
+            "bukti" : list.buktitpenyesuaianbrg,
+            "satuan" : list.nmmstn,
+            "qty" : parseFloat(list.qtytotal)
         }
     }))
+    // arr_penstock.push({
+    //     "nmmbrg": '',
+    //     "tgl": '',
+    //     "bukti": 'dummy',
+    //     "satuan": 'dummy',
+    //     "qty": 0,
+    // });
 
     // KOREKSI HUTANG
-    var count_korhut = 0;
-    let qsql_korhut = await q.queryKoreksiHutang(companyid, start, end);
-    const korhut = await fun.getDataFromQuery(sequelize, qsql_korhut);
+    let count_korhut = await fun.countDataFromQuery(
+        sequelize,
+        `SELECT count(*) as total FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut between '${start}' and '${end}' ORDER BY h.TglTBHut DESC`
+    );
+    const korhut = await fun.getDataFromQuery(
+        sequelize,
+        `SELECT h.tgltbhut, h.buktitbhut,c.nmmcust,hd.jmlbayar FROM mgaptbhut h LEFT OUTER JOIN mgaptbhutd hd ON h.IdTBHut = hd.IdTBHut LEFT OUTER JOIN mgartjual j ON hd.idtrans = j.idtjual LEFT OUTER JOIN mgarmcust c ON j.IdMCust = c.IdMCust WHERE h.TglTBHut between '${start}' and '${end}' ORDER BY h.TglTBHut DESC`
+    );
     var arr_korhut = await Promise.all(korhut.map(async (list, index) => {
-        count_korhut++;
         return {
-            "tgl" : list.TglTKorHut,
-            "bukti" : list.BuktiTKorHut,
-            "customer" : list.NmMSup,
-            "jumlah" : parseFloat(list.JmlKor)
+            "tgl" : list.tgltbhut,
+            "bukti" : list.buktitbhut,
+            "customer" : list.nmmcust,
+            "jumlah" : parseFloat(list.jmlbayar)
         }
     }))
+    // arr_korhut.push({
+    //     "tgl": '',
+    //     "bukti": 'dummy',
+    //     "customer": 'dummy',
+    //     "jumlah": 0,
+    // });
 
     // KOREKSI PIUTANG
-    var count_korpiut = 0;
-    let qsql_korpiut = await q.queryKoreksiPiutang(companyid, start, end);
-    const korpiut = await fun.getDataFromQuery(sequelize, qsql_korpiut);
-    
+    let count_korpiut = await fun.countDataFromQuery(
+        sequelize,
+        `SELECT COUNT(*) AS total FROM mgartbpiut p LEFT OUTER JOIN mgartbpiutd pd ON p.IdTBPiut = pd.IdTBPiut LEFT OUTER JOIN mgaptbeli b ON pd.IdTrans = b.IdTBeli LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.IdMSup WHERE p.TglTBPiut between '${start}' and '${end}' ORDER BY p.TglTBPiut DESC`
+    );
+    const korpiut = await fun.getDataFromQuery(
+        sequelize,
+        `SELECT p.tgltbpiut, p.buktitbpiut, s.nmmsup, pd.jmlbayar FROM mgartbpiut p LEFT OUTER JOIN mgartbpiutd pd ON p.IdTBPiut = pd.IdTBPiut LEFT OUTER JOIN mgaptbeli b ON pd.IdTrans = b.IdTBeli LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.IdMSup WHERE p.TglTBPiut between '${start}' and '${end}' ORDER BY p.TglTBPiut DESC`
+    );
     var arr_korpiut = await Promise.all(korpiut.map(async (list, index) => {
-        count_korpiut ++;
         return {
-            "tgl" : list.TglTKorPiut,
-            "bukti" : list.BuktiTKorPiut,
-            "customer" : list.NmMCust,
-            "jumlah" : parseFloat(list.JmlKor)
+            "tgl" : list.tgltbpiut,
+            "bukti" : list.buktitbpiut,
+            "customer" : list.nmmsup,
+            "jumlah" : parseFloat(list.jmlbayar)
         }
     }))
+    // arr_korpiut.push({
+    //     "tgl": '',
+    //     "bukti": 'dummy',
+    //     "customer": 'dummy',
+    //     "jumlah": 0,
+    // });
 
     // TRANSAKSI JURNAL UMUM
-    var count_jurnalumum = 0;
-    let qsql_jurnalumum = await q.queryJurnalMemo(companyid, start, end);
-    const jurnalumum = await fun.getDataFromQuery(sequelize, qsql_jurnalumum);
-    
+    let count_jurnalumum = await fun.countDataFromQuery(
+        sequelize,
+        `SELECT count(*) as total FROM mgglljurnalhrn jj where jj.tgltrans between '${start}' and '${end}' ORDER BY jj.TglTrans DESC`
+    );
+    const jurnalumum = await fun.getDataFromQuery(
+        sequelize,
+        `SELECT LEFT(jj.tgltrans,10) AS tgl, jj.buktitrans, jj.jmld, jj.jmlk, jj.keterangan FROM mgglljurnalhrn jj where jj.tgltrans between '${start}' and '${end}' ORDER BY jj.TglTrans DESC`
+    );
     var arr_jurnalumum = await Promise.all(jurnalumum.map(async (list, index) => {
-        count_jurnalumum++;
         return {
-            "tgl" : list.TglTJurnal,
-            "bukti" : list.BuktiTJurnal,
-            "debit" : parseFloat(list.JmlD),
-            "kredit": parseFloat(list.JmlK),
-            "keterangan" : list.Keterangan
+            "tgl" : list.tgl,
+            "bukti" : list.buktitrans,
+            "debit" : parseFloat(list.jmld),
+            "kredit": parseFloat(list.jmlk),
+            "keterangan" : list.keterangan
         }
     }))
+    // arr_jurnalumum.push({
+    //     "tgl": '',
+    //     "bukti": 'dummy',
+    //     "debit": 0,
+    //     "kredit": 0,
+    //     "keterangan": 'dummy'
+    // });
 
     var data = {
         penyesuaian_stok: resData(count_penstock, arr_penstock),
