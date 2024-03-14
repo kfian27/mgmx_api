@@ -89,14 +89,14 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
     return sql;
 }
 
-exports.queryDetail = async (companyid,start,end,cabang,customer,barang,group) => {
+exports.queryDetail = async (companyid,start,end,cabang,customer,barang) => {
     let where = "";
     if (cabang != "") {
-        where += "AND MCabang.IdMCabang=" + cabang;
+        where += "AND MCabang.IdMCabang =" + cabang;
     }
     let qcustomer = "";
     if (customer != "") {
-        where += "AND MCust.KdMCust=" + customer;
+        where += "AND MCust.IdMCust =" + customer;
     }
     let qbarang = "";
     if (barang != "") {
@@ -197,12 +197,13 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang,group) =
               AND MBrg.NmMBrg Like '%%'
               AND MUser.KdMUser Like '%%'
               AND MUser.NmMUser Like '%%'
-              AND (TJual.TglTJual >= '${start} 00:00:00' AND TJual.TglTJual < '${end} 00:00:00')
+              AND (TJual.TglTJual >= '${start} 00:00:00' AND TJual.TglTJual < '${end} 23:59:59')
               AND TJual.Hapus = 0
               AND TJual.Void = 0
               AND TJual.AprtBulan <> 1
               AND TJual.IdTRJual = 0
              AND TJual.AprtBulan <> 2
+             ${where}
             ORDER BY MCabang.KdMCabang, TJual.TglTJual, TJual.BuktiTJual, MCust.KdMCust
             ) As Table1
              WHERE 
@@ -210,7 +211,7 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang,group) =
              AND 
                (EditKMK Like '%%' OR EditKMK Is Null)
              AND 
-               (EditMERK Like '%%' OR EditMERK Is Null) ${where}`;
+               (EditMERK Like '%%' OR EditMERK Is Null)`;
     }else {
         sql = ``;
     }
