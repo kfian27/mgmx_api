@@ -523,325 +523,343 @@ exports.penjualan = async (req, res) => {
 };
 
 exports.pembelian = async (req, res) => {
+  const qpembelian = require("../class/query_report/pembelian");
   const sequelize = await fun.connection(req.datacompany);
+  const companyid = req.datacompany.id;
 
-  let start = req.body.start || "2008-01-17";
-  let end = req.body.end || "2024-02-17";
-  let jenis = req.body.jenis || 1;
+  let start = req.body.start || today;
+  let end = req.body.end || today;
 
   let cabang = req.body.cabang || "";
-  let qcabang = "";
-  let qcabang_count = "";
-  if (cabang != "") {
-    qcabang = "and b.idmcabang=" + cabang;
-    qcabang_count = "and j.idmcabang=" + cabang;
-  }
-
   let supplier = req.body.supplier || "";
-  let qsupplier = "";
-  let qsupplier_count = "";
-  if (supplier != "") {
-    qsupplier = "and b.idmsup=" + supplier;
-    qsupplier_count = "and j.idmsup=" + supplier;
-  }
-
   let barang = req.body.barang || "";
-  let qbarang = "";
-  let qbarang_count = "";
-  if (barang != "") {
-    qbarang = "and bb.idmbrg=" + barang;
-    qbarang_count = "and jd.idmbrg=" + barang;
-  }
-
   let group = req.body.group;
 
-  const count_pembelian = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT COUNT(j.idtbeli) as total FROM mgaptbeli j LEFT OUTER JOIN mgaptbelid jd ON jd.idtbeli = j.idtbeli WHERE j.hapus=0 ${qcabang_count} ${qsupplier_count} ${qbarang_count} and j.tgltbeli between '${start}%' and '${end}%'`
-  );
-  const count_produk = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT count(jd.idmbrg) as total FROM mgaptbelid jd LEFT OUTER JOIN mgaptbeli j ON jd.Idtbeli = j.Idtbeli WHERE j.tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count}`
-  );
-  const count_pengeluaran = await fun.countDataFromQuery(
-    sequelize,
-    `SELECT COALESCE((SELECT SUM(j.netto) as total FROM mgaptbeli j left outer join mgaptbelid jd on jd.idtbeli = j.idtbeli WHERE tgltbeli between '${start}%' and '${end}%' ${qcabang_count} ${qbarang_count} ${qsupplier_count} order by j.idtbeli desc limit 1),0) as total`
-  );
+  let jenis = req.body.jenis || 1;
 
-  var count = {
-    pembelian: count_pembelian,
-    produk_dibeli: parseFloat(count_produk),
-    pengeluaran: parseFloat(count_pengeluaran),
-  };
+  // summary dan detail pembelian, dibedakan per group
+  let q = await qpembelian.queryDetail(companyid,start,end,cabang,supplier,barang,group);
+  const data = await fun.getDataFromQuery(sequelize, q);
 
-  var jenis_str = "";
-  if (jenis == 1) {
-    jenis_str = "summary";
-    async function barang_list(list) {
-      let sql2 = `SELECT jd.idtbelid, jd.idmbrg, jd.qtytotal, jd.hrgstn, jd.discv, jd.subtotal, b.kdmbrg, b.nmmbrg FROM mgaptbelid jd LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE jd.idtbeli = ${list.idtbeli}`;
-      const brg = await sequelize.query(sql2, {
-        raw: false,
-      });
+  if(group == "cabang"){
+    var arr_list = [];
+    var listcabang = [];
+    var listbrg = [];
 
-      var arr_brg = brg[0].map((brg, index_dua) => {
-        return {
-          id: brg.idtbelid,
-          barcode: brg.kdmbrg,
-          nama: brg.nmmbrg,
-          jumlah: parseFloat(brg.qtytotal),
-          harga: parseFloat(brg.hrgstn), // format
-          diskon: parseFloat(brg.discv), // format
-          total: parseFloat(brg.subtotal), // format
-        };
-      });
+    var pembelian = 0; var produk_dibeli = 0; var pengeluaran = 0;
 
-      return {
-        id: list.idtbeli,
-        tanggal: list.tgltbeli, // date_format(date_create(list.tgltjual), "m - d - Y"),
-        transaksi: list.buktitbeli,
-        supplier: list.nmmsup,
-        subtotal: parseFloat(list.bruto), // "Rp & nbsp; ".number_format(list.bruto, 2),
-        diskon: parseFloat(list.discv), // "Rp & nbsp; ".number_format(list.discv, 2),
-        pajak: parseFloat(list.ppnv), // "Rp & nbsp; ".number_format(list.ppnv, 2),
-        grandtotal: parseFloat(list.netto), // "Rp & nbsp; ".number_format(list.netto, 2),
-        bayar: parseFloat(list.bayar), // "Rp & nbsp; ".number_format(list.bayar, 2),
-        sisa: parseFloat(list.sisa), // number_format(list.sisa),
-        listitem: arr_brg,
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
+
+      produk_dibeli += parseFloat(fil.QtyTotal); // hitung produk terjual
+
+      var list = {
+        "id": fil.IdMBrg,
+        "kode": fil.KdMBrg,
+        "barcode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "gudang": fil.NmMGd,
+        "jumlah": parseFloat(fil.QtyTotal),
+        "qty": parseFloat(fil.QtyTotal),
+        "harga": parseFloat(fil.HrgStn),
+        "satuan": fil.NmMStn1,
+        "hargasat": parseFloat(fil.HrgStn),
+        "diskon": parseFloat(fil.DiscVD),
+        "total": parseFloat(fil.SubTotal),
+        "pajak": 0,
+        "dpp": parseFloat(fil.SubTotal),
+        "subtotal": parseFloat(fil.SubTotal),
       };
+
+      var bayar = 0;
+      if(jenis == 1){
+        bayar = parseFloat(fil.bayar)
+      }else{
+        bayar = parseFloat(fil.JmlBayarTunai)
+      }
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+        
+      var data_per_nota = {
+        "id": fil.IdTBeli,
+        "tanggal": fil.TglTBeli,
+        "transaksi": fil.BuktiTBeli,
+        "supplier": fil.NmMSup,
+        "subtotal": parseFloat(fil.Bruto),
+        "diskon": parseFloat(fil.DiscV),
+        "pajak": parseFloat(fil.PPNV),
+        "grandtotal": parseFloat(fil.Netto),
+        "bayar": bayar,
+        "sisa": sisa,
+        "kredit": parseFloat(fil.JmlBayarKredit),
+        "listitem": [list]
+      }
+
+      var cabang = {
+        "nama": fil.NmMCabang,
+        "bruto": 0,
+        "diskon": 0,
+        "pajak": 0,
+        "netto": 0,
+        "tunai": 0,
+        "sisa": 0,
+        "list": [data_per_nota],
+      }
+    
+      // cabang terbaru (cabang => nota => item)
+      if (!listcabang.includes(fil.NmMCabang)) {
+        pembelian += 1;
+        pengeluaran += parseFloat(fil.Netto);
+
+        listcabang.push(fil.NmMCabang);
+        listbrg = [];
+        listbrg.push(fil.IdTBeli);
+
+        arr_list.push(cabang);
+      }
+      else { // cabang yang sudah ada
+        let idx = listcabang.indexOf(fil.NmMCabang);
+
+        // nota terbaru di cabang yang sudah ada (nota => item)
+        if (!listbrg.includes(fil.IdTBeli)) {
+          pembelian += 1; 
+          pengeluaran += parseFloat(fil.Netto);
+
+          listbrg.push(fil.IdTBeli);
+          arr_list[idx].list.push(data_per_nota);
+        }
+
+        // nota yang sudah ada (item)
+        else {
+          let idx2 = listbrg.indexOf(fil.IdTBeli);
+          arr_list[idx].list[idx2].listitem.push(list);
+        }
+      }
+    }));
+
+    count = {
+      "pembelian" : pembelian,
+      "produk_dibeli" : produk_dibeli,
+      "pengeluaran" : pengeluaran,
     }
 
-    if (group == "cabang") {
-      let sql = `SELECT fin.nmmsup, fin.idmcabang, fin.nmmcabang, SUM(fin.bruto) AS 'subtotal', SUM(fin.ppnv) AS 'pajak', SUM(fin.discv) AS 'diskon',SUM(fin.netto) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT b.idmcabang, c.NmMCabang, b.tgltbeli, b.buktitbeli, bb.idmbrg, bb.nmmbrg, b.idmsup, s.nmmsup, b.bruto, b.netto, b.discv, b.ppnv, b.JmlBayarTunai + IF(SUM(bd.jmlbayar)>0,SUM(bd.jmlbayar),0) AS 'bayar', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)<=0,0,b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)) AS 'sisa', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)>0,'Belum Lunas','Lunas') AS 'status' FROM mgaptbeli b LEFT OUTER JOIN mgaptbelid db ON b.idtbeli = db.idtbeli LEFT OUTER JOIN mginmbrg bb ON db.idmbrg = bb.idmbrg LEFT OUTER JOIN mgsymcabang c ON b.IdMCabang = c.idmcabang LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.idmsup LEFT OUTER JOIN mgaptbhutd bd ON b.IdTBeli = bd.idtrans WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}' AND '${end}' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli) fin GROUP BY fin.idmcabang`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
+    res.json({
+      message: "Success",
+      countData: count,
+      data: arr_list,
+    });
+  }else if(group == "supplier"){
+    var arr_list = [];
+    var listcabang = [];
+    var listbrg = [];
 
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmcabang = fil.idmcabang;
-          let sql1 = `SELECT c.NmMCabang, bb.nmmbrg, b.tgltbeli, b.idtbeli, b.buktitbeli, s.nmmsup, b.bruto, b.netto, b.discv, b.ppnv, b.JmlBayarTunai + IF(SUM(bd.jmlbayar)>0,SUM(bd.jmlbayar),0) AS 'bayar', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)<=0,0,b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)) AS 'sisa', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)>0,'Belum Lunas','Lunas') AS 'status' FROM mgaptbeli b LEFT OUTER JOIN mgaptbelid db ON b.idtbeli = db.idtbeli LEFT OUTER JOIN mginmbrg bb ON db.idmbrg = bb.idmbrg LEFT OUTER JOIN mgsymcabang c ON b.IdMCabang = c.idmcabang LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.idmsup LEFT OUTER JOIN mgaptbhutd bd ON b.IdTBeli = bd.idtrans WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}' AND '${end}' and b.idmcabang = ${idmcabang} ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
+    var pembelian = 0; var produk_dibeli = 0; var pengeluaran = 0;
 
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
 
-          return {
-            nama: fil.nmmcabang,
-            bruto: parseFloat(fil.subtotal),
-            diskon: parseFloat(fil.diskon),
-            pajak: parseFloat(fil.pajak),
-            netto: parseFloat(fil.tagihan),
-            tunai: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "supplier") {
-      let sql = `SELECT fin.idmsup, fin.nmmsup, fin.idmcabang, fin.nmmcabang, SUM(fin.bruto) AS 'subtotal', SUM(fin.ppnv) AS 'pajak', SUM(fin.discv) AS 'diskon',SUM(fin.netto) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT b.idmcabang, c.NmMCabang, b.tgltbeli, b.buktitbeli, bb.idmbrg, bb.nmmbrg, b.idmsup, s.nmmsup, b.bruto, b.netto, b.discv, b.ppnv, b.JmlBayarTunai + IF(SUM(bd.jmlbayar)>0,SUM(bd.jmlbayar),0) AS 'bayar', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)<=0,0,b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)) AS 'sisa', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)>0,'Belum Lunas','Lunas') AS 'status' FROM mgaptbeli b LEFT OUTER JOIN mgaptbelid db ON b.idtbeli = db.idtbeli LEFT OUTER JOIN mginmbrg bb ON db.idmbrg = bb.idmbrg LEFT OUTER JOIN mgsymcabang c ON b.IdMCabang = c.idmcabang LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.idmsup LEFT OUTER JOIN mgaptbhutd bd ON b.IdTBeli = bd.idtrans WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}' AND '${end}' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli) fin GROUP BY fin.idmsup`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
+      produk_dibeli += parseFloat(fil.QtyTotal); // hitung produk terjual
 
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmsup = fil.idmsup;
-          let sql1 = `SELECT c.NmMCabang, bb.nmmbrg, b.tgltbeli, b.idtbeli, b.buktitbeli, s.nmmsup, b.bruto, b.netto, b.discv, b.ppnv, b.JmlBayarTunai + IF(SUM(bd.jmlbayar)>0,SUM(bd.jmlbayar),0) AS 'bayar', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)<=0,0,b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)) AS 'sisa', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)>0,'Belum Lunas','Lunas') AS 'status' FROM mgaptbeli b LEFT OUTER JOIN mgaptbelid db ON b.idtbeli = db.idtbeli LEFT OUTER JOIN mginmbrg bb ON db.idmbrg = bb.idmbrg LEFT OUTER JOIN mgsymcabang c ON b.IdMCabang = c.idmcabang LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.idmsup LEFT OUTER JOIN mgaptbhutd bd ON b.IdTBeli = bd.idtrans WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}' AND '${end}' and b.idmsup = ${idmsup} ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
-
-          return {
-            nama: fil.nmmsup,
-            bruto: parseFloat(fil.subtotal),
-            diskon: parseFloat(fil.diskon),
-            pajak: parseFloat(fil.pajak),
-            netto: parseFloat(fil.tagihan),
-            tunai: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "barang") {
-      let sql = `SELECT fin.idmsup, fin.nmmsup, fin.idmbrg, fin.nmmbrg, fin.idmcabang, fin.nmmcabang, SUM(fin.bruto) AS 'subtotal', SUM(fin.ppnv) AS 'pajak', SUM(fin.discv) AS 'diskon',SUM(fin.netto) AS 'tagihan', SUM(fin.bayar) AS 'bayar', SUM(fin.sisa) AS 'sisa' FROM (SELECT b.idmcabang, c.NmMCabang, b.tgltbeli, b.buktitbeli, bb.idmbrg, bb.nmmbrg, b.idmsup, s.nmmsup, b.bruto, b.netto, b.discv, b.ppnv, b.JmlBayarTunai + IF(SUM(bd.jmlbayar)>0,SUM(bd.jmlbayar),0) AS 'bayar', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)<=0,0,b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)) AS 'sisa', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)>0,'Belum Lunas','Lunas') AS 'status' FROM mgaptbeli b LEFT OUTER JOIN mgaptbelid db ON b.idtbeli = db.idtbeli LEFT OUTER JOIN mginmbrg bb ON db.idmbrg = bb.idmbrg LEFT OUTER JOIN mgsymcabang c ON b.IdMCabang = c.idmcabang LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.idmsup LEFT OUTER JOIN mgaptbhutd bd ON b.IdTBeli = bd.idtrans WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}' AND '${end}' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli) fin GROUP BY fin.idmbrg`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
-
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmbrg = fil.idmbrg;
-          let sql1 = `SELECT c.NmMCabang, bb.nmmbrg, b.tgltbeli, b.idtbeli, b.buktitbeli, s.nmmsup, b.bruto, b.netto, b.discv, b.ppnv, b.JmlBayarTunai + IF(SUM(bd.jmlbayar)>0,SUM(bd.jmlbayar),0) AS 'bayar', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)<=0,0,b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)) AS 'sisa', IF(b.netto - b.jmlbayartunai - IF(SUM(bd.jmlbayar)>0, SUM(bd.jmlbayar),0)>0,'Belum Lunas','Lunas') AS 'status' FROM mgaptbeli b LEFT OUTER JOIN mgaptbelid db ON b.idtbeli = db.idtbeli LEFT OUTER JOIN mginmbrg bb ON db.idmbrg = bb.idmbrg LEFT OUTER JOIN mgsymcabang c ON b.IdMCabang = c.idmcabang LEFT OUTER JOIN mgapmsup s ON b.IdMSup = s.idmsup LEFT OUTER JOIN mgaptbhutd bd ON b.IdTBeli = bd.idtrans WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}' AND '${end}' and bb.idmbrg = ${idmbrg} ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
-
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              var list_item = await barang_list(list);
-              list_item.sales = list.nmmsales;
-              return list_item;
-            })
-          );
-
-          return {
-            nama: fil.nmmbrg,
-            bruto: parseFloat(fil.subtotal),
-            diskon: parseFloat(fil.diskon),
-            pajak: parseFloat(fil.pajak),
-            netto: parseFloat(fil.tagihan),
-            tunai: parseFloat(fil.bayar), // "Rp&nbsp;"+ number_format(fil.bayar, 2),
-            sisa: parseFloat(Math.abs(fil.sisa)), // "Rp&nbsp;"+ number_format(abs(fil.sisa), 2),
-            list: arr_list,
-          };
-        })
-      );
-    } else {
-      var count = {};
-      var arr_data = [];
-    }
-  } else if (jenis == 2) {
-    jenis_str = "detail";
-    async function barang_list(list) {
-      let sql2 = `SELECT bb.kdmbrg, bb.nmmbrg, g.nmmgd, bd.qtytotal, bd.hrgstn, s.nmmstn, bd.discv, bd.ppnv, (bd.qtytotal * bd.hrgstn) AS dpp, (bd.qtytotal * bd.hrgstn - bd.discv + bd.ppnv) AS subtotal FROM mgaptbelid bd LEFT OUTER JOIN mgsymgd g ON bd.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg bb ON bd.idmbrg = bb.idmbrg LEFT OUTER JOIN mginmstn s ON bb.idmstn1 = s.idmstn LEFT OUTER JOIN mgaptbeli b ON bd.idtbeli = b.idtbeli WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} AND b.idtbeli = ${list.idtbeli}`;
-      // let sql2 = `SELECT bb.kdmbrg, bb.nmmbrg, g.nmmgd, bd.qtytotal, bd.hrgstn, s.nmmstn, bd.discv, bd.ppnv, (bd.qtytotal * bd.hrgstn) AS dpp, (bd.qtytotal * bd.hrgstn - bd.discv + bd.ppnv) AS subtotal FROM mgaptbelid bd LEFT OUTER JOIN mgsymgd g ON bd.idmgd = g.idmgd LEFT OUTER JOIN mginmbrg bb ON bd.idmbrg = bb.idmbrg LEFT OUTER JOIN mginmstn s ON bb.idmstn1 = s.idmstn LEFT OUTER JOIN mgaptbeli b ON bd.idtbeli = b.idtbeli WHERE b.hapus=0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' AND b.idtbeli = $l->idtbeli`;
-      const brg = await sequelize.query(sql2, {
-        raw: false,
-      });
-
-      var arr_brg = brg[0].map((brg, index_dua) => {
-        return {
-          kode: brg.kdmbrg,
-          nama: brg.nmmbrg,
-          gudang: brg.nmmgd,
-          qty: brg.qtytotal,
-          satuan: brg.nmmstn,
-          hargasat: parseFloat(brg.hrgstn),
-          diskon: parseFloat(brg.discv),
-          pajak: parseFloat(brg.ppnv),
-          dpp: parseFloat(brg.dpp),
-          subtotal: parseFloat(brg.subtotal),
-        };
-      });
-
-      return {
-        id: list.idtbeli,
-        tanggal: list.tgltbeli,
-        transaksi: list.buktitbeli,
-        supplier: list.nmmsup,
-        subtotal: parseFloat(list.bruto),
-        diskon: parseFloat(list.discv),
-        pajak: parseFloat(list.ppnv),
-        grandtotal: parseFloat(list.netto),
-        bayar: parseFloat(list.jmlbayartunai),
-        kredit: parseFloat(list.jmlbayarkredit),
-        sisa:
-          parseFloat(list.jmlbayarkredit) +
-          parseFloat(list.jmlbayartunai) -
-          parseFloat(list.netto),
-        item: arr_brg,
+      var list = {
+        "id": fil.IdMBrg,
+        "kode": fil.KdMBrg,
+        "barcode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "gudang": fil.NmMGd,
+        "jumlah": parseFloat(fil.QtyTotal),
+        "qty": parseFloat(fil.QtyTotal),
+        "harga": parseFloat(fil.HrgStn),
+        "satuan": fil.NmMStn1,
+        "hargasat": parseFloat(fil.HrgStn),
+        "diskon": parseFloat(fil.DiscVD),
+        "total": parseFloat(fil.SubTotal),
+        "pajak": 0,
+        "dpp": parseFloat(fil.SubTotal),
+        "subtotal": parseFloat(fil.SubTotal),
       };
+
+      var bayar = 0;
+      if(jenis == 1){
+        bayar = parseFloat(fil.bayar)
+      }else{
+        bayar = parseFloat(fil.JmlBayarTunai)
+      }
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+        
+      var data_per_nota = {
+        "id": fil.IdTBeli,
+        "tanggal": fil.TglTBeli,
+        "transaksi": fil.BuktiTBeli,
+        "supplier": fil.NmMSup,
+        "subtotal": parseFloat(fil.Bruto),
+        "diskon": parseFloat(fil.DiscV),
+        "pajak": parseFloat(fil.PPNV),
+        "grandtotal": parseFloat(fil.Netto),
+        "bayar": bayar,
+        "sisa": sisa,
+        "kredit": parseFloat(fil.JmlBayarKredit),
+        "listitem": [list]
+      }
+
+      var cabang = {
+        "nama": fil.NmMSup,
+        "bruto": 0,
+        "diskon": 0,
+        "pajak": 0,
+        "netto": 0,
+        "tunai": 0,
+        "sisa": 0,
+        "list": [data_per_nota],
+      }
+    
+      // cabang terbaru (cabang => nota => item)
+      if (!listcabang.includes(fil.NmMSup)) {
+        pembelian += 1;
+        pengeluaran += parseFloat(fil.Netto);
+
+        listcabang.push(fil.NmMSup);
+        listbrg = [];
+        listbrg.push(fil.IdTBeli);
+
+        arr_list.push(cabang);
+      }
+      else { // cabang yang sudah ada
+        let idx = listcabang.indexOf(fil.NmMSup);
+
+        // nota terbaru di cabang yang sudah ada (nota => item)
+        if (!listbrg.includes(fil.IdTBeli)) {
+          pembelian += 1; 
+          pengeluaran += parseFloat(fil.Netto);
+
+          listbrg.push(fil.IdTBeli);
+          arr_list[idx].list.push(data_per_nota);
+        }
+
+        // nota yang sudah ada (item)
+        else {
+          let idx2 = listbrg.indexOf(fil.IdTBeli);
+          arr_list[idx].list[idx2].listitem.push(list);
+        }
+      }
+    }));
+
+    count = {
+      "pembelian" : pembelian,
+      "produk_dibeli" : produk_dibeli,
+      "pengeluaran" : pengeluaran,
     }
 
-    if (group == "cabang") {
-      let sql = `select nmmcabang from mgsymcabang where aktif = 1 and hapus = 0`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
+    res.json({
+      message: "Success",
+      countData: count,
+      data: arr_list,
+    });
+  }else{
+    var arr_list = [];
+    var listcabang = [];
+    var listbrg = [];
 
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let sql1 = `SELECT b.idtbeli, b.tgltbeli, b.buktitbeli, s.nmmsup, b.bruto, b.discv, b.ppnv, b.netto, b.jmlbayartunai, b.jmlbayarkredit, (b.netto-b.jmlbayartunai-b.jmlbayarkredit) AS STATUS FROM mgaptbeli b LEFT OUTER JOIN mgapmsup s ON b.idmsup = s.idmsup WHERE b.hapus = 0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qbarang} ${qcabang} ${qsupplier}`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
+    var pembelian = 0; var produk_dibeli = 0; var pengeluaran = 0;
 
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
 
-          return {
-            nama: fil.nmmcabang,
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "supplier") {
-      let sql = `SELECT s.idmsup, s.nmmsup FROM mgapmsup s LEFT OUTER JOIN mgaptbeli b ON s.idmsup = b.idmsup LEFT OUTER JOIN mgaptbelid bd ON b.idtbeli = bd.idtbeli WHERE s.Aktif = 1 AND s.hapus = 0 AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qbarang} ${qsupplier} ${qcabang} GROUP BY s.nmmsup HAVING COUNT(b.idtbeli)>0`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
+      produk_dibeli += parseFloat(fil.QtyTotal); // hitung produk terjual
 
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmsup = fil.idmsup;
-          let sql1 = `SELECT b.idtbeli, b.tgltbeli, b.buktitbeli, s.nmmsup, b.bruto, b.discv, b.ppnv, b.netto, b.jmlbayartunai, b.jmlbayarkredit, (b.netto-b.jmlbayartunai-b.jmlbayarkredit) AS STATUS FROM mgaptbeli b LEFT OUTER JOIN mgapmsup s ON b.idmsup = s.idmsup WHERE b.hapus=0 AND b.idmsup = ${idmsup} AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qbarang} ${qsupplier}`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
+      var list = {
+        "id": fil.IdMBrg,
+        "kode": fil.KdMBrg,
+        "barcode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "gudang": fil.NmMGd,
+        "jumlah": parseFloat(fil.QtyTotal),
+        "qty": parseFloat(fil.QtyTotal),
+        "harga": parseFloat(fil.HrgStn),
+        "satuan": fil.NmMStn1,
+        "hargasat": parseFloat(fil.HrgStn),
+        "diskon": parseFloat(fil.DiscVD),
+        "total": parseFloat(fil.SubTotal),
+        "pajak": 0,
+        "dpp": parseFloat(fil.SubTotal),
+        "subtotal": parseFloat(fil.SubTotal),
+      };
 
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
+      var bayar = 0;
+      if(jenis == 1){
+        bayar = parseFloat(fil.bayar)
+      }else{
+        bayar = parseFloat(fil.JmlBayarTunai)
+      }
 
-          return {
-            nama: fil.nmmsup,
-            list: arr_list,
-          };
-        })
-      );
-    } else if (group == "barang") {
-      let sql = `SELECT b.idmbrg,b.nmmbrg FROM mginmbrg b LEFT OUTER JOIN mgaptbelid bd ON b.IdMBrg = bd.idmbrg LEFT OUTER JOIN mgaptbeli bb ON bd.idtbeli = bb.idtbeli WHERE b.aktif = 1 AND b.hapus=0 AND bb.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.Idmbrg HAVING COUNT(bb.IdTbeli)>0`;
-      const filter = await sequelize.query(sql, {
-        raw: false,
-      });
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+        
+      var data_per_nota = {
+        "id": fil.IdTBeli,
+        "tanggal": fil.TglTBeli,
+        "transaksi": fil.BuktiTBeli,
+        "supplier": fil.NmMSup,
+        "subtotal": parseFloat(fil.Bruto),
+        "diskon": parseFloat(fil.DiscV),
+        "pajak": parseFloat(fil.PPNV),
+        "grandtotal": parseFloat(fil.Netto),
+        "bayar": bayar,
+        "sisa": sisa,
+        "kredit": parseFloat(fil.JmlBayarKredit),
+        "listitem": [list]
+      }
 
-      var arr_data = await Promise.all(
-        filter[0].map(async (fil, index) => {
-          let idmbrg = fil.idmbrg;
-          let sql1 = `SELECT b.idtbeli, b.tgltbeli, b.buktitbeli, s.nmmsup, b.bruto, b.discv, b.ppnv, b.netto, b.jmlbayartunai, b.jmlbayarkredit, (b.netto-b.jmlbayarkredit-b.jmlbayartunai) AS STATUS FROM mgaptbeli b LEFT OUTER JOIN mgapmsup s ON s.idmsup = b.idmsup LEFT OUTER JOIN mgaptbelid bd ON b.idtbeli = bd.idtbeli WHERE b.hapus = 0 AND bd.idmbrg =${idmbrg} AND b.tgltbeli BETWEEN '${start}%' AND '${end}%' ${qcabang} ${qsupplier} ${qbarang} GROUP BY b.idtbeli`;
-          const list = await sequelize.query(sql1, {
-            raw: false,
-          });
+      var cabang = {
+        "nama": fil.NmMSup,
+        "bruto": 0,
+        "diskon": 0,
+        "pajak": 0,
+        "netto": 0,
+        "tunai": 0,
+        "sisa": 0,
+        "list": [data_per_nota],
+      }
+    
+      // cabang terbaru (cabang => nota => item)
+      if (!listcabang.includes(fil.IdMBrg)) {
+        pembelian += 1;
+        pengeluaran += parseFloat(fil.Netto);
 
-          var arr_list = await Promise.all(
-            list[0].map(async (list, index_satu) => {
-              return barang_list(list);
-            })
-          );
+        listcabang.push(fil.IdMBrg);
+        listbrg = [];
+        listbrg.push(fil.IdTBeli);
 
-          return {
-            nama: fil.nmmbrg,
-            list: arr_list,
-          };
-        })
-      );
-    } else {
-      var count = {};
-      var arr_data = [];
+        arr_list.push(cabang);
+      }
+      else { // cabang yang sudah ada
+        let idx = listcabang.indexOf(fil.IdMBrg);
+
+        // nota terbaru di cabang yang sudah ada (nota => item)
+        if (!listbrg.includes(fil.IdTBeli)) {
+          pembelian += 1; 
+          pengeluaran += parseFloat(fil.Netto);
+
+          listbrg.push(fil.IdTBeli);
+          arr_list[idx].list.push(data_per_nota);
+        }
+
+        // nota yang sudah ada (item)
+        else {
+          let idx2 = listbrg.indexOf(fil.IdTBeli);
+          arr_list[idx].list[idx2].listitem.push(list);
+        }
+      }
+    }));
+
+    count = {
+      "pembelian" : pembelian,
+      "produk_dibeli" : produk_dibeli,
+      "pengeluaran" : pengeluaran,
     }
+
+    res.json({
+      message: "Success",
+      countData: count,
+      data: arr_list,
+    });
   }
-  res.json({
-    message: "Success " + jenis_str,
-    countData: count,
-    data: arr_data,
-  });
 };
 
 exports.stock = async (req, res) => {
