@@ -135,6 +135,7 @@ exports.queryKartuKas = async (companyid, start, end, mkas) => {
                 AND MKas.KdMKas LIKE '%%'
                 AND MKas.NmMKas LIKE '%%'
                 AND MKas.idmkas in (select idmkas from mgsymusermkas where idmuser=1 and idmcabangmuser=0 and idmcabangmkas=idmcabangmuser)
+                ${qkas}
                 ORDER BY TableKartuKas.IdMCabang, TableKartuKas.IdMKas, Urut, TglTrans, TglUpdate, JenisTrans, IdTrans, noref`;
     }
     return sql;

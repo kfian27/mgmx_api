@@ -444,71 +444,81 @@ exports.getDataGrafik = async (req, res) => {
     let end = req.query.end || today;
     let jenis = req.query.jenis;
 
+    
+
+    var qsql = ``;
+
+    if (jenis == 'jual') { 
+        qsql = await q.queryPenjualan(companyid, start, end);
+    } else if (jenis == 'beli') {
+        qsql = await q.queryPembelian(companyid, start, end);
+    } else if (jenis == 'rjual') {
+        qsql = await q.queryReturJual(companyid, start, end);
+    } else if (jenis == 'rbeli') {
+        qsql = await q.queryReturBeli(companyid, start, end);
+    } else if (jenis == 'kmasuk') {
+        qsql = await q.queryKasMasuk(companyid, start, end);
+    } else if (jenis == 'kkeluar') {
+        qsql = await q.queryKasKeluar(companyid, start, end);
+    } else if (jenis == 'bmasuk') {
+        qsql = await q.queryBankMasuk(companyid, start, end);
+    } else if (jenis == 'bkeluar') {
+        qsql = await q.queryBankKeluar(companyid, start, end);
+    } else if (jenis == 'hutang') {
+        qsql = await q.queryHutang(companyid, start, end);
+    } else if (jenis == 'piutang') {
+        qsql = await q.queryPiutang(companyid, start, end);
+    } else if (jenis == 'labarugi') {
+        qsql = await q.queryLabaRugi(companyid, start, end);
+    }
+    const data2 = await fun.getDataFromQuery(
+        sequelize,
+        qsql
+    );
+        
+    var total = 0;
+    var raw_data = [];
+    var arr_item = await Promise.all(data2.map( async (list, index) => { 
+        var newdate = new Date(list.Tanggal);
+        newdate = newdate.toISOString();
+        newdate = newdate.slice(0, 10);
+
+        var jumlah = parseFloat(list.jumlah || 0);
+        total += jumlah;
+        raw_data.push({
+            "tanggal": newdate,
+            "nilai" : jumlah
+        })
+    }))
+    
+    var arr_data = [];
+
     start = new Date(start);
 
     var diff = await fun.getDateDiff(start, end);
-
-    var arr_data = [];
-    var total = 0;
-    for (var i = 0; i <= diff; i++) {
-        var tgl = start;
-        if (i > 0) {
-            tgl.setDate(tgl.getDate() + 1)
-            tgl.toLocaleDateString();    
-        }
-        
-        let tgl2 = tgl.toISOString();
-        tgl2 = tgl2.slice(0, 10);
-        var sql = '';
-        if (jenis == 'jual') { 
-            sql = await q.queryPenjualan(tgl2);
-            sql = await query.dashboard_grafikjual(tgl2)
-        } else if (jenis == 'beli') {
-            sql = await q.queryPembelian(tgl2);
-            sql = `SELECT SUM(netto) AS jumlah FROM mgaptbeli WHERE tgltbeli = '${tgl2}' and hapus=0`
-        } else if (jenis == 'rjual') {
-            sql = await q.queryReturJual(tgl2);
-            sql = `select sum(netto) as jumlah from mgartrjual where tgltrjual = '${tgl2}' and hapus=0`
-        } else if (jenis == 'rbeli') {
-            sql = await q.queryReturBeli(tgl2);
-            sql = `SELECT SUM(netto) AS jumlah FROM mgaptrbeli WHERE tgltrbeli = '${tgl2}' and hapus=0`
-        } else if (jenis == 'kmasuk') {
-            sql = await q.queryKasMasuk(tgl2);
-            sql = `SELECT SUM(jmlkas) AS jumlah FROM mgkblkartukas WHERE tgltrans = '${tgl2}' and jmlkas >= 0`
-        } else if (jenis == 'kkeluar') {
-            sql = await q.queryKasKeluar(tgl2);
-            sql = `SELECT SUM(abs(jmlkas)) AS jumlah FROM mgkblkartukas WHERE tgltrans = '${tgl2}' and jmlkas <=0`
-        } else if (jenis == 'bmasuk') {
-            sql = await q.queryBankMasuk(tgl2);
-            sql = `SELECT SUM(jmlrek) AS jumlah FROM mgkblkartubank WHERE jmlrek>=0 and tgltrans = '${tgl2}'`
-        } else if (jenis == 'bkeluar') {
-            sql = await q.queryBankKeluar(tgl2);
-            sql = `SELECT SUM(abs(jmlrek)) AS jumlah FROM mgkblkartubank WHERE jmlrek<=0 and tgltrans = '${tgl2}'`
-        } else if (jenis == 'hutang') {
-            sql = await q.queryHutang(tgl2);
-            sql = await query.dashboard_grafikhutang(tgl2);
-        } else if (jenis == 'piutang') {
-            sql = await q.queryPiutang(tgl2);
-            sql = await query.dashboard_grafikpiutang(tgl2);
-        } else if (jenis == 'labarugi') {
-            sql = await q.queryLabaRugi(tgl2);
-            sql = await query.dashboard_grafiklabarugi(tgl2);
-        } 
-
-        if (sql != '') {
-            const data = await fun.getDataFromQuery(
-                sequelize,
-                sql
-            );
+    if (qsql != ``) {
+        for (var i = 0; i <= diff; i++) {
+            var tgl = start;
+            if (i > 0) {
+                tgl.setDate(tgl.getDate() + 1)
+                tgl.toLocaleDateString();    
+            }
             
-            var arr_item = await data.map((list, index) => { 
-                var newdate = new Date(tgl);
-                var jumlah = parseFloat(list.jumlah || 0);
-                total += jumlah;
-                arr_data.push({
-                    "tanggal": newdate,
-                    "nilai" : jumlah
-                })
+            let tgl2 = tgl.toISOString();
+            tgl2 = tgl2.slice(0, 10);
+            
+            var nilai = 0;
+            var result = raw_data.find(({ tanggal }) => tanggal == String(tgl2));
+            // console.log('tgl2', tgl2);
+            // console.log('result', result);
+            if (result) {
+                nilai = parseFloat(result.nilai)
+            } 
+    
+            var newdate2 = new Date(tgl);
+            arr_data.push({
+                "tanggal": newdate2,
+                "nilai" : nilai
             })
         }
     }
