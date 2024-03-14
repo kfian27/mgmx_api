@@ -41,7 +41,7 @@ exports.queryPosisiBank = async (companyid,tanggal) => {
             UNION ALL
             SELECT '${tanggal} 00:00:00' as TglTrans, IdMCabang, IdMRek, 0 as JmlRek FROM MGKBMRek
             ) TransAll
-            WHERE TglTrans '${tanggal} 23:59:59'
+            WHERE TglTrans <= '${tanggal} 23:59:59'
             GROUP BY TransAll.IdMCabang, IdMRek
             ) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang)
                         LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek)
@@ -97,7 +97,7 @@ exports.queryKartuBank = async (companyid, start, end, bank) => {
                 SELECT IdMCabang, IdMRek, 1 as Urut, JenisTrans, IdTrans, BuktiTrans, TglTrans, JmlRek, 0, Keterangan 
                 , NoRef
                 FROM MGKBLKartuBank
-                WHERE CAST(TglTrans as DATE) >= CAST('${start} 00:00:00' AS DATE) and CAST(TglTrans as DATE) < CAST('${end} 00:00:00' AS DATE)
+                WHERE CAST(TglTrans as DATE) >= CAST('${start} 00:00:00' AS DATE) and CAST(TglTrans as DATE) <= CAST('${end} 23:59:59' AS DATE)
             ) TableKartuRek 
             LEFT OUTER JOIN MGSYMCabang MCabang ON (TableKartuRek.IdMCabang = MCabang.IdMCabang)
             LEFT OUTER JOIN MGKBMRek MRek ON (TableKartuRek.IdMCabang = MRek.IdMCabang AND TableKartuRek.IdMRek = MRek.IdMRek)
@@ -147,6 +147,7 @@ exports.queryKartuBank = async (companyid, start, end, bank) => {
     AND MRek.KdMRek LIKE '%%'
     AND MRek.NmMRek LIKE '%%'
     AND MUserMRek.IdMUser=1
+    ${qbank}
     ORDER BY TableKartuRek.IdMCabang, TableKartuRek.IdMRek, Urut, TglTrans, JenisTrans, IdTrans`;
    
   }
