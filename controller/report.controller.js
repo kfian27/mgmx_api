@@ -186,7 +186,7 @@ exports.penjualan = async (req, res) => {
         pendapatan += parseFloat(fil.Netto);
         profit += parseFloat(fil.Netto);
 
-        listcabang.push(fil.NmMCabang);
+        listcabang.push(fil.NmMCabang);        
         listbrg.push(fil.BuktiTJualPOS);
 
         arr_list.push(cabang);
@@ -287,6 +287,7 @@ exports.penjualan = async (req, res) => {
         profit += parseFloat(fil.Netto);
 
         listcabang.push(fil.IdMCust);
+        listbrg = [];
         listbrg.push(fil.IdTJualPOS);
 
         arr_list.push(cabang);
@@ -308,9 +309,6 @@ exports.penjualan = async (req, res) => {
         else {
           let idx2 = listbrg.indexOf(fil.IdTJualPOS);
           arr_list[idx].list[idx2].listitem.push(list);
-          // console.log("cek " + arr_list[idx].list[idx2])
-          // console.log("cek 2" + arr_list)
-          // console.log("cek 3" + idx)
         }
       }
     }));
