@@ -95,7 +95,7 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
         where += "AND MCabang.IdMCabang =" + cabang;
     }
     if (supplier != "") {
-        where += "AND TBeli.IdMSup =" + customer;
+        where += "AND TBeli.IdMSup =" + supplier;
     }
     if (barang != "") {
         where += "AND MBrg.IdMBrg = " + barang;
