@@ -113,8 +113,8 @@ exports.penjualan = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
   const companyid = req.datacompany.id;
 
-  let start = req.body.start || "2008-01-17";
-  let end = req.body.end || "2024-02-17";
+  let start = req.body.start || today;
+  let end = req.body.end || today;
 
   let cabang = req.body.cabang || "";
   let customer = req.body.customer || "";
@@ -122,132 +122,106 @@ exports.penjualan = async (req, res) => {
   let group = req.body.group;
 
   let jenis = req.body.jenis || 1;
-  // summary penjualan
-  if (jenis == 1) {
-      let q = await qpenjualan.querySummary(companyid,start,end,cabang,customer,barang);
-      const data = await fun.getDataFromQuery(sequelize, q);
+  
+  // summary dan detail penjualan, dibedakan per group
+  let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group);
+  const data = await fun.getDataFromQuery(sequelize, q);
 
-      if(group == "cabang"){
-        var arr_list = [];
-        var listcabang = [];
-        var listbrg = [];
-        var arr_data = await Promise.all(data.map(async (fil, index) => {
-          var list = {
-            "id": fil.IdMBrg,
-            "barcode": fil.KdMBrg,
-            "nama": fil.NmMBrg,
-            "jumlah": parseFloat(fil.QtyTotal),
-            "harga": parseFloat(fil.HrgStn),
-            "diskon": parseFloat(fil.DiscPDetail),
-            "total": parseFloat(fil.SubTotal),
-          };
-            
-          var data_per_nota = {
-            "id": index,
-            "tanggal": fil.TglTJualPOS,
-            "transaksi": fil.BuktiTJualPOS,
-            "customer": fil.NmMCust,
-            "subtotal": parseFloat(fil.bruto),
-            "diskon": parseFloat(fil.DiscV),
-            "pajak": parseFloat(fil.PPNV),
-            "grandtotal": parseFloat(fil.PPNV),
-            "bayar": parseFloat(fil.PPNV),
-            "sisa": parseFloat(fil.PPNV),
-            "sisabayar": parseFloat(fil.PPNV),
-            "listitem": [list]
-          }
-
-          var cabang = {
-            "nama": fil.NmMCabang,
-            "netto": fil.NmMCabang,
-            "sisa": fil.NmMCabang,
-            "bayar": fil.NmMCabang,
-            "list": [data_per_nota],
-          }
-        
-          // cabang terbaru (cabang => kas => item)
-          if (!listcabang.includes(fil.NmMCabang)) {
-            listcabang.push(fil.NmMCabang);
-            listbrg.push(fil.KdMKas);
-
-            arr_list.push(cabang);
-          }
-          // cabang yang sudah ada
-          else {
-            let idx = listcabang.indexOf(fil.NmMCabang);
-            // barang terbaru di cabang yang sudah ada (barang => item)
-            if (!listbrg.includes(fil.IdMBrg)) { 
-              listbrg.push(fil.IdMBrg);
-              arr_list[idx].list.push(data_per_nota);
-            }
-            // barang yang sudah ada (item)
-            else {
-              let idx2 = listbrg.indexOf(fil.IdMBrg);
-              arr_list[idx].list[idx2].listitem.push(list);
-            }
-          }
-        }));
-
-        res.json({
-          message: "Success",
-          data: arr_list,
-        });
-      }
-  }
-
-  // detail penjualan
-  else if (jenis == 2) {
-    let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group);
-    const data = await fun.getDataFromQuery(sequelize, q);
-
+  if(group == "cabang"){
     var arr_list = [];
     var listcabang = [];
-    var listkas = [];
+    var listbrg = [];
+
+    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; var profit = 0;
+
     var arr_data = await Promise.all(data.map(async (fil, index) => {
+
+      produk_terjual += parseFloat(fil.QtyTotal); // hitung produk terjual
+
       var list = {
-        "tanggal": fil.TglTrans,
-        "keterangan": fil.Keterangan,
-        "debet": parseFloat(fil.Debit),
-        "kredit": parseFloat(fil.Kredit),
-        "saldo": parseFloat(fil.Saldo),
+        "id": fil.IdMBrg,
+        "kode": fil.KdMBrg,
+        "barcode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "gudang": fil.NmMGd,
+        "jumlah": parseFloat(fil.QtyTotal),
+        "harga": parseFloat(fil.HrgStn),
+        "satuan": fil.NmMStn1,
+        "hargasat": parseFloat(fil.HrgStn),
+        "diskon": parseFloat(fil.DiscVDetail),
+        "total": parseFloat(fil.SubTotal),
+        "pajak": 0,
+        "dpp": parseFloat(fil.SubTotal),          
       };
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
         
-      var kas = {
-        "kode": fil.KdMKas,
-        "nama": fil.NmMKas,
+      var data_per_nota = {
+        "id": fil.IdTJualPOS,
+        "tanggal": fil.TglTJualPOS,
+        "transaksi": fil.BuktiTJualPOS,
+        "customer": fil.NmMCust,
+        "sales": fil.NmMSales,
+        "subtotal": parseFloat(fil.Bruto),
+        "diskon": parseFloat(fil.DiscV),
+        "pajak": parseFloat(fil.PPNV),
+        "grandtotal": parseFloat(fil.Netto),
+        "bayar": parseFloat(fil.bayar),
+        "sisa": sisa,
+        "sisabayar": sisa,
         "listitem": [list]
       }
 
       var cabang = {
-        "cabang": fil.NmMCabang,
-        "list": [kas],
+        "nama": fil.NmMCabang,
+        "netto": 0,
+        "sisa": 0,
+        "bayar": 0,
+        "list": [data_per_nota],
       }
     
-      // cabang terbaru (cabang => kas => item)
+      // cabang terbaru (cabang => nota => item)
       if (!listcabang.includes(fil.NmMCabang)) {
+        penjualan += 1;
+        pendapatan += parseFloat(fil.Netto);
+        profit += parseFloat(fil.Netto);
+
         listcabang.push(fil.NmMCabang);
-        listkas.push(fil.KdMKas);
+        listbrg.push(fil.IdMBrg);
 
         arr_list.push(cabang);
       }
-      // cabang yang sudah ada
-      else {
+      else { // cabang yang sudah ada
         let idx = listcabang.indexOf(fil.NmMCabang);
-        // kas terbaru di cabang yang sudah ada (kas => item)
-        if (!listkas.includes(fil.KdMKas)) { 
-          listkas.push(fil.KdMKas);
-          arr_list[idx].list.push(cabang);
+
+        // nota terbaru di cabang yang sudah ada (nota => item)
+        if (!listbrg.includes(fil.BuktiTJualPOS)) {
+          penjualan += 1; 
+          pendapatan += parseFloat(fil.Netto);
+          profit += parseFloat(fil.Netto);
+
+          listbrg.push(fil.BuktiTJualPOS);
+          arr_list[idx].list.push(data_per_nota);
         }
-        // kas yang sudah ada (item)
+
+        // nota yang sudah ada (item)
         else {
-          let idx2 = listkas.indexOf(fil.KdMKas);
+          let idx2 = listbrg.indexOf(fil.BuktiTJualPOS);
           arr_list[idx].list[idx2].listitem.push(list);
         }
       }
     }));
 
+    count = {
+      "penjualan" : penjualan,
+      "produk_terjual" : produk_terjual,
+      "pendapatan" : pendapatan,
+      "profit" : profit
+    }
+
     res.json({
-      message: "Success kartu",
+      message: "Success",
+      countData: count,
       data: arr_list,
     });
   }

@@ -28,8 +28,6 @@ exports.queryPosisiBank = async (companyid,tanggal) => {
             AND MCabang.Aktif = 1
             AND MRek.Hapus = 0
             AND MRek.Aktif = 1
-            AND MCabang.KdMCabang LIKE '%AIH%'
-            AND MCabang.NmMCabang LIKE '%ALAM INDAH HARMONI%'
             AND MRek.KdMRek LIKE '%%'
             AND MRek.NmMRek LIKE '%%'
             AND PosRek <> 0
@@ -53,8 +51,6 @@ exports.queryPosisiBank = async (companyid,tanggal) => {
             AND MCabang.Aktif = 1
             AND MRek.Hapus = 0
             AND MRek.Aktif = 1
-            AND MCabang.KdMCabang LIKE '%SDM%'
-            AND MCabang.NmMCabang LIKE '%SEJATI TEMBOK%'
             AND MRek.KdMRek LIKE '%%'
             AND MRek.NmMRek LIKE '%%'
             AND PosRek <> 0

@@ -16,9 +16,98 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
         where += "AND MBrg.IdMBrg = " + barang;
     }
     if (companyid == companyWI) {
+        sql = `SELECT 'Customer' as LabelTitleCust
+                    , MCabang.KdMCabang, MCabang.NmMCabang, MCust.KdMCust, MCust.NmMCust, MCust.IdMCust
+                    , MMember.KdMMember, MMember.NmMMember
+                    , IF(TJual.IdMCust = 0, CONCAT(MMember.NmMMember, ' (', MMember.KdMMember, ')'),
+                    CONCAT(MCust.NmMCust, ' (', IF(TJual.IdMMember = 0, MCust.KdMCust, MMember.KdMMember),')')) AS namacust
+                    , TJual.IdMCabang, TJual.IdTJual as IdTJualPOS
+                    , Date(TJual.TglTJual) As TglTJualPOS, Time(TJual.TglUpdate) As Waktu
+                    , IF(TJual.AprtBulan <> 2, TJual.BuktiTJual, TJual.NoBuktiAmbilService) as BuktiTJualPOS
+                    , 0 as IdTModAwalKasir
+                    , Date(TJual.TglTJual) As TglTModAwalKasir
+                    , 'User' As StatusKasir
+                    , MUser.KdMUser, MUser.NmMUser
+                    , TJual.Bruto
+                    , 'Disc(%)' As StatusBiaya
+                    , ':' As TandaBiaya
+                    , TJual.DiscP As Biaya
+                    , TJual.DiscP As DiscP
+                    , TJual.DiscV
+                    , 'PPN(%)' As StatusPPN
+                    , ':' As TandaPPN
+                    , TJual.PPNP As PPNP
+                    , TJual.PPNV
+                    ,'Pengepakan' AS StatusEkspedisi
+                    , ':' AS TandaEkspedisi
+                    , Coalesce(TJualLain.Netto, 0) AS Ekspedisi
+                    , TJual.Netto + Coalesce(TJualLain.Netto, 0) As Netto
+                    , TJual.Netto + Coalesce(TJualLain.Netto, 0) AS NettoEkspedisi
+                    , TJualLainDPak.Harga AS HargaPak
+                    , TJualLainDEx.Harga AS HargaEx
+                    , IF(TJual.JmlBayarKartu1 > 0, 'Dibayar Kartu 1', NULL) AS StatusBayarKartu
+                    , IF(TJual.JmlBayarKartu1 > 0, ':', NULL) AS TandaKartu
+                    , IF(TJual.JmlBayarKartu1 > 0, TJual.JmlBayarKartu1, NULL) AS Kartu
+                    , IF(TJual.JmlBayarKartu2 > 0, 'Dibayar Kartu 2', NULL) As StatusBiayaKartu
+                    , IF(TJual.JmlBayarKartu2 > 0, ':', NULL) As TandaBiayaKartu
+                    , IF(TJual.JmlBayarKartu2 > 0, TJual.JmlBayarKartu2, NULL) As BiayaKartu
+                    , IF(TJual.JmlBayarKartu3 > 0, 'Dibayar Kartu 3', NULL) As StatusKartu3
+                    , IF(TJual.JmlBayarKartu3 > 0, ':', NULL) As TandaKartu3
+                    , IF(TJual.JmlBayarKartu3 > 0, TJual.JmlBayarKartu3, NULL) As JmlBayarKartu
+                    , TJual.JmlBayarTunai + TJual.JmlBayarDeposit As JmlBayarTunai
+                    , IF(TJual.JmlBayarKredit > 0, 'Dibayar Kredit', NULL) As StatusBayarKredit
+                    , IF(TJual.JmlBayarKredit > 0, ':', NULL) As TandaKredit
+                    , IF((TJual.JmlBayarKredit + Coalesce(TJualLain.Netto, 0)) > 0, TJual.JmlBayarKredit + Coalesce(TJualLain.Netto, 0), NULL) As JmlBayarKredit
+                    , IF(TJual.JmlBayarKredit > 0, 'Jatuh Tempo', NULL) As StatusJatuhTempo
+                    , IF(TJual.JmlBayarKredit > 0, ':', NULL) As TandaJatuhTempo
+                    , IF(TJual.JmlBayarKredit > 0, TglJTPiut, NULL) As TglJTPiut
+                    , NULL As StatusKembali
+                    , NULL As Kembali
+                    , Sup.NmMSup as NmMTeknisi, Sup.KdMSup as KdMTeknisi
+            FROM MGARTJual TJual
+                    LEFT OUTER JOIN MGARTJualLain TJualLain ON (TJual.IdMCabang = TJualLain.IdMCabang AND TJual.BuktiTJual = TJualLain.BuktiAsli AND TJualLain.Hapus = 0 AND TJualLain.Void = 0)
+                    LEFT OUTER JOIN MGARTJualLainD TJualLainDPak ON (TJualLain.IdMCabang = TJualLainDPak.IdMCabang AND TJualLain.IdTJualLain = TJualLainDPak.IdTJualLain AND MOD(TJualLainDPak.IdTJualLainD, 2) = 0)
+                    LEFT OUTER JOIN MGARTJualLainD TJualLainDEx ON (TJualLain.IdMCabang = TJualLainDEx.IdMCabang AND TJualLain.IdTJualLain = TJualLainDEx.IdTJualLain AND MOD(TJualLainDEx.IdTJualLainD, 2) <> 0)
+                    LEFT OUTER JOIN MGSYMCabang MCabang ON (TJual.IdMCabang = MCabang.IdMCabang)
+                    LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust)
+                    LEFT OUTER JOIN MGARMMember MMember ON (MMember.IdMMember = TJual.IdMMember)
+                    LEFT OUTER JOIN MGSYMUser MUser ON (MUser.IdMCabang = TJual.IdMCabang AND MUser.IdMUser = TJual.IdMUserUpdate)
+                    LEFT OUTER JOIN MGSVTPengerjaanService Sv ON (Sv.IdMCabang = TJual.IdMCabang and Sv.IdTPengerjaanService = TJual.IdTPengerjaanService)
+                    LEFT OUTER JOIN MGAPMSup Sup ON (Sup.IdMSup = Sv.IdMSup)
+            WHERE (TJual.TglTJual >= '${start} 00:00:00' AND TJual.TglTJual < '${end} 00:00:00')
+                AND TJual.Hapus = 0
+                AND TJual.Void = 0
+                AND TJual.AprtBulan <> 1
+                AND TJual.IdTRJual = 0
+                AND TJual.AprtBulan <> 2
+                ${where}
+            GROUP BY TJual.IdTJual
+            ORDER BY MCabang.KdMCabang, TJual.TglTJual, TJual.BuktiTJual, MCust.KdMCust`
+    }else{
+        sql = ``
+    }
+    return sql;
+}
+
+exports.queryDetail = async (companyid,start,end,cabang,customer,barang,group) => {
+    let where = "";
+    if (cabang != "") {
+        where += "AND MCabang.IdMCabang=" + cabang;
+    }
+    let qcustomer = "";
+    if (customer != "") {
+        where += "AND MCust.KdMCust=" + customer;
+    }
+    let qbarang = "";
+    if (barang != "") {
+        where += "AND MBrg.IdMBrg = " + barang;
+    }
+    var sql = "";
+    if (companyid == companyWI) {
         sql = `SELECT * FROM (
             SELECT 'Customer' as LabelTitleCust
                  , MCabang.KdMCabang, MCabang.NmMCabang, MCust.KdMCust, MCust.NmMCust, MCust.IdMCust
+                 , MSales.IdMSales, MSales.NmMSales
                  , MMember.KdMMember, MMember.NmMMember
                  , IF(TJual.IdMCust = 0, CONCAT(MMember.NmMMember, ' (', MMember.KdMMember, ')'),
                    CONCAT(MCust.NmMCust, ' (', IF(TJual.IdMMember = 0, MCust.KdMCust, MMember.KdMMember),')')) AS namacust
@@ -74,6 +163,7 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
                  , IF(TJualD.Qty5<=0, NULL, TJualD.Qty5) As Qty5, IF(TJualD.Qty5<=0, NULL, g5.NmMStn) As NmMStn5
                  , TJualD.QtyTotal
                  , TJualD.HrgStn, TJualD.DiscP As DiscPDetail
+                 , (TJualD.DiscV*TJualD.QtyTotal) As DiscVDetail
                  , TJualD.SubTotal
                  , TJualD.Keterangan
                  , TJualD.QtyTotal * MBrg.Reserved_dec2 as Kg
@@ -83,11 +173,13 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='UKURAN_BRG'),'') AS EditUKURAN_BRG
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='KMK'),'') AS EditKMK
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
+                 , COALESCE((IF((TJual.JmlBayarKredit + Coalesce(TJualLain.Netto, 0)) > 0, TJual.JmlBayarKredit + Coalesce(TJualLain.Netto, 0), NULL)), TJual.JmlBayarTunai + TJual.JmlBayarDeposit) as bayar
             FROM MGARTJualD TJualD
                  LEFT OUTER JOIN MGARTJual TJual ON (TJualD.IdMCabang = TJual.IdMCabang AND TJualD.IdTJual = TJual.IdTJual)
                  LEFT OUTER JOIN MGARTJualLain TJualLain ON (TJual.IdMCabang = TJualLain.IdMCabang AND TJual.BuktiTJual = TJualLain.BuktiAsli AND TJualLain.Hapus = 0 AND TJualLain.Void = 0)
                  LEFT OUTER JOIN MGSYMCabang MCabang ON (TJual.IdMCabang = MCabang.IdMCabang)
                  LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust)
+                 LEFT OUTER JOIN MGARMSales MSales ON (MSales.IdMSales = TJual.IdMSales AND MSales.IdMSales = TJual.IdMSales)
                  LEFT OUTER JOIN MGARMMember MMember ON (MMember.IdMMember = TJual.IdMMember)
                  LEFT OUTER JOIN MGSYMUser MUser ON (MUser.IdMCabang = TJual.IdMCabang AND MUser.IdMUser = TJual.IdMUserUpdate)
                  LEFT OUTER JOIN MGSVTPengerjaanService Sv ON (Sv.IdMCabang = TJual.IdMCabang and Sv.IdTPengerjaanService = TJual.IdTPengerjaanService)
@@ -99,9 +191,7 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
                  LEFT OUTER JOIN MGINMStn g3 ON (g3.IdMStn=MBrg.IdMStn3)
                  LEFT OUTER JOIN MGINMStn g4 ON (g4.IdMStn=MBrg.IdMStn4)
                  LEFT OUTER JOIN MGINMStn g5 ON (g5.IdMStn=MBrg.IdMStn5)
-            WHERE MCabang.KdMCabang Like '%AIH%'
-              AND MCabang.NmMCabang Like '%ALAM INDAH HARMONI%'
-              AND MCust.KdMCust Like '%%'
+            WHERE MCust.KdMCust Like '%%'
               AND MCust.NmMCust Like '%%'
               AND MBrg.KdMBrg Like '%%'
               AND MBrg.NmMBrg Like '%%'
@@ -121,29 +211,6 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
                (EditKMK Like '%%' OR EditKMK Is Null)
              AND 
                (EditMERK Like '%%' OR EditMERK Is Null) ${where}`;
-    }else{
-        sql = ``
-    }
-    return sql;
-}
-
-
-exports.queryDetail = async (companyid,start,end,cabang,customer,barang,group) => {
-    let where = "";
-    if (cabang != "") {
-        where += "AND MCabang.IdMCabang=" + cabang;
-    }
-    let qcustomer = "";
-    if (customer != "") {
-        where += "AND MCust.KdMCust=" + customer;
-    }
-    let qbarang = "";
-    if (barang != "") {
-        where += "AND MBrg.IdMBrg = " + barang;
-    }
-    var sql = "";
-    if (companyid == companyWI) {
-        sql = ``;
     }else {
         sql = ``;
     }
