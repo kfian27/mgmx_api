@@ -5,7 +5,7 @@ exports.queryPosisiKas = async (companyid,date) => {
     var sql = "";
     
     if (companyid == companyWI) {
-        sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif, MKas.KdMKas, MKas.NmMKas, MKas.Aktif, TablePosKas.PosKas
+        sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MKas.KdMKas, MKas.NmMKas, MKas.Aktif, TablePosKas.PosKas
         FROM (
             SELECT TransAll.IdMCabang, IdMKas, Sum(JmlKas) as PosKas FROM (
                 Select k.TglTrans, k.IdMCabang, k.IdMKas, k.JmlKas FROM MGKBLKartuKas k
@@ -26,7 +26,7 @@ exports.queryPosisiKas = async (companyid,date) => {
             AND PosKas <> 0
         ORDER BY MCabang.KdMCabang, MKas.NmMKas`;
     }else{
-        sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif
+        sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang
             , MKas.KdMKas, MKas.NmMKas, MKas.Aktif
             , TablePosKas.PosKas
         FROM (

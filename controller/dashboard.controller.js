@@ -353,39 +353,45 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
 }
 
 exports.getNilaiBisnis = async (req, res) => { 
+    const q = require("../class/query_dashboard/nilai_bisnis");
     const sequelize = await fun.connection(req.datacompany);
+    const companyid = req.datacompany.id;
 
     let date = today;
-    let nilaibarang = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT SUM(fin.nilai) AS total FROM (SELECT qtytotal, hrgstn, (hrgstn * qtytotal) AS nilai  FROM mginlkartustock) fin`
-    );
 
-    let stockbarang = await fun.countDataFromQuery(
-        sequelize,
-        `SELECT SUM(fin.qtytotal) AS total FROM (SELECT qtytotal, hrgstn, (hrgstn * qtytotal) AS nilai  FROM mginlkartustock) fin`
-    );
+    let qsql_nilaibarang = await q.queryBarang(companyid, today);
+    let query_barang = await sequelize.query(
+        qsql_nilaibarang, {
+            raw: false,
+            plain: true
+    })
+    let nilaibarang = parseFloat(query_barang.total);
+    let stockbarang = parseFloat(query_barang.total_stock);
 
-    let q_totalpiutang = await query.dashboard_totalpiutang(date);
+    let qsql_totalpiutang = await q.queryPiutang(companyid, today);
+    // let q_totalpiutang = await query.dashboard_totalpiutang(date);
     let totalpiutang = await fun.countDataFromQuery(
         sequelize,
-        q_totalpiutang
+        qsql_totalpiutang
     );
 
-    let q_totalhutang = await query.dashboard_totalpiutang(date);
+    let qsql_totalhutang = await q.queryHutang(companyid, today);
+    // let q_totalhutang = await query.dashboard_totalpiutang(date);
     let totalhutang = await fun.countDataFromQuery(
         sequelize,
-        q_totalhutang
+        qsql_totalhutang
     );
 
+    let qsql_totalkas = await q.queryKas(companyid, today);
     let totalkas = await fun.countDataFromQuery(
         sequelize,
-        `SELECT SUM(jmlkas) AS total FROM mgkblkartukas`
+        qsql_totalkas
     );
 
+    let qsql_totalbank = await q.queryBank(companyid, today);
     let totalbank = await fun.countDataFromQuery(
         sequelize,
-        `SELECT sum(TablePosRek.PosRek) as total FROM (SELECT TransAll.IdMCabang, IdMRek, Sum(JmlRek) as PosRek FROM (Select k.TglTrans, k.IdMCabang, k.IdMRek, k.JmlRek FROM MGKBLKartuBank k UNION ALL SELECT '${date}' as TglTrans, IdMCabang, IdMRek, 0 as JmlRek FROM MGKBMRek) TransAll WHERE TglTrans < '${date}' GROUP BY TransAll.IdMCabang, IdMRek) TablePosRek LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosRek.IdMCabang = MCabang.IdMCabang) LEFT OUTER JOIN MGKBMRek MRek ON (TablePosRek.IdMCabang = MRek.IdMCabang AND TablePosRek.IdMRek = MRek.IdMRek) LEFT OUTER JOIN MGSYMUSerMRek MUserMRek ON (MUserMrek.IdMCabangMrek=Mrek.IdMCabang AND MUserMrek.IdMrek=Mrek.IdMrek) WHERE MCabang.Hapus = 0 AND MCabang.Aktif = 1 AND MRek.Hapus = 0 AND MRek.Aktif = 1 AND PosRek <> 0 AND MUserMRek.IdMUser=1 ORDER BY MCabang.KdMCabang, MRek.NmMRek`
+        qsql_totalbank
     );
 
     var data = {
@@ -405,11 +411,14 @@ exports.getNilaiBisnis = async (req, res) => {
 }
 
 exports.getBarangTerlaku = async (req, res) => {
+    const q = require("../class/query_dashboard/barang_terlaku");
     const sequelize = await fun.connection(req.datacompany);
+    const companyid = req.datacompany.id;
 
     let start = req.query.start || today;
     let end = req.query.end || today;
     let date = today;
+    let qsql_barangterlaku = await q.queryBarangTerlaku(companyid, start, end);
     const data = await fun.getDataFromQuery(
         sequelize,
         `SELECT b.nmmbrg as nama, SUM(jd.qtytotal) AS jumlah FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.tgltjual BETWEEN '${start}' AND '${end}' GROUP BY b.idmbrg ORDER BY SUM(jd.qtytotal) DESC LIMIT 10`
@@ -427,7 +436,9 @@ exports.getBarangTerlaku = async (req, res) => {
 }
 
 exports.getDataGrafik = async (req, res) => {
+    const q = require("../class/query_dashboard/grafik");
     const sequelize = await fun.connection(req.datacompany);
+    const companyid = req.datacompany.id;
 
     let start = req.query.start || today;
     let end = req.query.end || today;
@@ -450,26 +461,37 @@ exports.getDataGrafik = async (req, res) => {
         tgl2 = tgl2.slice(0, 10);
         var sql = '';
         if (jenis == 'jual') { 
+            sql = await q.queryPenjualan(tgl2);
             sql = await query.dashboard_grafikjual(tgl2)
         } else if (jenis == 'beli') {
+            sql = await q.queryPembelian(tgl2);
             sql = `SELECT SUM(netto) AS jumlah FROM mgaptbeli WHERE tgltbeli = '${tgl2}' and hapus=0`
         } else if (jenis == 'rjual') {
+            sql = await q.queryReturJual(tgl2);
             sql = `select sum(netto) as jumlah from mgartrjual where tgltrjual = '${tgl2}' and hapus=0`
         } else if (jenis == 'rbeli') {
+            sql = await q.queryReturBeli(tgl2);
             sql = `SELECT SUM(netto) AS jumlah FROM mgaptrbeli WHERE tgltrbeli = '${tgl2}' and hapus=0`
         } else if (jenis == 'kmasuk') {
+            sql = await q.queryKasMasuk(tgl2);
             sql = `SELECT SUM(jmlkas) AS jumlah FROM mgkblkartukas WHERE tgltrans = '${tgl2}' and jmlkas >= 0`
         } else if (jenis == 'kkeluar') {
+            sql = await q.queryKasKeluar(tgl2);
             sql = `SELECT SUM(abs(jmlkas)) AS jumlah FROM mgkblkartukas WHERE tgltrans = '${tgl2}' and jmlkas <=0`
         } else if (jenis == 'bmasuk') {
+            sql = await q.queryBankMasuk(tgl2);
             sql = `SELECT SUM(jmlrek) AS jumlah FROM mgkblkartubank WHERE jmlrek>=0 and tgltrans = '${tgl2}'`
         } else if (jenis == 'bkeluar') {
+            sql = await q.queryBankKeluar(tgl2);
             sql = `SELECT SUM(abs(jmlrek)) AS jumlah FROM mgkblkartubank WHERE jmlrek<=0 and tgltrans = '${tgl2}'`
         } else if (jenis == 'hutang') {
+            sql = await q.queryHutang(tgl2);
             sql = await query.dashboard_grafikhutang(tgl2);
         } else if (jenis == 'piutang') {
+            sql = await q.queryPiutang(tgl2);
             sql = await query.dashboard_grafikpiutang(tgl2);
         } else if (jenis == 'labarugi') {
+            sql = await q.queryLabaRugi(tgl2);
             sql = await query.dashboard_grafiklabarugi(tgl2);
         } 
 

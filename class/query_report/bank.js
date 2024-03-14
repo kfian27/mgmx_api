@@ -6,7 +6,6 @@ exports.queryPosisiBank = async (companyid,tanggal) => {
     if (companyid == companyWI) {
       sql = `SELECT MCabang.KdMCabang,
               MCabang.NmMCabang, 
-              MCabang.Aktif,
               MRek.KdMRek, 
               MRek.NmMRek, 
               MRek.Aktif, 
@@ -35,7 +34,7 @@ exports.queryPosisiBank = async (companyid,tanggal) => {
             AND PosRek <> 0
             ORDER BY MCabang.KdMCabang, MRek.NmMRek`;
     }else{
-      sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif
+      sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang
                 , MRek.KdMRek, MRek.NmMRek, MRek.Aktif
                 , TablePosRek.PosRek
             FROM (
