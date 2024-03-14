@@ -421,7 +421,7 @@ exports.getBarangTerlaku = async (req, res) => {
     let qsql_barangterlaku = await q.queryBarangTerlaku(companyid, start, end);
     const data = await fun.getDataFromQuery(
         sequelize,
-        `SELECT b.nmmbrg as nama, SUM(jd.qtytotal) AS jumlah FROM mgartjuald jd LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual LEFT OUTER JOIN mginmbrg b ON jd.idmbrg = b.idmbrg WHERE j.tgltjual BETWEEN '${start}' AND '${end}' GROUP BY b.idmbrg ORDER BY SUM(jd.qtytotal) DESC LIMIT 10`
+        qsql_barangterlaku
     );
 
     var arr_data = data.map((list, index) => {
