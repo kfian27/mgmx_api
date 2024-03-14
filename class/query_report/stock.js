@@ -11,7 +11,7 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
       SELECT * FROM (
           SELECT MCabang.IdMCabang, MCabang.KdMCabang, MCabang.NmMCabang
               , MGd.IdMGd, MGd.KdMGd, MGd.NmMGd
-              , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg
+              , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg, MBrg.QtyMinStockGd, MBrg.QtyMinStockCabang
               , MJenisBrg.KdMJenisBrg, MJenisBrg.NmMJenisBrg
               , IF(IsNull(MStn1.KdMStn) = '', MStn1.KdMStn, '') as KdMStn1
               , IF(IsNull(MStn2.KdMStn) = '', MStn2.KdMStn, '') as KdMStn2
@@ -79,7 +79,7 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
     sql = `SELECT * FROM (
       SELECT MCabang.IdMCabang, MCabang.KdMCabang, MCabang.NmMCabang
           , MGd.IdMGd, MGd.KdMGd, MGd.NmMGd
-          , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg
+          , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg, MBrg.QtyMinStockGd, MBrg.QtyMinStockCabang
           , MBrg.Reserved_dec4 As BeratMBrg
           , MBrg.Keterangan
           , MJenisBrg.KdMJenisBrg, MJenisBrg.NmMJenisBrg
