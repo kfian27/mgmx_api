@@ -89,7 +89,7 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
     return sql;
 }
 
-exports.queryDetail = async (companyid,start,end,cabang,customer,barang) => {
+exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) => {
     let where = "";
     if (cabang != "") {
         where += "AND MCabang.IdMCabang =" + cabang;
@@ -102,6 +102,19 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang) => {
     if (barang != "") {
         where += "AND MBrg.IdMBrg = " + barang;
     }
+
+    var orderby = "ORDER BY";
+    if(group == "cabang"){
+        orderby += " KdMCabang";
+    }else if(group == "customer"){
+        orderby += " IdMCust";
+    }else if(group == "sales"){
+        orderby += " IdMSales";
+    }else{
+        orderby += " KdMBrg";
+    }
+    orderby += ", TglTJualPOS DESC"
+
     var sql = "";
     if (companyid == companyWI) {
         sql = `SELECT * FROM (
@@ -211,7 +224,8 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang) => {
              AND 
                (EditKMK Like '%%' OR EditKMK Is Null)
              AND 
-               (EditMERK Like '%%' OR EditMERK Is Null)`;
+               (EditMERK Like '%%' OR EditMERK Is Null)
+            ${orderby}`;
     }else {
         sql = ``;
     }
