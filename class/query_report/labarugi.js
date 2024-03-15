@@ -1,7 +1,7 @@
 const fun = require("../../mgmx");
 var companyWI = fun.companyWI;
 
-exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer, sales) => { 
+exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer, sales, barang = '') => { 
     var sql = ``;
     if (companyid == companyWI) { 
         
@@ -9,6 +9,7 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
     var qcabang = ``;
     var qcustomer = ``;
     var qsales = ``;
+    var qbarang = ``;
     if (cabang != "") {
         qcabang = ` AND (MCabang.IdMCabang=${cabang})`;
     }
@@ -19,6 +20,10 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
 
     if (sales != "") {
         qsales = ` AND (MSales.IdMSales = ${sales})`;
+    }
+
+    if (barang != "") {
+        qbarang = ` AND IdMBrg = ${barang}`;
     }
     sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TRLPenjualan.*
     , (NilaiJual - NilaiHPP) AS LabaRugi
@@ -47,7 +52,7 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
         AND (MSales.NmMSales LIKE '%%')
         ${qcustomer} ${qsales}
     ) TablePenjualan
-    WHERE IdMBrg <> 0
+    WHERE IdMBrg <> 0 ${qbarang}
     GROUP BY IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales
     UNION ALL
     SELECT 4 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP
@@ -70,7 +75,7 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
         AND (MSales.NmMSales LIKE '%%')
         ${qcustomer} ${qsales}
     ) TableReturPenjualan
-    WHERE IdMBrg <> 0
+    WHERE IdMBrg <> 0 ${qbarang}
     GROUP BY IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales
     ) SubTRLPenjualan
     ) TRLPenjualan

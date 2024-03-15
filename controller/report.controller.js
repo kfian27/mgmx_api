@@ -127,12 +127,20 @@ exports.penjualan = async (req, res) => {
   let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group);
   const data = await fun.getDataFromQuery(sequelize, q);
 
+  // const qprofit = require("../class/query_report/labarugi");
+  // var query = await qprofit.queryLabaRugiPenjualan(companyid, start, end, cabang, customer, '', barang);
+  // sql = `SELECT SUM(LabaRugi) as total FROM (${query}) tbl`;  
+  // var profit = await fun.countDataFromQuery(sequelize, sql);
+  // console.log(profit)
+
+  var profit = 0;
+
   if(group == "cabang"){
     var arr_list = [];
     var listcabang = [];
     var listbrg = [];
 
-    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; var profit = 0;
+    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0;
 
     var arr_data = await Promise.all(data.map(async (fil, index) => {
 
@@ -232,7 +240,7 @@ exports.penjualan = async (req, res) => {
     var listcabang = [];
     var listbrg = [];
 
-    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; var profit = 0;
+    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; 
 
     var arr_data = await Promise.all(data.map(async (fil, index) => {
 
@@ -328,7 +336,7 @@ exports.penjualan = async (req, res) => {
     var listcabang = [];
     var listbrg = [];
 
-    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; var profit = 0;
+    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; 
 
     var arr_data = await Promise.all(data.map(async (fil, index) => {
 
@@ -424,7 +432,7 @@ exports.penjualan = async (req, res) => {
     var listcabang = [];
     var listbrg = [];
 
-    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; var profit = 0;
+    var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; 
 
     var arr_data = await Promise.all(data.map(async (fil, index) => {
 
@@ -797,7 +805,7 @@ exports.pembelian = async (req, res) => {
       }
 
       var cabang = {
-        "nama": fil.NmMSup,
+        "nama": fil.NmMBrg,
         "list": [data_per_nota],
       }
     
@@ -1030,7 +1038,7 @@ exports.kas = async (req, res) => {
         var list = {
           "tanggal": fil.TglTrans,
           "keterangan": fil.Keterangan,
-          "debet": parseFloat(fil.Debit),
+          "debit": parseFloat(fil.Debit),
           "kredit": parseFloat(fil.Kredit),
           "saldo": parseFloat(fil.Saldo),
         };
@@ -1133,7 +1141,7 @@ exports.bank = async (req, res) => {
         var list = {
           "tanggal": fil.TglTrans,
           "keterangan": fil.Keterangan,
-          "debet": parseFloat(fil.Debit),
+          "debit": parseFloat(fil.Debit),
           "kredit": parseFloat(fil.Kredit),
           "saldo": parseFloat(fil.Saldo),
         };
