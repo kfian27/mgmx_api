@@ -106,8 +106,6 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
         orderby += " KdMCabang";
     }else if(group == "supplier"){
         orderby += " IdMSup";
-    }else if(group == "sales"){
-        orderby += " IdMSales";
     }else{
         orderby += " KdMBrg";
     }
