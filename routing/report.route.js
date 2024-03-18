@@ -1,4 +1,5 @@
 const reportController = require("../controller/report.controller");
+const reportV2Controller = require("../controller/reportv2.controller");
 const router = require("express").Router();
 const multer = require("multer");
 const upload = multer();
@@ -22,6 +23,8 @@ router.post("/hutang", upload.none(), reportController.hutang);
 router.post("/piutang", upload.none(), reportController.piutang);
 router.post("/laba-rugi", upload.none(), reportController.labarugi);
 router.get("/tesRahman", upload.none(), reportController.tesRahman);
+
+router.post("/stock/v2", upload.none(), reportV2Controller.stock);
 // router.post("/pembelian", upload.none(), reportController.pembelian);
 // router.get("/", upload.none(), reportController.findAll);
 // router.put("/:id", upload.none(), reportController.update);
