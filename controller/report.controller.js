@@ -6,6 +6,14 @@ const fun = require("../mgmx");
 
 let today = new Date().toJSON().slice(0, 10);
 
+function resDataReport(message = 'Success', countData = 0, data = []) {
+  return {
+    "message": message,
+    "countData": countData,
+    "data": data
+  }
+}
+
 exports.tesRahman = async (req, res) => {
   let q = await qstock.queryPosisiStock();
   res.json({
@@ -857,7 +865,6 @@ exports.pembelian = async (req, res) => {
 exports.stock = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
   const companyid = req.datacompany.id;
-  console.log("tesman", companyid);
 
   let jenis = req.body.jenis || 1;
   // posisi stock
@@ -867,9 +874,14 @@ exports.stock = async (req, res) => {
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
+
+    // VERSI 1 (TANPA PARENT CABANG)
     var listgudang = [];
+    var grandtotal = 0;
     var arr_data = await Promise.all(data.map(async (fil, index) => {
         var arr_listitem = [];
+
+        grandtotal+=parseFloat(fil.PosQty);
 
         var list = {
             "id": fil.IdMBrg,
@@ -896,10 +908,81 @@ exports.stock = async (req, res) => {
       })
     );
 
-    res.json({
-      message: "Success",
-      data: arr_list,
-    });
+    // VERSI 2
+    // var listcabang = [];
+    // var listgudang = [];
+    // var grandtotal = 0;
+    // var total_cabang = 0;
+    // var total_gudang = 0;
+    // var arr_data = await Promise.all(data.map(async (fil, index) => {
+    //   var arr_listitem = [];
+
+    //   var posqty = parseFloat(fil.PosQty);
+    //   grandtotal += posqty
+    //   total_cabang += posqty;
+    //   total_gudang += posqty;
+
+    //   var list = {
+    //         "id": fil.IdMBrg,
+    //         "kode": fil.KdMBrg,
+    //         "nama": fil.NmMBrg,
+    //         "qty": parseFloat(fil.PosQty),
+    //         "satuan": fil.KdMStn1
+    //   };
+      
+    //   var gudang = {
+    //     "id_gudang": fil.IdMGd,
+    //     "gudang": fil.NmMGd,
+    //     "total": total_gudang,
+    //     "list": [list]
+    //   }
+    
+    //   var cabang = {
+    //     "id_cabang": fil.IdMCabang,
+    //     "cabang": fil.NmMCabang,
+    //     "total": total_cabang,
+    //     "list": [gudang]
+    //   }
+          
+    //   if (!listcabang.includes(fil.IdMCabang)) {
+        
+    //     listcabang.push(fil.IdMCabang);
+    //     listgudang.push(fil.IdMGd);
+
+    //     total_cabang = 0;
+    //     total_cabang += posqty;
+
+    //     cabang.total = total_cabang;
+
+    //     arr_list.push(cabang);
+    //   } else {
+    //     let idx = listcabang.indexOf(fil.IdMCabang);
+    //     arr_list[idx].total = total_cabang;
+        
+    //     if (!listgudang.includes(fil.IdMGd)) { 
+    //       listgudang.push(fil.IdMGd);
+          
+    //       total_gudang = 0;
+    //       total_gudang += posqty;
+
+    //       gudang.total = total_gudang;
+          
+    //       arr_list[idx].list.push(gudang);
+    //     } else {
+    //       let idx2 = listgudang.indexOf(fil.IdMGd);
+
+    //       arr_list[idx].list[idx2].total = total_gudang;
+    //       arr_list[idx].list[idx2].list.push(list);
+    //     }
+    //   }
+    // }));
+
+    var count = {
+      grandtotal : grandtotal
+    }
+    var resdata = await resDataReport(undefined, count, arr_list);
+
+    res.json(resdata);
   }
 
   // kartu stock
@@ -1349,24 +1432,24 @@ exports.piutang = async (req, res) => {
     var listcustomer = [];
     var saldo = 0;
     var arr_data = await Promise.all(data.map(async (item, index) => {
-      saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
+      // saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
       var list = {
         "tanggal": item.TglTrans,
         "bukti": item.BuktiTrans,
         "keterangan": item.Keterangan,
         "debit": parseFloat(item.Debit),
         "kredit": Math.abs(parseFloat(item.Kredit)),
-        "saldo": saldo,
+        "saldo": parseFloat(item.Saldo),
       };
 
       if (!listcustomer.includes(item.KdMCust)) {
         listcustomer.push(item.KdMCust);
-        saldo = 0;
-        saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
-        list.saldo = saldo;
+        // saldo = 0;
+        // saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
+        // list.saldo = saldo;
 
         arr_list.push({
-          "customer": item.NmMCust,
+          "customer": item.NmMCust + ' / ' + item.KdMCust,
           "list": [list],
         });
       } else {
