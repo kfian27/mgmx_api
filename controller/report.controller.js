@@ -127,13 +127,11 @@ exports.penjualan = async (req, res) => {
   let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group);
   const data = await fun.getDataFromQuery(sequelize, q);
 
-  // const qprofit = require("../class/query_report/labarugi");
-  // var query = await qprofit.queryLabaRugiPenjualan(companyid, start, end, cabang, customer, '', barang);
-  // sql = `SELECT SUM(LabaRugi) as total FROM (${query}) tbl`;  
-  // var profit = await fun.countDataFromQuery(sequelize, sql);
-  // console.log(profit)
-
-  var profit = 0;
+  const qprofit = require("../class/query_report/labarugi");
+  var query = await qprofit.queryLabaRugiPenjualan(companyid, start, end, cabang, customer, '', barang);
+  sql = `SELECT SUM(LabaRugi) as total FROM (${query}) tbl`;  
+  var profit = await fun.countDataFromQuery(sequelize, sql);
+  console.log(profit)
 
   if(group == "cabang"){
     var arr_list = [];
@@ -159,7 +157,7 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": fil.PPNVEcer != '' ? parseFloat(fil.PPNVEcer) : 0,
+        "pajak": 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
@@ -184,9 +182,6 @@ exports.penjualan = async (req, res) => {
 
       var cabang = {
         "nama": fil.NmMCabang,
-        // "netto": 0,
-        // "sisa": 0,
-        // "bayar": 0,
         "list": [data_per_nota],
       }
     
@@ -194,7 +189,6 @@ exports.penjualan = async (req, res) => {
       if (!listcabang.includes(fil.NmMCabang)) {
         penjualan += 1;
         pendapatan += parseFloat(fil.Netto);
-        profit += parseFloat(fil.Netto);
 
         listcabang.push(fil.NmMCabang);
         listbrg = [];
@@ -209,7 +203,6 @@ exports.penjualan = async (req, res) => {
         if (!listbrg.includes(fil.BuktiTJualPOS)) {
           penjualan += 1; 
           pendapatan += parseFloat(fil.Netto);
-          profit += parseFloat(fil.Netto);
 
           listbrg.push(fil.BuktiTJualPOS);
           arr_list[idx].list.push(data_per_nota);
@@ -259,7 +252,7 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": fil.PPNVEcer != '' ? parseFloat(fil.PPNVEcer) : 0,
+        "pajak": 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
@@ -291,7 +284,6 @@ exports.penjualan = async (req, res) => {
       if (!listcabang.includes(fil.IdMCust)) {
         penjualan += 1;
         pendapatan += parseFloat(fil.Netto);
-        profit += parseFloat(fil.Netto);
 
         listcabang.push(fil.IdMCust);
         listbrg = [];
@@ -306,7 +298,7 @@ exports.penjualan = async (req, res) => {
         if (!listbrg.includes(fil.IdTJualPOS)) {
           penjualan += 1; 
           pendapatan += parseFloat(fil.Netto);
-          profit += parseFloat(fil.Netto);
+
           listbrg.push(fil.IdTJualPOS);
           arr_list[idx].list.push(data_per_nota);
         }
@@ -355,7 +347,7 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": fil.PPNVEcer != '' ? parseFloat(fil.PPNVEcer) : 0,
+        "pajak": 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
@@ -387,7 +379,6 @@ exports.penjualan = async (req, res) => {
       if (!listcabang.includes(fil.IdMSales)) {
         penjualan += 1;
         pendapatan += parseFloat(fil.Netto);
-        profit += parseFloat(fil.Netto);
 
         listcabang.push(fil.IdMSales);
         listbrg = [];
@@ -402,7 +393,7 @@ exports.penjualan = async (req, res) => {
         if (!listbrg.includes(fil.IdTJualPOS)) {
           penjualan += 1; 
           pendapatan += parseFloat(fil.Netto);
-          profit += parseFloat(fil.Netto);
+
           listbrg.push(fil.IdTJualPOS);
           arr_list[idx].list.push(data_per_nota);
         }
@@ -451,7 +442,7 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": fil.PPNVEcer != '' ? parseFloat(fil.PPNVEcer) : 0,
+        "pajak": 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
@@ -483,7 +474,6 @@ exports.penjualan = async (req, res) => {
       if (!listcabang.includes(fil.KdMBrg)) {
         penjualan += 1;
         pendapatan += parseFloat(fil.Netto);
-        profit += parseFloat(fil.Netto);
 
         listcabang.push(fil.KdMBrg);
         listbrg = [];
@@ -498,7 +488,7 @@ exports.penjualan = async (req, res) => {
         if (!listbrg.includes(fil.IdTJualPOS)) {
           penjualan += 1; 
           pendapatan += parseFloat(fil.Netto);
-          profit += parseFloat(fil.Netto);
+
           listbrg.push(fil.IdTJualPOS);
           arr_list[idx].list.push(data_per_nota);
         }
@@ -1034,6 +1024,7 @@ exports.kas = async (req, res) => {
       var arr_list = [];
       var listcabang = [];
       var listkas = [];
+      var saldo = 0; //buat hitung saldo per kas
       var arr_data = await Promise.all(data.map(async (fil, index) => {
         var list = {
           "tanggal": fil.TglTrans,
@@ -1059,6 +1050,8 @@ exports.kas = async (req, res) => {
           listcabang.push(fil.NmMCabang);
           listkas.push(fil.KdMKas);
 
+          saldo = parseFloat(fil.Saldo);
+
           arr_list.push(cabang);
         }
         // cabang yang sudah ada
@@ -1067,12 +1060,21 @@ exports.kas = async (req, res) => {
           // kas terbaru di cabang yang sudah ada (kas => item)
           if (!listkas.includes(fil.KdMKas)) { 
             listkas.push(fil.KdMKas);
+            saldo = parseFloat(fil.Saldo);
             arr_list[idx].list.push(kas);
           }
           // kas yang sudah ada (item)
           else {
+            saldo += parseFloat(fil.Debit) - parseFloat(fil.Kredit);
             let idx2 = listkas.indexOf(fil.KdMKas);
-            arr_list[idx].list[idx2].listitem.push(list);
+            var list_detail = {
+              "tanggal": fil.TglTrans,
+              "keterangan": fil.Keterangan,
+              "debit": parseFloat(fil.Debit),
+              "kredit": parseFloat(fil.Kredit),
+              "saldo": saldo,
+            };
+            arr_list[idx].list[idx2].listitem.push(list_detail);
           }
         }
       }));

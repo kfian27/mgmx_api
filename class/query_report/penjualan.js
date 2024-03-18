@@ -101,15 +101,15 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
 
     var orderby = "ORDER BY";
     if(group == "cabang"){
-        orderby += " KdMCabang";
+        orderby += " KdMCabang ASC";
     }else if(group == "customer"){
-        orderby += " IdMCust";
+        orderby += " IdMCust ASC";
     }else if(group == "sales"){
-        orderby += " IdMSales";
+        orderby += " IdMSales ASC";
     }else{
-        orderby += " KdMBrg";
+        orderby += " KdMBrg ASC";
     }
-    orderby += ", TglTJualPOS DESC"
+    orderby += ", TglTJualPOS ASC, BuktiTJualPOS, KdMBrg ASC"
 
     var sql = "";
     if (companyid == companyWI) {
@@ -172,9 +172,8 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
                  , IF(TJualD.Qty5<=0, NULL, TJualD.Qty5) As Qty5, IF(TJualD.Qty5<=0, NULL, g5.NmMStn) As NmMStn5
                  , TJualD.QtyTotal
                  , TJualD.HrgStn, TJualD.DiscP As DiscPDetail
-                 , (TJualD.DiscV*TJualD.QtyTotal) As DiscVDetail
+                 , (TJualD.QtyTotal*TJualD.HrgStn*TJualD.DiscP)/100 As DiscVDetail
                  , TJualD.SubTotal
-                 , TJualD.PPNVEcer
                  , TJualD.Keterangan
                  , TJualD.QtyTotal * MBrg.Reserved_dec2 as Kg
                  , TJualD.QtyTotal * MBrg.Reserved_dec2 * MBrg.Reserved_dec3 as Stn2
@@ -183,7 +182,7 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='UKURAN_BRG'),'') AS EditUKURAN_BRG
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='KMK'),'') AS EditKMK
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
-                 , COALESCE((IF((TJual.JmlBayarKredit + Coalesce(TJualLain.Netto, 0)) > 0, TJual.JmlBayarKredit + Coalesce(TJualLain.Netto, 0), NULL)), TJual.JmlBayarTunai + TJual.JmlBayarDeposit) as bayar
+                 , COALESCE((IF(TJual.JmlBayarKartu3 > 0, TJual.JmlBayarKartu3, NULL)), TJual.JmlBayarTunai + TJual.JmlBayarDeposit) as bayar
                  , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp
             FROM MGARTJualD TJualD
                  LEFT OUTER JOIN MGARTJual TJual ON (TJualD.IdMCabang = TJual.IdMCabang AND TJualD.IdTJual = TJual.IdTJual)
@@ -271,12 +270,12 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
             , TJualD.QtyTotal
             , TJualD.HrgStn
             , TJualD.DiscP As DiscPDetail
-            , (TJualD.DiscV*TJualD.QtyTotal) As DiscVDetail
+            , (TJualD.QtyTotal*TJualD.HrgStn*TJualD.DiscP)/100 As DiscVDetail
             , TJualD.SubTotal
             , TJualD.PPNVEcer
             , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL1'),'') AS EditGOL1
             , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL2'),'') AS EditGOL2
-            , COALESCE((IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, NULL)),(IF(TJual.JmlBayarKredit > 0, TJual.JmlBayarKredit, NULL)),((TJual.JmlBayarTunai-TJual.Kembali))) as bayar
+            , COALESCE((IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, NULL)),((TJual.JmlBayarTunai-TJual.Kembali))) as bayar
             , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp
             FROM MGARTJualPOS TJual
                 LEFT OUTER JOIN MGARTRJual TRJual ON (TRJual.IdMCabang=TJual.IdMCabangTRJualPotongan AND TRJual.IdTRjual=TJual.IdTRJualPotongan)
