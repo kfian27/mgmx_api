@@ -35,7 +35,7 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
         SELECT m.IdMCabang, m.TglTJual AS TglTrans, m.BuktiTJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty
             , (d.HrgStn- IF(ISNULL(d.DiscV), 0, d.DiscV) - ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)) * m.discP/100)
                 + ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)
-                - ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)) * m.discP/100)) * PPNP/100)) AS HrgStn
+                - ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)) * m.discP/100)) * m.PPNP/100)) AS HrgStn
             , COALESCE(d.HPP, 0) AS HPP
         FROM MGARTJualD d
             LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual))

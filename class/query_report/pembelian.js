@@ -141,14 +141,14 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
                  , TBeliD.QtyTotal
                  , TBeliD.HrgStn
                  , TBeliD.DiscP As DiscPD
-                 , TBeliD.DiscV As DiscVD
+                 , (TBeliD.DiscV*TBeliD.QtyTotal) As DiscVD
                  , TBeliD.SubTotal
                  , TBeliD.Baris
                  , MBrg.IdMBrg, MBrg.KdMBrg, MBrg.NmMBrg, MBrg.Reserved_int1
                  , MGd.KdMGd, MGd.NmMGd
-                 ,COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='UKURAN_BRG'),'') AS EditUKURAN_BRG
-                 ,COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='KMK'),'') AS EditKMK
-                 ,COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
+                 , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='UKURAN_BRG'),'') AS EditUKURAN_BRG
+                 , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='KMK'),'') AS EditKMK
+                 , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
                  , IF(TBeliD.Qty1=0, NULL, TBeliD.Qty1) As Qty1, IF(TBeliD.Qty1=0, NULL, g1.NmMStn) As NmMStn1
                  , IF(TBeliD.Qty2=0, NULL, TBeliD.Qty2) As Qty2, IF(TBeliD.Qty2=0, NULL, g2.NmMStn) As NmMStn2
                  , IF(TBeliD.Qty3=0, NULL, TBeliD.Qty3) As Qty3, IF(TBeliD.Qty3=0, NULL, g3.NmMStn) As NmMStn3
@@ -229,7 +229,7 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
                  , TBeliD.QtyTotal
                  , TBeliD.HrgStn
                  , TBeliD.DiscP As DiscPD
-                 , TBeliD.DiscV As DiscVD
+                 , (TBeliD.DiscV*TBeliD.QtyTotal) As DiscVD
                  , TBeliD.SubTotal
                  , TBeliD.PPNV as PPNVEcer
                  , TBeliD.Baris
