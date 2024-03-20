@@ -24,7 +24,7 @@ exports.tesRahman = async (req, res) => {
 
 exports.getListCabang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
-  let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0`;
+  let sql = `select IdMCabang as ID, NmMCabang as nama from mgsymcabang where aktif=1 and hapus=0 order by NmMCabang asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -36,7 +36,7 @@ exports.getListCabang = async (req, res) => {
 exports.getListCustomer = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select IdMCust as ID, NmMCust as nama, Alamat as alamat from mgarmcust where aktif=1 and hapus=0`;
+  let sql = `select IdMCust as ID, NmMCust as nama, Alamat as alamat from mgarmcust where aktif=1 and hapus=0 order by NmMCust asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -48,7 +48,7 @@ exports.getListCustomer = async (req, res) => {
 exports.getListSupplier = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select idmsup as ID, nmmsup as nama from mgapmsup where aktif=1 and hapus=0`;
+  let sql = `select idmsup as ID, nmmsup as nama from mgapmsup where aktif=1 and hapus=0 order by nmmsup asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -60,7 +60,7 @@ exports.getListSupplier = async (req, res) => {
 exports.getListGudang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0`;
+  let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0 order by nmmgd asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -71,7 +71,7 @@ exports.getListGudang = async (req, res) => {
 exports.getListBarang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg GROUP BY b.idmbrg`;
+  let sql = `SELECT b.idmbrg as ID, REPLACE(b.nmmbrg,'"','') as nama FROM mginlkartustock k LEFT OUTER JOIN mginmbrg b ON k.idmbrg = b.idmbrg GROUP BY b.idmbrg order by b.nmmbrg asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -83,7 +83,7 @@ exports.getListBarang = async (req, res) => {
 exports.getListBank = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0`;
+  let sql = `select idmbank as ID, nmmbank as nama from mgkbmbank where aktif=1 and hapus=0 order by nmmbank asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -95,7 +95,7 @@ exports.getListBank = async (req, res) => {
 exports.getListKas = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0`;
+  let sql = `select idmkas as ID, nmmkas as nama from mgkbmkas where aktif=1 and hapus=0 order by nmmkas asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -107,7 +107,7 @@ exports.getListKas = async (req, res) => {
 exports.getListSales = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select idmsales as ID, nmmsales as nama from mgarmsales where aktif=1 and hapus=0`;
+  let sql = `select idmsales as ID, nmmsales as nama from mgarmsales where aktif=1 and hapus=0 order by nmmsales asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
