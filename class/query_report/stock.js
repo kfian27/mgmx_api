@@ -225,6 +225,8 @@ exports.queryKartuStock = async (companyid, start, end, cabang, gudang, barang) 
                         LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
                         LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
       WHERE MCabang.Hapus = 0
+        AND MCabang.KdMCabang LIKE '%%'
+        AND MCabang.NmMCabang LIKE '%%'
         AND ((MGd.KdMGd LIKE '%%'
         AND MGd.NmMGd LIKE '%%')
         AND MGd.IdMGd <> 1000000)

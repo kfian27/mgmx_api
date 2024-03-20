@@ -60,7 +60,15 @@ exports.getListSupplier = async (req, res) => {
 exports.getListGudang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0`;
+  // let sql = `select idmgd as ID, nmmgd as nama from mgsymgd where aktif=1 and hapus=0`;
+  let sql = `SELECT * FROM (
+    SELECT MGd.IdMGd as ID, MGd.NmMGd as nama, if(MGd.jenisgd=0,'External','Internal') as jenis
+    FROM MGSYMGd MGd LEFT OUTER JOIN MGSYMCabang MCabang ON (MGd.IdMCabang = MCabang.IdMCabang)
+    WHERE MGd.Hapus = 0
+      AND MGd.IdMCabang = 0
+      AND MGd.JenisGd <> 2
+      AND MGd.IdMGd <> 1000000
+    ) TableMGd`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -990,19 +998,23 @@ exports.stock = async (req, res) => {
 
     let qsql = await qstock.queryKartuStock(companyid,start,end,cabang,gudang,barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
+    console.log('queryman', qsql);
 
     var arr_list = [];
     var listgudang = [];
     var listbarang = [];
     var arr_listitem = [];
+
+    var saldo = 0;
     var arr_data = await Promise.all(data.map(async (fil, index) => {
+      saldo += (parseFloat(fil.Debit) + parseFloat(fil.Kredit));
       var list = {
         "tanggal": fil.TglTrans,
         "keterangan": fil.Keterangan,
         "satuan": fil.KdMStn,
-        "debet": parseFloat(fil.Debit),
+        "debit": parseFloat(fil.Debit),
         "kredit": parseFloat(fil.Kredit),
-        "saldo": parseFloat(fil.Saldo),
+        "saldo": saldo,
       };
       //
         
@@ -1024,6 +1036,11 @@ exports.stock = async (req, res) => {
         listbarang.push(fil.KdMBrg);
         //
 
+        saldo = 0;
+        saldo += (parseFloat(fil.Debit) + parseFloat(fil.Kredit));
+
+        list.saldo = saldo;
+
         arr_list.push(gudang);
       }
       // gudang yang sudah ada
@@ -1032,6 +1049,11 @@ exports.stock = async (req, res) => {
         // barang terbaru di gudang yang sudah ada (barang => item)
         if (!listbarang.includes(fil.KdMBrg)) { 
           listbarang.push(fil.KdMBrg);
+
+          saldo = 0;
+          saldo += (parseFloat(fil.Debit) + parseFloat(fil.Kredit));
+
+          list.saldo = saldo;
           arr_list[idx].list.push(barang);
         }
         // barang yang sudah ada (item)
@@ -1341,18 +1363,27 @@ exports.hutang = async (req, res) => {
     var arr_list = [];
     var listsupplier = [];
 
+    var saldo = 0;
     var arr_data = await Promise.all(data.map(async (item, index) => {
+      saldo += (parseFloat(item.Kredit) + parseFloat(item.Debit));
+
+      // untuk debit dan kredit memang dibalik
       var list = {
         "tanggal": item.TglTrans,
         "bukti": item.BuktiTrans,
         "keterangan": item.Keterangan,
-        "debit": parseFloat(item.Debit),
-        "kredit": parseFloat(item.Kredit),
-        "saldo": parseFloat(item.Saldo),
+        "debit": Math.abs(parseFloat(item.Kredit)),
+        "kredit": parseFloat(item.Debit),
+        "saldo": Math.abs(parseFloat(saldo)),
       };
 
       if (!listsupplier.includes(item.KdMSup)) {
         listsupplier.push(item.KdMSup);
+
+        saldo = 0;
+        saldo += (parseFloat(item.Kredit) + parseFloat(item.Debit));
+
+        list.saldo = Math.abs(saldo);
 
         arr_list.push({
           "customer": item.NmMSup,
@@ -1430,12 +1461,15 @@ exports.piutang = async (req, res) => {
     let qsql = await qpiutang.queryKartuPiutang(companyid, start, end);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
+    console.log('queryman', qsql);
+
     var arr_list = [];
     var listcustomer = [];
     var saldo = 0;
     var arr_data = await Promise.all(data.map(async (item, index) => {
       // saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
       var list = {
+        "ID": item.IdTrans,
         "tanggal": item.TglTrans,
         "bukti": item.BuktiTrans,
         "keterangan": item.Keterangan,
@@ -1622,7 +1656,7 @@ exports.labarugi = async (req, res) => {
             "hpp": pertgl_nilaihpp,
             "labarugi": pertgl_labarugi,
             "persen": pertgl_persenrl,
-            "list": [list],
+            "item": [list],
           });
         }
         else {

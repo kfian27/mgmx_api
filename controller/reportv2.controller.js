@@ -967,7 +967,7 @@ exports.stock = async (req, res) => {
         "tanggal": fil.TglTrans,
         "keterangan": fil.Keterangan,
         "satuan": fil.KdMStn,
-        "debet": parseFloat(fil.Debit),
+        "debit": parseFloat(fil.Debit),
         "kredit": parseFloat(fil.Kredit),
         "saldo": parseFloat(fil.Saldo),
       };
