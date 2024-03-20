@@ -1262,9 +1262,9 @@ exports.bank = async (req, res) => {
     else if (jenis == 2) {
       let start = req.body.start || today;
       let end = req.body.end || today;
-      let mbank = req.body.mbank || "";
+      let bank = req.body.bank || "";
 
-      let q = await qbank.queryKartuBank(companyid,start,end,mbank);
+      let q = await qbank.queryKartuBank(companyid,start,end,bank);
       const data = await fun.getDataFromQuery(sequelize, q);
 
       var arr_list = [];
