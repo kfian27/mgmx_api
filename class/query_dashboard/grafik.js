@@ -21,7 +21,12 @@ exports.queryPembelian = async (companyid, start, end) => {
 
     }
 
-    sql = `select TglTBeli as Tanggal, SUM(Netto) AS jumlah FROM mgaptbeli where Hapus = 0 AND Void = 0 AND TglTBeli >= '${start} 00:00:00' AND TglTBeli <= '${end} 23:59:59' group by TglTBeli`
+    // sql = `select TglTBeli as Tanggal, SUM(Netto) AS jumlah FROM mgaptbeli where Hapus = 0 AND Void = 0 AND TglTBeli >= '${start} 00:00:00' AND TglTBeli <= '${end} 23:59:59' group by TglCreate`
+    sql = `select TBeli.TglTBeli as Tanggal, IdTBeli, SUM(Netto) AS jumlah FROM mgaptbeli TBeli
+    LEFT OUTER JOIN mgapmsup msup on TBeli.IdMSup = msup.IdMSup 
+    WHERE TBeli.Hapus = 0 AND TBeli.Void = 0 AND TBeli.TglTBeli  >= '${start} 00:00:00' AND TBeli.TglTBeli <= '${end} 23:59:59' 
+    AND TBeli.BuktiTBeli <> '' AND MSup.JenisMSup = 0 AND TBeli.IdMUserCreate > 0 
+    group by TBeli.TglTBeli`
 
     return sql;
 }

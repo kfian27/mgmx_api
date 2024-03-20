@@ -4,7 +4,7 @@ var companyWI = fun.companyWI;
 // LAPORAN PIUTANG JATUH TEMPO
 exports.queryPenjualanJatuhTempo = async (companyid, jenis = 0) => { 
     // 0: lewat, 1: hari ini, 2: h-7
-    var where = `  < CURDATE()`;
+    var where = `  <= CURDATE()`;
     if (jenis == 1) {
         where = `  = CURDATE()`;
     } else if (jenis == 2) {
@@ -290,7 +290,7 @@ exports.queryPenjualanVoidEditBackdate = async (companyid) => {
 // jual < create (backdate)
 // LAPORAN HUTANG JATUH TEMPO
 exports.queryPembelianJatuhTempo = async (companyid, jenis = 0) => { 
-    var where = ` < CURDATE()`;
+    var where = ` <= CURDATE()`;
     if (jenis == 1) {
         where = ` = CURDATE()`;
     } else if (jenis == 2) {

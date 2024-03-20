@@ -21,7 +21,7 @@ exports.getDataCustomer = async (req, res) => {
         `SELECT COUNT(*) as total from MgArMCust where hapus=0`
     );
     
-    let sql = `select idmcust as ID, nmmcust as nama, alamat, kota, hp1 as hp from mgarmcust where aktif=1 and hapus=0`;
+    let sql = `select idmcust as ID, nmmcust as nama, alamat, kota, Telp1 as hp from mgarmcust where aktif=1 and hapus=0 ORDER BY nama ASC`;
     const data = await sequelize.query(sql, {
         raw: false,
     });
@@ -41,7 +41,7 @@ exports.getDataSupplier = async (req, res) => {
         `SELECT COUNT(*) as total from mgapmsup where hapus=0`
     );
     
-    let sql = `select idmsup as ID, nmmsup as nama, alamat, kota, hp1 as hp from mgapmsup where aktif=1 and hapus=0`;
+    let sql = `select idmsup as ID, nmmsup as nama, alamat, kota, Telp1 as hp from mgapmsup where aktif=1 and hapus=0 ORDER BY nama ASC`;
     const data = await sequelize.query(sql, {
         raw: false,
     });
@@ -61,7 +61,7 @@ exports.getDataBarang = async (req, res) => {
         `SELECT COUNT(*) as total from mginmbrg where hapus=0`
     );
     
-    let sql = `select idmbrg as ID, kdmbrg as kode, nmmbrg as nama from mginmbrg where aktif=1 and hapus=0`;
+    let sql = `select idmbrg as ID, kdmbrg as kode, nmmbrg as nama from mginmbrg where aktif=1 and hapus=0 ORDER BY kode ASC`;
     const data = await sequelize.query(sql, {
         raw: false,
     });
