@@ -184,6 +184,9 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
                  , COALESCE((IF(TJual.JmlBayarKartu3 > 0, TJual.JmlBayarKartu3, NULL)), TJual.JmlBayarTunai + TJual.JmlBayarDeposit) as bayar
                  , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp
+                 , (select SUM(m.JmlBayar)
+                    from mgartbpiutd m join mgartbpiut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBPiut = m2.IdTBPiut
+                    where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJual) as total_bayar
             FROM MGARTJualD TJualD
                  LEFT OUTER JOIN MGARTJual TJual ON (TJualD.IdMCabang = TJual.IdMCabang AND TJualD.IdTJual = TJual.IdTJual)
                  LEFT OUTER JOIN MGARTJualLain TJualLain ON (TJual.IdMCabang = TJualLain.IdMCabang AND TJual.BuktiTJual = TJualLain.BuktiAsli AND TJualLain.Hapus = 0 AND TJualLain.Void = 0)
@@ -276,7 +279,7 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
             , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL1'),'') AS EditGOL1
             , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL2'),'') AS EditGOL2
             , COALESCE((IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, NULL)),((TJual.JmlBayarTunai-TJual.Kembali))) as bayar
-            , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp
+            , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp            
             FROM MGARTJualPOS TJual
                 LEFT OUTER JOIN MGARTRJual TRJual ON (TRJual.IdMCabang=TJual.IdMCabangTRJualPotongan AND TRJual.IdTRjual=TJual.IdTRJualPotongan)
                 LEFT OUTER JOIN MGARMKartu MKartu ON (MKartu.IdMKartu = TJual.IdMKartu AND MKartu.IdMCabang = TJual.IdMCabang)
