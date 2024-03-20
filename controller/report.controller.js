@@ -131,7 +131,6 @@ exports.penjualan = async (req, res) => {
   var query = await qprofit.queryLabaRugiPenjualan(companyid, start, end, cabang, customer, '', barang);
   sql = `SELECT SUM(LabaRugi) as total FROM (${query}) tbl`;  
   var profit = await fun.countDataFromQuery(sequelize, sql);
-  console.log(profit)
 
   if(group == "cabang"){
     var arr_list = [];
@@ -157,12 +156,22 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      var bayar = parseFloat(fil.bayar) != null ? parseFloat(fil.bayar) : 0;      
+
+      if(fil.StatusBayarKredit == "Dibayar Kredit"){
+        if(fil.total_bayar){
+          bayar = parseFloat(fil.total_bayar);
+        }else{
+          bayar = 0;
+        }
+      }
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
         
       var data_per_nota = {
         "id": fil.IdTJualPOS,
@@ -174,9 +183,9 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
         "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
         "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": parseFloat(fil.bayar),
-        "sisa": sisa,
-        "sisabayar": sisa,
+        "bayar": parseFloat(bayar).toFixed(2),
+        "sisa": sisa.toFixed(2),
+        "sisabayar": sisa.toFixed(2),
         "listitem": [list]
       }
 
@@ -252,12 +261,22 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      var bayar = parseFloat(fil.bayar) != null ? parseFloat(fil.bayar) : 0;      
+
+      if(fil.StatusBayarKredit == "Dibayar Kredit"){
+        if(fil.total_bayar){
+          bayar = parseFloat(fil.total_bayar);
+        }else{
+          bayar = 0;
+        }
+      }
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
         
       var data_per_nota = {
         "id": fil.IdTJualPOS,
@@ -269,7 +288,7 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
         "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
         "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": parseFloat(fil.bayar),
+        "bayar": parseFloat(bayar),
         "sisa": sisa,
         "sisabayar": sisa,
         "listitem": [list]
@@ -347,12 +366,22 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      var bayar = parseFloat(fil.bayar) != null ? parseFloat(fil.bayar) : 0;      
+
+      if(fil.StatusBayarKredit == "Dibayar Kredit"){
+        if(fil.total_bayar){
+          bayar = parseFloat(fil.total_bayar);
+        }else{
+          bayar = 0;
+        }
+      }
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
         
       var data_per_nota = {
         "id": fil.IdTJualPOS,
@@ -364,7 +393,7 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
         "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
         "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": parseFloat(fil.bayar),
+        "bayar": parseFloat(bayar),
         "sisa": sisa,
         "sisabayar": sisa,
         "listitem": [list]
@@ -418,10 +447,12 @@ exports.penjualan = async (req, res) => {
       countData: count,
       data: arr_list,
     });
-  }else{
+  }else{ //per barang
     var arr_list = [];
     var listcabang = [];
     var listbrg = [];
+
+    listnota = [];
 
     var penjualan = 0; var produk_terjual = 0; var pendapatan = 0; 
 
@@ -442,12 +473,36 @@ exports.penjualan = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      var bayar = parseFloat(fil.bayar) != null ? parseFloat(fil.bayar) : 0;      
+
+      if(fil.StatusBayarKredit == "Dibayar Kredit"){
+        if(fil.total_bayar){
+          bayar = parseFloat(fil.total_bayar);
+        }else{
+          bayar = 0;
+        }
+      }
+
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+
+      // khusus data per barang
+      var subtotal = 0; var diskon = 0; var pajak = 0; var grandtotal = 0;      
+      if(jenis == 1){ //summary
+        subtotal = (parseFloat(fil.QtyTotal) * parseFloat(fil.HrgStn)) - parseFloat(fil.DiscVDetail);
+        diskon = parseFloat(subtotal) * parseFloat(fil.DiscP)/100;
+        pajak = parseFloat(subtotal) * fil.PPNP/100;
+        grandtotal = subtotal - diskon + pajak;
+      }else{ //detail
+        subtotal = fil.Bruto != null ? parseFloat(fil.Bruto) : 0;
+        diskon = fil.DiscV != null ? parseFloat(fil.DiscV) : 0;
+        pajak = fil.PPNV != null ? parseFloat(fil.PPNV) : 0;
+        grandtotal = fil.Netto != null ? parseFloat(fil.Netto) : 0;
+      }
         
       var data_per_nota = {
         "id": fil.IdTJualPOS,
@@ -455,13 +510,13 @@ exports.penjualan = async (req, res) => {
         "transaksi": fil.BuktiTJualPOS,
         "customer": fil.NmMCust,
         "sales": fil.NmMSales,
-        "subtotal": fil.Bruto != null ? parseFloat(fil.Bruto) : 0,
-        "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
-        "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
-        "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": parseFloat(fil.bayar),
-        "sisa": sisa,
-        "sisabayar": sisa,
+        "subtotal": subtotal.toFixed(2),
+        "diskon": diskon.toFixed(2),
+        "pajak": pajak.toFixed(2),
+        "grandtotal": grandtotal.toFixed(2),
+        "bayar": parseFloat(bayar).toFixed(2),
+        "sisa": sisa.toFixed(2),
+        "sisabayar": sisa.toFixed(2),
         "listitem": [list]
       }
 
@@ -469,12 +524,15 @@ exports.penjualan = async (req, res) => {
         "nama": fil.NmMBrg,
         "list": [data_per_nota],
       }
+
+      if(!listnota.includes(fil.IdTJualPOS)){
+        listnota.push(fil.IdTJualPOS)
+        penjualan += 1;
+        pendapatan += parseFloat(fil.Netto);
+      }
     
       // cabang terbaru (cabang => nota => item)
       if (!listcabang.includes(fil.KdMBrg)) {
-        penjualan += 1;
-        pendapatan += parseFloat(fil.Netto);
-
         listcabang.push(fil.KdMBrg);
         listbrg = [];
         listbrg.push(fil.IdTJualPOS);
@@ -486,9 +544,6 @@ exports.penjualan = async (req, res) => {
 
         // nota terbaru di cabang yang sudah ada (nota => item)
         if (!listbrg.includes(fil.IdTJualPOS)) {
-          penjualan += 1; 
-          pendapatan += parseFloat(fil.Netto);
-
           listbrg.push(fil.IdTJualPOS);
           arr_list[idx].list.push(data_per_nota);
         }
@@ -559,43 +614,31 @@ exports.pembelian = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVD != '' ? parseFloat(fil.DiscVD) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var bayar = 0;
-      if(jenis == 1){
-        bayar = parseFloat(fil.bayar)
-      }else{
-        bayar = parseFloat(fil.JmlBayarTunai)
-      }
-
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      var bayar = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
 
       var data_per_nota = {
         "id": fil.IdTBeli,
         "tanggal": fil.TglTBeli,
         "transaksi": fil.BuktiTBeli,
         "supplier": fil.NmMSup,
-        "subtotal": fil.Bruto != null ? parseFloat(fil.Bruto) : 0,
-        "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
-        "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
-        "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": bayar,
-        "sisa": sisa,
+        "subtotal": fil.Bruto != null ? parseFloat(fil.Bruto).toFixed(2) : 0,
+        "diskon": fil.DiscV != null ? parseFloat(fil.DiscV).toFixed(2) : 0,
+        "pajak": fil.PPNV != null ? parseFloat(fil.PPNV).toFixed(2) : 0,
+        "grandtotal": fil.Netto != null ? parseFloat(fil.Netto).toFixed(2) : 0,
+        "bayar": bayar.toFixed(2),
+        "sisa": sisa.toFixed(2),
         "kredit": parseFloat(fil.JmlBayarKredit),
         "listitem": [list]
       }
 
       var cabang = {
         "nama": fil.NmMCabang,
-        // "bruto": 0,
-        // "diskon": 0,
-        // "pajak": 0,
-        // "netto": 0,
-        // "tunai": 0,
-        // "sisa": 0,
         "list": [data_per_nota],
       }
     
@@ -665,31 +708,25 @@ exports.pembelian = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVD != '' ? parseFloat(fil.DiscVD) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var bayar = 0;
-      if(jenis == 1){
-        bayar = parseFloat(fil.bayar)
-      }else{
-        bayar = parseFloat(fil.JmlBayarTunai)
-      }
-
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      var bayar = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
 
       var data_per_nota = {
         "id": fil.IdTBeli,
         "tanggal": fil.TglTBeli,
         "transaksi": fil.BuktiTBeli,
         "supplier": fil.NmMSup,
-        "subtotal": fil.Bruto != null ? parseFloat(fil.Bruto) : 0,
-        "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
-        "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
-        "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": bayar,
-        "sisa": sisa,
+        "subtotal": fil.Bruto != null ? parseFloat(fil.Bruto).toFixed(2) : 0,
+        "diskon": fil.DiscV != null ? parseFloat(fil.DiscV).toFixed(2) : 0,
+        "pajak": fil.PPNV != null ? parseFloat(fil.PPNV).toFixed(2) : 0,
+        "grandtotal": fil.Netto != null ? parseFloat(fil.Netto).toFixed(2) : 0,
+        "bayar": bayar.toFixed(2),
+        "sisa": sisa.toFixed(2),
         "kredit": parseFloat(fil.JmlBayarKredit),
         "listitem": [list]
       }
@@ -741,10 +778,11 @@ exports.pembelian = async (req, res) => {
       countData: count,
       data: arr_list,
     });
-  }else{
+  }else{ //per barang
     var arr_list = [];
     var listcabang = [];
     var listbrg = [];
+    var listnota = [];
 
     var pembelian = 0; var produk_dibeli = 0; var pengeluaran = 0;
 
@@ -765,32 +803,43 @@ exports.pembelian = async (req, res) => {
         "hargasat": fil.HrgStn != '' ? parseFloat(fil.HrgStn) : 0,
         "diskon": fil.DiscVD != '' ? parseFloat(fil.DiscVD) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
-        "pajak": 0,
+        "pajak": fil.PPNVEcer || 0,
         "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var bayar = 0;
-      if(jenis == 1){
-        bayar = parseFloat(fil.bayar)
-      }else{
-        bayar = parseFloat(fil.JmlBayarTunai)
-      }
+      var bayar = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      var kredit = fil.JmlBayarKredit != null ? parseFloat(fil.JmlBayarKredit) : 0;
+      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
 
-      var sisa = parseFloat(fil.Netto) - parseFloat(fil.bayar);
+      // khusus data per barang
+      var subtotal = 0; var diskon = 0; var pajak = 0; var grandtotal = 0;      
+      if(jenis == 1){ //summary
+        subtotal = (parseFloat(fil.QtyTotal) * parseFloat(fil.HrgStn)) - parseFloat(fil.DiscVD);
+        diskon = parseFloat(subtotal) * parseFloat(fil.DiscP)/100;
+        pajak = parseFloat(subtotal) * fil.PPNP/100;
+        grandtotal = subtotal - diskon + pajak;
+        bayar = 0;
+        sisa = 0;        
+      }else{ //detail
+        subtotal = fil.Bruto != null ? parseFloat(fil.Bruto) : 0;
+        diskon = fil.DiscV != null ? parseFloat(fil.DiscV) : 0;
+        pajak = fil.PPNV != null ? parseFloat(fil.PPNV) : 0;
+        grandtotal = fil.Netto != null ? parseFloat(fil.Netto) : 0;
+      }
 
       var data_per_nota = {
         "id": fil.IdTBeli,
         "tanggal": fil.TglTBeli,
         "transaksi": fil.BuktiTBeli,
         "supplier": fil.NmMSup,
-        "subtotal": fil.Bruto != null ? parseFloat(fil.Bruto) : 0,
-        "diskon": fil.DiscV != null ? parseFloat(fil.DiscV) : 0,
-        "pajak": fil.PPNV != null ? parseFloat(fil.PPNV) : 0,
-        "grandtotal": fil.Netto != null ? parseFloat(fil.Netto) : 0,
-        "bayar": bayar,
-        "sisa": sisa,
-        "kredit": parseFloat(fil.JmlBayarKredit),
+        "subtotal": subtotal.toFixed(2),
+        "diskon": diskon.toFixed(2),
+        "pajak": pajak.toFixed(2),
+        "grandtotal": grandtotal.toFixed(2),
+        "bayar": bayar.toFixed(2),
+        "sisa": sisa.toFixed(2),
+        "kredit": kredit.toFixed(2),
         "listitem": [list]
       }
 
@@ -798,12 +847,15 @@ exports.pembelian = async (req, res) => {
         "nama": fil.NmMBrg,
         "list": [data_per_nota],
       }
+
+      if(!listnota.includes(fil.IdTBeli)){
+        listnota.push(fil.IdTBeli)
+        pembelian += 1;
+        pengeluaran += parseFloat(fil.Netto);
+      }
     
       // cabang terbaru (cabang => nota => item)
       if (!listcabang.includes(fil.IdMBrg)) {
-        pembelian += 1;
-        pengeluaran += parseFloat(fil.Netto);
-
         listcabang.push(fil.IdMBrg);
         listbrg = [];
         listbrg.push(fil.IdTBeli);
@@ -815,9 +867,6 @@ exports.pembelian = async (req, res) => {
 
         // nota terbaru di cabang yang sudah ada (nota => item)
         if (!listbrg.includes(fil.IdTBeli)) {
-          pembelian += 1; 
-          pengeluaran += parseFloat(fil.Netto);
-
           listbrg.push(fil.IdTBeli);
           arr_list[idx].list.push(data_per_nota);
         }
@@ -986,7 +1035,7 @@ exports.kas = async (req, res) => {
             var data_kas = {
               kode : fil.KdMKas,
               nama : fil.NmMKas,
-              qty : fil.PosKas
+              qty : Math.abs(fil.PosKas)
             };
             if (!listcabang.includes(fil.NmMCabang)) {              
               listcabang.push(fil.NmMCabang);
@@ -1011,7 +1060,6 @@ exports.kas = async (req, res) => {
             data: listitem
         })
     }
-
     // kartu kas
     else if (jenis == 2) {
       let start = req.body.start || today;
@@ -1029,9 +1077,9 @@ exports.kas = async (req, res) => {
         var list = {
           "tanggal": fil.TglTrans,
           "keterangan": fil.Keterangan,
-          "debit": parseFloat(fil.Debit),
-          "kredit": parseFloat(fil.Kredit),
-          "saldo": parseFloat(fil.Saldo),
+          "debit": Math.abs(parseFloat(fil.Debit)),
+          "kredit": Math.abs(parseFloat(fil.Kredit)),
+          "saldo": Math.abs(parseFloat(fil.Saldo)),
         };
           
         var kas = {
@@ -1065,14 +1113,14 @@ exports.kas = async (req, res) => {
           }
           // kas yang sudah ada (item)
           else {
-            saldo += parseFloat(fil.Debit) - parseFloat(fil.Kredit);
+            saldo += parseFloat(fil.Debit) - Math.abs(parseFloat(fil.Kredit));
             let idx2 = listkas.indexOf(fil.KdMKas);
             var list_detail = {
               "tanggal": fil.TglTrans,
               "keterangan": fil.Keterangan,
-              "debit": parseFloat(fil.Debit),
-              "kredit": parseFloat(fil.Kredit),
-              "saldo": saldo,
+              "debit": Math.abs(parseFloat(fil.Debit)),
+              "kredit": Math.abs(parseFloat(fil.Kredit)),
+              "saldo": Math.abs(saldo),
             };
             arr_list[idx].list[idx2].listitem.push(list_detail);
           }
@@ -1106,7 +1154,7 @@ exports.bank = async (req, res) => {
               bank : fil.NMMBANK,
               kode : fil.KdMRek,
               nama : fil.NmMRek,
-              qty : fil.PosRek
+              qty : Math.abs(fil.PosRek)
             };
             if (!listcabang.includes(fil.NmMCabang)) {              
               listcabang.push(fil.NmMCabang);
@@ -1139,13 +1187,14 @@ exports.bank = async (req, res) => {
       var arr_list = [];
       var listcabang = [];
       var listbank = [];
+      var saldo = 0; //buat hitung saldo per bank
       var arr_data = await Promise.all(data.map(async (fil, index) => {
         var list = {
           "tanggal": fil.TglTrans,
           "keterangan": fil.Keterangan,
-          "debit": parseFloat(fil.Debit),
-          "kredit": parseFloat(fil.Kredit),
-          "saldo": parseFloat(fil.Saldo),
+          "debit": Math.abs(parseFloat(fil.Debit)),
+          "kredit": Math.abs(parseFloat(fil.Kredit)),
+          "saldo": Math.abs(parseFloat(fil.Saldo)),
         };
           
         var bank = {
@@ -1165,6 +1214,8 @@ exports.bank = async (req, res) => {
           listcabang.push(fil.KdMCabang);
           listbank.push(fil.KdMRek);
 
+          saldo = parseFloat(fil.Saldo);
+
           arr_list.push(cabang);
         }
         // cabang yang sudah ada
@@ -1173,10 +1224,19 @@ exports.bank = async (req, res) => {
           // bank terbaru di cabang yang sudah ada (bank => item)
           if (!listbank.includes(fil.KdMRek)) { 
             listbank.push(fil.KdMRek);
+            saldo = parseFloat(fil.Saldo);
             arr_list[idx].list.push(bank);
           }
           // bank yang sudah ada (item)
           else {
+            saldo += parseFloat(fil.Debit) - Math.abs(parseFloat(fil.Kredit));
+            var list = {
+              "tanggal": fil.TglTrans,
+              "keterangan": fil.Keterangan,
+              "debit": Math.abs(parseFloat(fil.Debit)),
+              "kredit": Math.abs(parseFloat(fil.Kredit)),
+              "saldo": Math.abs(saldo),
+            };
             let idx2 = listbank.indexOf(fil.KdMRek);
             arr_list[idx].list[idx2].listitem.push(list);
           }
