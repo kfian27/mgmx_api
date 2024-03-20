@@ -8,7 +8,14 @@ exports.queryPenjualan = async (companyid, start, end) => {
 
     }
 
-    sql = `select TglTJual as Tanggal, SUM(Netto) AS jumlah FROM mgartjual where Hapus = 0 AND Void = 0 AND TglTJual >= '${start} 00:00:00' AND TglTJual <= '${end} 23:59:59' group by TglTJual`
+    sql = `select TglTJual as Tanggal, SUM(TJual.Netto + Coalesce(TJualLain.Netto, 0)) AS jumlah 
+    FROM mgartjual TJual
+    LEFT OUTER JOIN MGARTJualLain TJualLain ON (TJual.IdMCabang = TJualLain.IdMCabang AND TJual.BuktiTJual = TJualLain.BuktiAsli AND TJualLain.Hapus = 0 AND TJualLain.Void = 0)
+    where TJual.Hapus = 0 AND TJual.Void = 0 AND TJual.TglTJual >= '${start} 00:00:00' AND TJual.TglTJual <= '${end} 23:59:59' 
+    AND TJual.AprtBulan <> 1
+    AND TJual.IdTRJual = 0
+    AND TJual.AprtBulan <> 2
+    group by TglTJual`
 
 
     return sql;

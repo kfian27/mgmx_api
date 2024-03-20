@@ -65,7 +65,6 @@ exports.getListGudang = async (req, res) => {
     SELECT MGd.IdMGd as ID, MGd.NmMGd as nama, if(MGd.jenisgd=0,'External','Internal') as jenis
     FROM MGSYMGd MGd LEFT OUTER JOIN MGSYMCabang MCabang ON (MGd.IdMCabang = MCabang.IdMCabang)
     WHERE MGd.Hapus = 0
-      AND MGd.IdMCabang = 0
       AND MGd.JenisGd <> 2
       AND MGd.IdMGd <> 1000000
     ) TableMGd`;
