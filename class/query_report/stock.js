@@ -39,7 +39,7 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
           FROM (
             SELECT IdMCabang, IdMGd, IdMBrg, Sum(QtyTotal) as PosQty, Sum(QtyTotal * HPP) as PosValue 
               FROM MGINLKartuStock LKartu
-            WHERE TglTrans < '${tanggal} 23:59:59'
+            WHERE TglTrans <= '${tanggal} 23:59:59'
             GROUP BY IdMCabang, IdMGd, IdMBrg
           ) TablePosQty LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosQty.IdMCabang = MCabang.IdMCabang)
                         LEFT OUTER JOIN MGSYMGd MGd ON (TablePosQty.IdMCabang = MGd.IdMCabang AND TablePosQty.IdMGd = MGd.IdMGd)
