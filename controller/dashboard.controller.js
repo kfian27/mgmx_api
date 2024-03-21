@@ -104,6 +104,7 @@ exports.getWarningToday = async (req, res) => {
     let qsql_jualjt7 = await q.queryPenjualanJatuhTempo(companyid, 2);
     const jualjt7 = await fun.getDataFromQuery(sequelize,qsql_jualjt7);
     var arr_jualjt7 = await Promise.all(jualjt7.map(async (list, index) => {
+        count_jualjt7++;
         return resList(list, 1);
     }))
 
@@ -162,13 +163,13 @@ exports.getWarningToday = async (req, res) => {
     const belivoideditbackdate = await fun.getDataFromQuery(sequelize, qsql_belivoideditbackdate);
     var arr_belivoideditbackdate = await Promise.all(belivoideditbackdate.map(async (list, index) => {
         if (list.void == 'Ya') {
-            count_jualvoid++;
+            count_belivoid++;
         }
         if (list.countedit > 0) {
-            count_jualedit++;
+            count_beliedit++;
         }
         if (list.backdate == 'Ya') {
-            count_jualbackdate++;
+            count_belibackdate++;
         }
         return resListTransaksi(list, 2);
     }))
@@ -281,10 +282,14 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
 
     // PENYESUAIAN STOCK
     var count_penstock = 0;
+    var arr_buktipenstock = [];
     let qsql = await q.queryPenyesuaianStok(companyid,start, end);
     const penstock = await fun.getDataFromQuery(sequelize,qsql);
     var arr_penstock = await Promise.all(penstock.map(async (list, index) => {
-        count_penstock++;
+        // count_penstock++;
+        if (!arr_buktipenstock.includes(list.BuktiTPenyesuaianBrg)) {
+            arr_buktipenstock.push(list.BuktiTPenyesuaianBrg);
+        }
         return {
             "nmmbrg" : list.NmMBrg,
             "tgl" : list.TglTPenyesuaianBrg,
@@ -293,28 +298,39 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
             "qty" : parseFloat(list.QtyTotal)
         }
     }))
+    count_penstock = arr_buktipenstock.length;
 
     // KOREKSI HUTANG
     var count_korhut = 0;
+    var arr_buktikorhut = [];
     let qsql_korhut = await q.queryKoreksiHutang(companyid, start, end);
     const korhut = await fun.getDataFromQuery(sequelize, qsql_korhut);
     var arr_korhut = await Promise.all(korhut.map(async (list, index) => {
-        count_korhut++;
+        // count_korhut++;
+        if (!arr_buktikorhut.includes(list.BuktiTKorHut)) {
+            arr_buktikorhut.push(list.BuktiTKorHut);
+        }
         return {
             "tgl" : list.TglTKorHut,
             "bukti" : list.BuktiTKorHut,
-            "customer" : list.NmMSup,
+            "supplier" : list.NmMSup,
             "jumlah" : parseFloat(list.JmlKor)
         }
     }))
+    count_korhut = arr_buktikorhut.length;
+
 
     // KOREKSI PIUTANG
     var count_korpiut = 0;
+    var arr_buktikorpiut = [];
     let qsql_korpiut = await q.queryKoreksiPiutang(companyid, start, end);
     const korpiut = await fun.getDataFromQuery(sequelize, qsql_korpiut);
     
     var arr_korpiut = await Promise.all(korpiut.map(async (list, index) => {
-        count_korpiut ++;
+        // count_korpiut ++;
+        if (!arr_buktikorpiut.includes(list.BuktiTKorPiut)) {
+            arr_buktikorpiut.push(list.BuktiTKorPiut);
+        }
         return {
             "tgl" : list.TglTKorPiut,
             "bukti" : list.BuktiTKorPiut,
@@ -322,14 +338,20 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
             "jumlah" : parseFloat(list.JmlKor)
         }
     }))
+    count_korpiut = arr_buktikorpiut.length;
+
 
     // TRANSAKSI JURNAL UMUM
     var count_jurnalumum = 0;
+    var arr_buktijurnalumum = [];
     let qsql_jurnalumum = await q.queryJurnalMemo(companyid, start, end);
     const jurnalumum = await fun.getDataFromQuery(sequelize, qsql_jurnalumum);
     
     var arr_jurnalumum = await Promise.all(jurnalumum.map(async (list, index) => {
-        count_jurnalumum++;
+        // count_jurnalumum++;
+        if (!arr_buktijurnalumum.includes(list.BuktiTJurnal)) {
+            arr_buktijurnalumum.push(list.BuktiTJurnal);
+        }
         return {
             "tgl" : list.TglTJurnal,
             "bukti" : list.BuktiTJurnal,
@@ -338,6 +360,8 @@ exports.getTransaksiAdjustKoreksi = async (req, res) => {
             "keterangan" : list.Keterangan
         }
     }))
+    count_jurnalumum = arr_buktijurnalumum.length;
+
 
     var data = {
         penyesuaian_stok: resData(count_penstock, arr_penstock),

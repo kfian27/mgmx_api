@@ -57,7 +57,6 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
             AND ((MGd.KdMGd LIKE '%%'
             AND MGd.NmMGd LIKE '%%')
             AND MGd.IdMGd <> 1000000)
-          AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
             AND MBrg.Hapus = 0
             AND MBrg.KdMBrg LIKE '%%'
             AND MBrg.NmMBrg LIKE '%%'
@@ -139,7 +138,6 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
         AND ((MGd.KdMGd LIKE '%%'
         AND MGd.NmMGd LIKE '%%')
         OR MGd.IdMGd = 1000000)
-      AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
         AND MBrg.Hapus = 0
         AND MBrg.KdMBrg LIKE '%%'
         AND MBrg.NmMBrg LIKE '%%'
@@ -225,10 +223,11 @@ exports.queryKartuStock = async (companyid, start, end, cabang, gudang, barang) 
                         LEFT OUTER JOIN MGSYMGd MGd ON (TableKartuStock.IdMCabang = MGd.IdMCabang AND TableKartuStock.IdMGd = MGd.IdMGd)
                         LEFT OUTER JOIN MGINMBrg MBrg ON (TableKartuStock.IdMBrg = MBrg.IdMBrg)
       WHERE MCabang.Hapus = 0
+        AND MCabang.KdMCabang LIKE '%%'
+        AND MCabang.NmMCabang LIKE '%%'
         AND ((MGd.KdMGd LIKE '%%'
         AND MGd.NmMGd LIKE '%%')
         AND MGd.IdMGd <> 1000000)
-          AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
         AND MBrg.KdMBrg LIKE '%%'
         AND MBrg.NmMBrg LIKE '%%'
         AND MBrg.Reserved_int1 <> 4 ${qcabang} ${qgudang} ${qbarang}
@@ -318,7 +317,6 @@ exports.queryKartuStock = async (companyid, start, end, cabang, gudang, barang) 
       AND ((MGd.KdMGd LIKE '%%'
       AND MGd.NmMGd LIKE '%%')
       OR MGd.IdMGd = 1000000)
-        AND  MGd.IdMGd in (select IdMGd from mgsymusermGd where idmuser=1 and idmcabangmuser=0 and idmcabangmGd=idmcabangmuser)
       AND MBrg.KdMBrg LIKE '%%'
       AND MBrg.NmMBrg LIKE '%%'
       AND MBrg.Reserved_int1 <> 4
