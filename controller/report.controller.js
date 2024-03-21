@@ -1154,7 +1154,7 @@ exports.kas = async (req, res) => {
             var data_kas = {
               kode : fil.KdMKas,
               nama : fil.NmMKas,
-              qty : Math.abs(fil.PosKas)
+              qty : fil.PosKas
             };
             if (!listcabang.includes(fil.NmMCabang)) {              
               listcabang.push(fil.NmMCabang);
@@ -1273,7 +1273,7 @@ exports.bank = async (req, res) => {
               bank : fil.NMMBANK,
               kode : fil.KdMRek,
               nama : fil.NmMRek,
-              qty : Math.abs(fil.PosRek)
+              qty : fil.PosRek
             };
             if (!listcabang.includes(fil.NmMCabang)) {              
               listcabang.push(fil.NmMCabang);
