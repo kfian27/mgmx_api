@@ -67,7 +67,8 @@ exports.getListGudang = async (req, res) => {
     WHERE MGd.Hapus = 0
       AND MGd.JenisGd <> 2
       AND MGd.IdMGd <> 1000000
-    ) TableMGd`;
+    ) TableMGd
+    order by nama asc`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   res.json({
@@ -75,6 +76,7 @@ exports.getListGudang = async (req, res) => {
     data: data,
   });
 };
+
 exports.getListBarang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
