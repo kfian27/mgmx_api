@@ -634,8 +634,15 @@ exports.pembelian = async (req, res) => {
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var bayar = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
-      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+      var sisa = 0;
+      var bayar = fil.bayar != null ? parseFloat(fil.bayar) : 0;
+      var bayar_kredit = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      if(jenis == 1){ //summary, nilai bayar = total tunai + kredit
+        bayar += bayar_kredit;
+        sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+      }else{
+        sisa = parseFloat(fil.Netto) - (parseFloat(bayar) + bayar_kredit);
+      }
 
       var data_per_nota = {
         "id": fil.IdTBeli,
@@ -648,7 +655,7 @@ exports.pembelian = async (req, res) => {
         "grandtotal": fil.Netto != null ? parseFloat(fil.Netto).toFixed(2) : 0,
         "bayar": bayar.toFixed(2),
         "sisa": sisa.toFixed(2),
-        "kredit": parseFloat(fil.JmlBayarKredit),
+        "kredit": bayar_kredit.toFixed(2),
         "listitem": [list]
       }
 
@@ -728,7 +735,16 @@ exports.pembelian = async (req, res) => {
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var bayar = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      var sisa = 0;
+      var bayar = fil.bayar != null ? parseFloat(fil.bayar) : 0;
+      var bayar_kredit = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      if(jenis == 1){ //summary, nilai bayar = total tunai + kredit
+        bayar += bayar_kredit;
+        sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+      }else{
+        sisa = parseFloat(fil.Netto) - (parseFloat(bayar) + bayar_kredit);
+      }
+
       var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
 
       var data_per_nota = {
@@ -742,7 +758,7 @@ exports.pembelian = async (req, res) => {
         "grandtotal": fil.Netto != null ? parseFloat(fil.Netto).toFixed(2) : 0,
         "bayar": bayar.toFixed(2),
         "sisa": sisa.toFixed(2),
-        "kredit": parseFloat(fil.JmlBayarKredit),
+        "kredit": bayar_kredit.toFixed(2),
         "listitem": [list]
       }
 
@@ -823,9 +839,10 @@ exports.pembelian = async (req, res) => {
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      var bayar = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
-      var kredit = fil.JmlBayarKredit != null ? parseFloat(fil.JmlBayarKredit) : 0;
-      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+      // per barang, tidak perlu nilai bayar dan sisa
+      var bayar = 0;
+      var bayar_kredit = 0;
+      var sisa = 0;
 
       // khusus data per barang
       var subtotal = 0; var diskon = 0; var pajak = 0; var grandtotal = 0;      
@@ -834,8 +851,6 @@ exports.pembelian = async (req, res) => {
         diskon = parseFloat(subtotal) * parseFloat(fil.DiscP)/100;
         pajak = parseFloat(subtotal) * fil.PPNP/100;
         grandtotal = subtotal - diskon + pajak;
-        bayar = 0;
-        sisa = 0;        
       }else{ //detail
         subtotal = fil.Bruto != null ? parseFloat(fil.Bruto) : 0;
         diskon = fil.DiscV != null ? parseFloat(fil.DiscV) : 0;
@@ -854,7 +869,7 @@ exports.pembelian = async (req, res) => {
         "grandtotal": grandtotal.toFixed(2),
         "bayar": bayar.toFixed(2),
         "sisa": sisa.toFixed(2),
-        "kredit": kredit.toFixed(2),
+        "kredit": bayar_kredit.toFixed(2),
         "listitem": [list]
       }
 
