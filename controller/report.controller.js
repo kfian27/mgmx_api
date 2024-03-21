@@ -1162,7 +1162,7 @@ exports.kas = async (req, res) => {
           "keterangan": fil.Keterangan,
           "debit": Math.abs(parseFloat(fil.Debit)),
           "kredit": Math.abs(parseFloat(fil.Kredit)),
-          "saldo": Math.abs(parseFloat(fil.Saldo)),
+          "saldo": parseFloat(fil.Saldo),
         };
           
         var kas = {
@@ -1203,7 +1203,7 @@ exports.kas = async (req, res) => {
               "keterangan": fil.Keterangan,
               "debit": Math.abs(parseFloat(fil.Debit)),
               "kredit": Math.abs(parseFloat(fil.Kredit)),
-              "saldo": Math.abs(saldo),
+              "saldo": saldo,
             };
             arr_list[idx].list[idx2].listitem.push(list_detail);
           }
@@ -1277,7 +1277,7 @@ exports.bank = async (req, res) => {
           "keterangan": fil.Keterangan,
           "debit": Math.abs(parseFloat(fil.Debit)),
           "kredit": Math.abs(parseFloat(fil.Kredit)),
-          "saldo": Math.abs(parseFloat(fil.Saldo)),
+          "saldo": parseFloat(fil.Saldo),
         };
           
         var bank = {
@@ -1318,7 +1318,7 @@ exports.bank = async (req, res) => {
               "keterangan": fil.Keterangan,
               "debit": Math.abs(parseFloat(fil.Debit)),
               "kredit": Math.abs(parseFloat(fil.Kredit)),
-              "saldo": Math.abs(saldo),
+              "saldo": saldo,
             };
             let idx2 = listbank.indexOf(fil.KdMRek);
             arr_list[idx].list[idx2].listitem.push(list);

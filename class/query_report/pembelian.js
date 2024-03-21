@@ -1,6 +1,7 @@
 const fun = require("../../mgmx");
 var companyWI = fun.companyWI;
 
+// unused, karena summary tampil pop-up detail
 exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
     var sql = "";
     let where = "";
@@ -46,7 +47,7 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
     orderby += ", TglTBeli ASC, BuktiTBeli, KdMBrg ASC"
 
     var sql = "";
-    if (companyid == companyWI) {
+    if (companyid == companyWI) { //db perusahaan WI
         sql = `Select * from (
             select MCabang.KdMCabang, MCabang.NmMCabang, MSup.KdMSup, MSup.NmMSup, TBeli.IdMSup
                  , TBeli.IdTBeli, TBeli.IdMCabang
@@ -132,7 +133,7 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
              AND 
                EditMERK Like '%%'
             ${orderby}`;
-    }else {
+    }else { //db perusahaan lainnya
         sql = `Select * from (
             select MCabang.KdMCabang, MCabang.NmMCabang, MSup.KdMSup, MSup.NmMSup, MSup.IdMSup
                  , TBeli.IdTBeli, TBeli.IdMCabang
@@ -184,7 +185,10 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
                  , TBeliD.QtyTotal * MBrg.Reserved_dec2 * MBrg.Reserved_dec3 as Stn2
                  , TBeli.PBBKBP, TBeli.PBBKBV, TBeli.PPH22P, TBeli.PPH22V
                  , TBeli.JmlBayarTunai as bayar
-                 , ((TBeliD.HrgStn * TBeliD.QtyTotal) - (TBeliD.DiscV * TBeliD.QtyTotal)) as dpp                 
+                 , ((TBeliD.HrgStn * TBeliD.QtyTotal) - (TBeliD.DiscV * TBeliD.QtyTotal)) as dpp
+                 , (select SUM(JmlBayar)
+                    from mgaptbhutd m join mgaptbhut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBHut = m2.IdTBHut 
+                    where m.JenisTrans = 'T' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TBeli.IdTBeli) as total_bayar
             FROM MGAPTBeliD TBeliD
                  LEFT OUTER JOIN MGAPTBeli TBeli ON (TBeliD.IdTBeli = TBeli.IdTBeli AND TBeliD.IdMCabang = TBeli.IdMCabang)
                  LEFT OUTER JOIN MGKBMKas MKas ON (MKas.IdMKas = TBeli.IdMKas AND MKas.IdMCabang = TBeli.IdMCabang)
