@@ -957,19 +957,23 @@ exports.stock = async (req, res) => {
 
     let qsql = await qstock.queryKartuStock(companyid,start,end,cabang,gudang,barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
+    console.log('queryman', qsql)
 
     var arr_list = [];
     var listgudang = [];
     var listbarang = [];
     var arr_listitem = [];
+    var saldo = 0;
+
     var arr_data = await Promise.all(data.map(async (fil, index) => {
+      saldo += parseFloat(fil.QtyTotal);
       var list = {
         "tanggal": fil.TglTrans,
         "keterangan": fil.Keterangan,
         "satuan": fil.KdMStn,
         "debit": parseFloat(fil.Debit),
         "kredit": parseFloat(fil.Kredit),
-        "saldo": parseFloat(fil.Saldo),
+        "saldo": saldo,
       };
       //
         
@@ -986,24 +990,36 @@ exports.stock = async (req, res) => {
       }
     
       // gudang terbaru (gudang => barang => item)
-      if (!listgudang.includes(fil.NmMGd)) {
-        listgudang.push(fil.NmMGd);
-        listbarang.push(fil.KdMBrg);
+      if (!listgudang.includes(fil.IdMGd)) {
+        listgudang.push(fil.IdMGd);
+        listbarang = [];
+        listbarang.push(fil.IdMBrg);
         //
+
+        saldo = parseFloat(fil.Saldo);
+        saldo += (parseFloat(fil.QtyTotal) + parseFloat(fil.Saldo));
+
+        list.saldo = saldo;
 
         arr_list.push(gudang);
       }
       // gudang yang sudah ada
       else {
-        let idx = listgudang.indexOf(fil.NmMGd);
+        let idx = listgudang.indexOf(fil.IdMGd);
         // barang terbaru di gudang yang sudah ada (barang => item)
-        if (!listbarang.includes(fil.KdMBrg)) { 
-          listbarang.push(fil.KdMBrg);
+        if (!listbarang.includes(fil.IdMBrg)) { 
+          listbarang.push(fil.IdMBrg);
+
+          saldo = parseFloat(fil.Saldo);
+          saldo += (parseFloat(fil.QtyTotal) + parseFloat(fil.Saldo));
+
+          list.saldo = saldo;
+
           arr_list[idx].list.push(barang);
         }
         // barang yang sudah ada (item)
         else {
-          let idx2 = listbarang.indexOf(fil.KdMBrg);
+          let idx2 = listbarang.indexOf(fil.IdMBrg);
           arr_list[idx].list[idx2].listitem.push(list);
         }
       }

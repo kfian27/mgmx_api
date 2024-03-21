@@ -46,7 +46,8 @@ exports.queryKoreksiHutang = async (companyid, start, end) => {
             , TKorHutD.IdTrans, TKorHutD.IdTransD
             , IF(TKorHutD.IdTrans = 0, TKorHutD.BuktiTrans, IF(TKorHutD.JenisTrans = 'S', 'Saldo Awal', IF(TKorHutD.JenisTrans = 'T', TBeli.BuktiTBeli, IF(TKorHutD.JenisTrans = 'R', TRBeli.BuktiTRBeli, '')))) as BuktiTransAll
             , TKorHutD.BuktiTrans
-            , SUM(IF(TKorHut.JenisTKorHut = 'C', TKorHutD.JMLKOR, IF(TKorHut.JenisTKorHut = 'D', (TKorHutD.JMLKOR* -1), TKorHutD.JMLKOR))) As JmlKor
+            -- , SUM(IF(TKorHut.JenisTKorHut = 'C', TKorHutD.JMLKOR, IF(TKorHut.JenisTKorHut = 'D', (TKorHutD.JMLKOR* -1), TKorHutD.JMLKOR))) As JmlKor
+            , SUM(TKorHutD.JMLKOR) as JmlKor
             , TKorHutD.KetKor, TKorHutD.IdMPrk
             , MPrk.KdMPrk, MPrk.NmMPrk
         FROM MGAPTKorHutD TKorHutD
@@ -111,7 +112,8 @@ exports.queryKoreksiPiutang = async (companyid, start, end) => {
                 IF(TKorPiutD.JenisTrans = 'R', TRJual.BuktiTRJual, 
                 IF(TKorPiutD.JenisTrans = 'W', TJualLain.BuktiAsli, '')))))) AS BuktiTransAll
             , TKorPiutD.BuktiTrans
-            , SUM(IF(TKorPiut.JenisTKorPiut = 'D', TKorPiutD.JMLKOR, IF(TKorPiut.JenisTKorPiut = 'C', (TKorPiutD.JMLKOR* -1), TKorPiutD.JMLKOR))) As JmlKor
+            -- , SUM(IF(TKorPiut.JenisTKorPiut = 'D', TKorPiutD.JMLKOR, IF(TKorPiut.JenisTKorPiut = 'C', (TKorPiutD.JMLKOR* -1), TKorPiutD.JMLKOR))) As JmlKor
+            , SUM(TKorPiutD.JMLKOR) as JmlKor 
             , TkorPiutD.KetKor, TKorPiutD.IdMPrk
             , MPrk.KdMPrk, MPrk.NmMPrk
             , CAST_INT(0) as IdMbrg, '' as KdMbrg, '' as NmMBrg
