@@ -478,14 +478,7 @@ exports.queryPembelianVoidEditBackdate = async (companyid) => {
 exports.queryMinStock = async (companyid, tanggal) => { 
     var sql = ``;
     if (companyid == companyWI) {
-        
-    }
-    // const stock = require("../query_report/stock");
-
-    // var qposisi_stock = await stock.queryPosisiStock(companyid, tanggal);
-
-    // var sql = `${qposisi_stock} AND (PosQty < QtyMinStockGd OR PosQty <= 0)`
-    sql = `SELECT * FROM (
+        sql = `SELECT * FROM (
             SELECT MCabang.KdMCabang, MCabang.NmMCabang
                 , MBrg.KdMBrg, MBrg.NmMBrg, MBrg.Aktif
                 , MJenisBrg.KdMJenisBrg, MJenisBrg.NmMJenisBrg
@@ -511,12 +504,13 @@ exports.queryMinStock = async (companyid, tanggal) => {
             SELECT LKartu.IdMCabang, IdMBrg, IdMGd, 0 AS PosQty, SUM(LKartu.QtyTotal) AS jual, 0 AS retur
                 FROM MGINLKartuStock LKartu
                 WHERE TglTrans <= '${tanggal} 23:59:59'
+                AND LKartu.JenisTrans = 'RJL'
             GROUP BY LKartu.IdMCabang, IdMBrg
             UNION ALL
             SELECT LKartu.IdMCabang, IdMBrg, IdMGd, 0 AS PosQty, 0 AS jual, SUM(LKartu.QtyTotal) AS retur
                 FROM MGINLKartuStock LKartu
                 WHERE TglTrans <= '${tanggal} 23:59:59'
-                WHERE LKartu.JenisTrans = 'RRJ'
+                AND LKartu.JenisTrans = 'RRJ'
             GROUP BY LKartu.IdMCabang, IdMBrg) a
             LEFT OUTER JOIN MGSYMGd MGd ON (a.IdMCabang = MGd.IdMCabang AND a.IdMGd = MGd.IdMGd)
             WHERE MGd.Hapus = 0
@@ -558,6 +552,83 @@ exports.queryMinStock = async (companyid, tanggal) => {
             EditMERK Like '%%'
             ORDER BY Table1.KdMCabang, Table1.KdMJenisBrg, Table1.NmMBrg
         `;
+    } else {
+        sql = `SELECT * FROM (
+            SELECT MCabang.KdMCabang, MCabang.NmMCabang
+                    , MBrg.KdMBrg, MBrg.NmMBrg, MBrg.Aktif
+                    , MJenisBrg.KdMJenisBrg, MJenisBrg.NmMJenisBrg
+                    , COALESCE(MStn1.KdMStn,'') AS KdMStn1
+                    , COALESCE(MStn2.KdMStn,'') AS KdMStn2
+                    , COALESCE(MStn3.KdMStn,'') AS KdMStn3
+                    , COALESCE(MStn4.KdMStn,'') AS KdMStn4
+                    , COALESCE(MStn5.KdMStn,'') AS KdMStn5
+                    , MStock.QtyMinStockCabang as QtyMinStock
+                    , TablePosQty.PosQty
+                    , (TablePosQty.PosQty - MStock.QtyMinStockCabang) as Selisih
+                    , -1 * (TablePosQty.Jual + TablePosQty.Retur) AS jualretur
+                    , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL1'),'') AS EditGOL1
+                    , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL2'),'') AS EditGOL2
+            FROM (
+                SELECT a.IdMCabang, a.IdMBrg, SUM(a.PosQty) AS PosQty, SUM(a.Jual) AS Jual, SUM(a.retur) AS retur FROM(
+                SELECT LKartu.IdMCabang, IdMBrg, Sum(QtyTotal) as PosQty, 0 as Jual, 0 as Retur 
+                FROM MGINLKartuStock LKartu
+                WHERE TglTrans <= '${tanggal} 23:59:59'
+                AND IdMGd <> 1000000 
+                GROUP BY LKartu.IdMCabang, IdMBrg
+                UNION ALL
+                SELECT LKartu.IdMCabang, IdMBrg, 0 AS PosQty, SUM(LKartu.QtyTotal) AS jual, 0 AS retur
+                FROM MGINLKartuStock LKartu
+                    WHERE TglTrans <= '${tanggal} 23:59:59'
+                    AND LKartu.JenisTrans = 'RJL'
+                GROUP BY LKartu.IdMCabang, IdMBrg
+                UNION ALL
+                SELECT LKartu.IdMCabang, IdMBrg, 0 AS PosQty, 0 AS jual, SUM(LKartu.QtyTotal) AS retur
+                FROM MGINLKartuStock LKartu
+                    WHERE TglTrans <= '${tanggal} 23:59:59'
+                    AND LKartu.JenisTrans = 'RRJ'
+                GROUP BY LKartu.IdMCabang, IdMBrg
+            
+                UNION ALL
+            
+                SELECT MCabang.IdMCabang, MBrg.IdMBrg, 0 AS PosQty, 0 AS Jual, 0 AS Retur
+                    FROM MGINMBrg MBrg, MGSYMGd MGd, MGSYMCabang MCabang
+            ) a
+                Group By a.IdMcabang, a.IdMBrg
+            ) TablePosQty LEFT OUTER JOIN MGSYMCabang MCabang ON (TablePosQty.IdMCabang = MCabang.IdMCabang)
+                            LEFT OUTER JOIN MGINMinStock MStock ON (TablePosQty.IdMBrg = MStock.IdMBrg AND TablePosQty.IdMCabang=MStock.IdMCabang)
+                            LEFT OUTER JOIN MGINMBrg MBrg ON (TablePosQty.IdMBrg = MBrg.IdMBrg)
+                            LEFT OUTER JOIN MGINMJenisBrg MJenisBrg ON (MBrg.IdMJenisBrg = MJenisBrg.IdMJenisBrg)
+                            LEFT OUTER JOIN MGINMStn MStn1 ON (MBrg.IdMStn1 = MStn1.IdMStn)
+                            LEFT OUTER JOIN MGINMStn MStn2 ON (MBrg.IdMStn2 = MStn2.IdMStn)
+                            LEFT OUTER JOIN MGINMStn MStn3 ON (MBrg.IdMStn3 = MStn3.IdMStn)
+                            LEFT OUTER JOIN MGINMStn MStn4 ON (MBrg.IdMStn4 = MStn4.IdMStn)
+                            LEFT OUTER JOIN MGINMStn MStn5 ON (MBrg.IdMStn5 = MStn5.IdMStn)
+            WHERE MCabang.Hapus = 0
+                AND MCabang.Aktif = 1
+                AND MCabang.KdMCabang LIKE '%%'
+                AND MCabang.NmMCabang LIKE '%%'
+                AND MBrg.Hapus = 0
+                AND MBrg.Aktif = 1
+                AND MBrg.KdMBrg LIKE '%%'
+                AND MBrg.NmMBrg LIKE '%%'
+                AND MBrg.Reserved_int1 <> 3
+                AND MBrg.Reserved_int1 <> 2
+                AND MBrg.Reserved_int1 <> 4
+                AND ((PosQty < 0) OR ((MStock.QtyMinStockCabang <> 0) AND (PosQty <= MStock.QtyMinStockCabang)))
+            ) AS Table1
+                WHERE 
+                EditGOL1 Like '%%'
+                AND 
+                EditGOL2 Like '%%'
+            ORDER BY Table1.KdMCabang, Table1.NmMBrg
+            `;
+    }
+    // const stock = require("../query_report/stock");
+
+    // var qposisi_stock = await stock.queryPosisiStock(companyid, tanggal);
+
+    // var sql = `${qposisi_stock} AND (PosQty < QtyMinStockGd OR PosQty <= 0)`
+    
     return sql;
 }
 
