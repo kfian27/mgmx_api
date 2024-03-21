@@ -127,7 +127,7 @@ exports.queryPiutang = async (companyid, start, end) => {
     if (companyid == companyWI) {
 
     }
-    sql = `select TglTBPiut as Tanggal, SUM(Total) AS jumlah FROM mgaptbpiut where Hapus = 0 AND Void = 0 AND TglTBPiut >= '${start} 00:00:00' AND TglTBPiut <= '${end} 23:59:59' group by TglTBPiut`
+    sql = `select TglTBPiut as Tanggal, SUM(Total) AS jumlah FROM mgartbpiut where Hapus = 0 AND Void = 0 AND TglTBPiut >= '${start} 00:00:00' AND TglTBPiut <= '${end} 23:59:59' group by TglTBPiut`
 
 
     return sql;
