@@ -1541,7 +1541,7 @@ exports.piutang = async (req, res) => {
     var listcustomer = [];
     var saldo = 0;
     var arr_data = await Promise.all(data.map(async (item, index) => {
-      // saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
+      saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
       var list = {
         "ID": item.IdTrans,
         "tanggal": item.TglTrans,
@@ -1549,14 +1549,14 @@ exports.piutang = async (req, res) => {
         "keterangan": item.Keterangan,
         "debit": parseFloat(item.Debit),
         "kredit": Math.abs(parseFloat(item.Kredit)),
-        "saldo": parseFloat(item.Saldo),
+        "saldo": saldo,
       };
 
       if (!listcustomer.includes(item.KdMCust)) {
         listcustomer.push(item.KdMCust);
-        // saldo = 0;
-        // saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
-        // list.saldo = saldo;
+        saldo = 0;
+        saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
+        list.saldo = saldo;
 
         arr_list.push({
           "customer": item.NmMCust + ' / ' + item.KdMCust,

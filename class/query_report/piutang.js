@@ -1423,7 +1423,7 @@ exports.queryKartuPiutang = async (companyid, start, end) => {
             , m.IdMCust 
             , 4 as JenisTrans 
             , m.IdMCabang 
-            , d.IdTBPiutD as IdTrans 
+            , d.IdTrans as IdTrans 
             , m.BuktiTBPiut as BuktiTrans 
             , concat(concat(Date(m.TglTBPiut), ' '), Time(m.TglUpdate)) as TglTrans 
             , m.JenisInvoice as JenisInvoice 
