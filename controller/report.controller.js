@@ -1666,6 +1666,7 @@ exports.labarugi = async (req, res) => {
 
       if (!listcabang.includes(item.KdMCabang)) {
         listcabang.push(item.KdMCabang);
+        // listpertanggal = [];
         listpertanggal.push(newdate);
 
         pertgl_nilaijual = 0;
@@ -1730,7 +1731,7 @@ exports.labarugi = async (req, res) => {
             "hpp": pertgl_nilaihpp,
             "labarugi": pertgl_labarugi,
             "persen": pertgl_persenrl,
-            "item": [list],
+            "list": [list],
           });
         }
         else {
