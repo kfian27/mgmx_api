@@ -1556,7 +1556,8 @@ exports.piutang = async (req, res) => {
 
       if (!listcustomer.includes(item.KdMCust)) {
         listcustomer.push(item.KdMCust);
-        saldo = 0;
+
+        saldo = parseFloat(item.Saldo);
         saldo += (parseFloat(item.Debit) + parseFloat(item.Kredit));
         list.saldo = saldo;
 
