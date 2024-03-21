@@ -1456,7 +1456,7 @@ exports.hutang = async (req, res) => {
       if (!listsupplier.includes(item.KdMSup)) {
         listsupplier.push(item.KdMSup);
 
-        saldo = 0;
+        saldo = parseFloat(item.Saldo);
         saldo += (parseFloat(item.Kredit) + parseFloat(item.Debit));
 
         list.saldo = Math.abs(saldo);
