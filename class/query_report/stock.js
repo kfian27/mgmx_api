@@ -191,6 +191,7 @@ exports.queryKartuStock = async (companyid, start, end, cabang, gudang, barang) 
     sql = `Select * from (
       SELECT MCabang.KdMCabang
           , MCabang.NmMCabang
+          , MGd.IdMGd
           , MGd.KdMGd
           , MGd.NmMGd
           , MBrg.KdMBrg
