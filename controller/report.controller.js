@@ -1620,24 +1620,24 @@ exports.labarugi = async (req, res) => {
     var cbg_labarugi = 0;
     var cbg_persenrl = 0;
 
-    var pertgl_nilaijual = 0;
-    var pertgl_nilaihpp = 0;
-    var pertgl_labarugi = 0;
-    var pertgl_persenrl = 0;
+    var nilaijual = 0;
+    var nilaihpp = 0;
+    var labarugi = 0;
+    var persenrl = 0;
     var arr_data = await Promise.all(data.map(async (item, index) => {
       var newdate = new Date(item.TglTrans);
       newdate = newdate.toISOString();
       newdate = newdate.slice(0, 10);
 
-      pertgl_nilaijual += parseFloat(item.NilaiJual);
-      pertgl_nilaihpp += parseFloat(item.NilaiHPP);
-      pertgl_labarugi += parseFloat(item.LabaRugi);
-      pertgl_persenrl = (parseFloat(pertgl_labarugi) / parseFloat(pertgl_nilaihpp)) * 100;
+      nilaijual += parseFloat(item.NilaiJual);
+      nilaihpp += parseFloat(item.NilaiHPP);
+      labarugi += parseFloat(item.LabaRugi);
+      persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
-      cbg_nilaijual += pertgl_nilaijual;
-      cbg_nilaihpp += pertgl_nilaihpp;
-      cbg_labarugi += pertgl_labarugi;
-      cbg_persenrl = (parseFloat(cbg_labarugi) / parseFloat(cbg_nilaihpp)) * 100;
+      cbg_nilaijual += parseFloat(item.NilaiJual);
+      cbg_nilaihpp += parseFloat(item.NilaiHPP);
+      cbg_labarugi += parseFloat(item.LabaRugi);
+      cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
       var list = {
         "bukti": item.BuktiTrans,
@@ -1651,46 +1651,33 @@ exports.labarugi = async (req, res) => {
     
       var pertanggal = {
         "tanggal": item.TglTrans,
-        "jual": pertgl_nilaijual,
-        "hpp": pertgl_nilaihpp,
-        "labarugi": pertgl_labarugi,
-        "persen": pertgl_persenrl,
+        "jual": nilaijual,
+        "hpp": nilaihpp,
+        "labarugi": labarugi,
+        "persen": persenrl,
         "list": [list],
       };
     
-      // var cabang = {
-      //   "nama": item.NmMCabang,
-      //   "jual": parseFloat(item.nilaijual),
-      //   "hpp": parseFloat(item.nilaihpp),
-      //   "labarugi": parseFloat(item.labarugi),
-      //   "persen": parseFloat(item.persenrl),
-      //   "list": [pertanggal],
-      // };
 
       if (!listcabang.includes(item.KdMCabang)) {
         listcabang.push(item.KdMCabang);
         // listpertanggal = [];
         listpertanggal.push(newdate);
 
-        pertgl_nilaijual = 0;
-        pertgl_nilaihpp = 0;
-        pertgl_labarugi = 0;
-        pertgl_persenrl = 0;
+        cbg_nilaijual = 0;
+        cbg_nilaihpp = 0;
+        cbg_labarugi = 0;
+        cbg_persenrl = 0;
+        
+        cbg_nilaijual += parseFloat(item.NilaiJual);
+        cbg_nilaihpp += parseFloat(item.NilaiHPP);
+        cbg_labarugi += parseFloat(item.LabaRugi);
+        cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
-        pertgl_nilaijual += parseFloat(item.NilaiJual);
-        pertgl_nilaihpp += parseFloat(item.NilaiHPP);
-        pertgl_labarugi += parseFloat(item.LabaRugi);
-        pertgl_persenrl = (parseFloat(cbg_labarugi) / parseFloat(cbg_nilaihpp)) * 100;
-
-        cbg_nilaijual = pertgl_nilaijual;
-        cbg_nilaihpp = pertgl_nilaihpp;
-        cbg_labarugi = pertgl_labarugi;
-        cbg_persenrl = pertgl_persenrl;
-
-        // cbg_nilaijual += cbg_nilaijual;
-        // cbg_nilaihpp += cbg_nilaihpp;
-        // cbg_labarugi += cbg_labarugi;
-        // cbg_persenrl = cbg_persenrl;
+        pertanggal.jual = cbg_nilaijual;
+        pertanggal.hpp = cbg_nilaihpp;
+        pertanggal.labarugi = cbg_labarugi;
+        pertanggal.persen = cbg_persenrl;
         
         arr_list.push({
           "nama": item.NmMCabang,
@@ -1704,11 +1691,6 @@ exports.labarugi = async (req, res) => {
       } else {
         let idx = listcabang.indexOf(item.KdMCabang);
 
-        cbg_nilaijual += parseFloat(item.NilaiJual);
-        cbg_nilaihpp += parseFloat(item.NilaiHPP);
-        cbg_labarugi += parseFloat(item.LabaRugi);
-        cbg_persenrl = (parseFloat(cbg_labarugi) / parseFloat(cbg_nilaihpp)) * 100;
-
         arr_list[idx].jual = cbg_nilaijual;
         arr_list[idx].hpp = cbg_nilaihpp;
         arr_list[idx].labarugi = cbg_labarugi;
@@ -1718,32 +1700,32 @@ exports.labarugi = async (req, res) => {
           
           listpertanggal.push(newdate);
 
-          pertgl_nilaijual = 0;
-          pertgl_nilaihpp = 0;
-          pertgl_labarugi = 0;
-          pertgl_persenrl = 0;
-
-          pertgl_nilaijual += parseFloat(item.NilaiJual);
-          pertgl_nilaihpp += parseFloat(item.NilaiHPP);
-          pertgl_labarugi += parseFloat(item.LabaRugi);
-          pertgl_persenrl = (parseFloat(pertgl_labarugi) / parseFloat(pertgl_nilaihpp)) * 100;
+          nilaijual = 0;
+          nilaihpp = 0;
+          labarugi = 0;
+          persenrl = 0;
+          
+          nilaijual += parseFloat(item.NilaiJual);
+          nilaihpp += parseFloat(item.NilaiHPP);
+          labarugi += parseFloat(item.LabaRugi);
+          persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
           arr_list[idx].list.push({
             "tanggal": item.TglTrans,
-            "jual": pertgl_nilaijual,
-            "hpp": pertgl_nilaihpp,
-            "labarugi": pertgl_labarugi,
-            "persen": pertgl_persenrl,
+            "jual": nilaijual,
+            "hpp": nilaihpp,
+            "labarugi": labarugi,
+            "persen": persenrl,
             "list": [list],
           });
         }
         else {
           let idx2 = listpertanggal.indexOf(newdate);
           
-          arr_list[idx].list[idx2].jual = pertgl_nilaijual;
-          arr_list[idx].list[idx2].hpp = pertgl_nilaihpp;
-          arr_list[idx].list[idx2].labarugi = pertgl_labarugi;
-          arr_list[idx].list[idx2].persen = pertgl_persenrl;
+          arr_list[idx].list[idx2].jual = nilaijual;
+          arr_list[idx].list[idx2].hpp = nilaihpp;
+          arr_list[idx].list[idx2].labarugi = labarugi;
+          arr_list[idx].list[idx2].persen = persenrl;
           arr_list[idx].list[idx2].list.push(list);
         }
       }
