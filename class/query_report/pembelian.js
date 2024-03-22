@@ -92,7 +92,8 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
                  , TBeliD.QtyTotal * MBrg.Reserved_dec2 as Kg
                  , TBeliD.QtyTotal * MBrg.Reserved_dec2 * MBrg.Reserved_dec3 as Stn2
                  , TBeli.JmlBayarTunai as bayar
-                 , ((TBeliD.HrgStn * TBeliD.QtyTotal) - (TBeliD.DiscV * TBeliD.QtyTotal)) as dpp
+                 , ((TBeliD.HrgStn * TBeliD.QtyTotal) - (TBeliD.DiscV * TBeliD.QtyTotal)) as dpp_old
+                 , (TBeliD.HrgStn - (TBeliD.HrgStn * TBeliD.DiscP / 100)) * TBeliD.QtyTotal as dpp
                  , (select SUM(JmlBayar)
                     from mgaptbhutd m join mgaptbhut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBHut = m2.IdTBHut 
                     where m.JenisTrans = 'T' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TBeli.IdTBeli) as total_bayar
@@ -185,7 +186,8 @@ exports.queryDetail = async (companyid,start,end,cabang,supplier,barang, group) 
                  , TBeliD.QtyTotal * MBrg.Reserved_dec2 * MBrg.Reserved_dec3 as Stn2
                  , TBeli.PBBKBP, TBeli.PBBKBV, TBeli.PPH22P, TBeli.PPH22V
                  , TBeli.JmlBayarTunai as bayar
-                 , ((TBeliD.HrgStn * TBeliD.QtyTotal) - (TBeliD.DiscV * TBeliD.QtyTotal)) as dpp
+                 , ((TBeliD.HrgStn * TBeliD.QtyTotal) - (TBeliD.DiscV * TBeliD.QtyTotal)) as dpp_old
+                 , (TBeliD.HrgStn - (TBeliD.HrgStn * TBeliD.DiscP / 100)) * TBeliD.QtyTotal as dpp
                  , (select SUM(JmlBayar)
                     from mgaptbhutd m join mgaptbhut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBHut = m2.IdTBHut 
                     where m.JenisTrans = 'T' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TBeli.IdTBeli) as total_bayar
