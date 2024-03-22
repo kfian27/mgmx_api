@@ -997,7 +997,7 @@ exports.stock = async (req, res) => {
         //
 
         saldo = parseFloat(fil.Saldo);
-        saldo += (parseFloat(fil.QtyTotal) + parseFloat(fil.Saldo));
+        saldo += (parseFloat(fil.QtyTotal));
 
         list.saldo = saldo;
 
@@ -1011,7 +1011,7 @@ exports.stock = async (req, res) => {
           listbarang.push(fil.IdMBrg);
 
           saldo = parseFloat(fil.Saldo);
-          saldo += (parseFloat(fil.QtyTotal) + parseFloat(fil.Saldo));
+          saldo += (parseFloat(fil.QtyTotal));
 
           list.saldo = saldo;
 
