@@ -230,7 +230,7 @@ exports.queryRugiLaba = async (companyid, periode) => {
     LEFT OUTER JOIN MGGLLabaRugiMutasiPeriode MBlnSemua ON (MBlnSemua.IdMPrk = MPrk.IdMPrk AND MBlnSemua.Periode = MPrk.Periode AND MBlnSemua.Jenis = 2)
     WHERE MPrk.Hapus = 0
     AND MPrk.IsDefault = 0
-    AND MPrk.Periode = :paramPeriode
+    AND MPrk.Periode = ${periode}
     AND MPrk.JenisMPrkD >= 7
     AND MPrk.JenisMPrkD <= 14
     ORDER BY IdTitle, IdSubTitle, JenisMPrkD, OrderByAll, KdMPrk

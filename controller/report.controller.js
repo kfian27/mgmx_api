@@ -1859,30 +1859,24 @@ exports.labarugi = async (req, res) => {
         "JenisMPrkD" : item.JenisMPrkD,
         "deskripsi": item.NmMPrk,
         "level": item.LevelNumber,
-        "mutasi_3bulan" : parseFloat(item.MutasiTigaBlnLalu),
-        "mutasi_2bulan" : parseFloat(item.MutasiDuaBlnLalu),
-        "mutasi_1bulan" : parseFloat(item.MutasiSatuBlnLalu),
-        "mutasi_bulanini" : parseFloat(item.MutasiBlnIni),
+        "mutasi_bulankemarin" : parseFloat(item.MutasiSatuBlnLalu),
+        "mutasi_hinggabulankemarin" : parseFloat(item.MutasiBlnIni),
         "mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
         "show_value" : item.IsParent == 0 ? 1 : 0
       }
 
       var header = {
         "header": item.Header,
-        "total_mutasi_3bulan" : parseFloat(item.MutasiTigaBlnLalu),
-        "total_mutasi_2bulan" : parseFloat(item.MutasiDuaBlnLalu),
-        "total_mutasi_1bulan" : parseFloat(item.MutasiSatuBlnLalu),
-        "total_mutasi_bulanini" : parseFloat(item.MutasiBlnIni),
+        "total_mutasi_bulankemarin" : parseFloat(item.MutasiSatuBlnLalu),
+        "total_mutasi_hinggabulankemarin" : parseFloat(item.MutasiBlnIni),
         "total_mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
         "list" : [list],
       }
 
       var footer = {
         "footer": item.Footer,
-        "total_mutasi_3bulan" : parseFloat(item.MutasiTigaBlnLalu),
-        "total_mutasi_2bulan" : parseFloat(item.MutasiDuaBlnLalu),
-        "total_mutasi_1bulan" : parseFloat(item.MutasiSatuBlnLalu),
-        "total_mutasi_bulanini" : parseFloat(item.MutasiBlnIni),
+        "total_mutasi_bulankemarin" : parseFloat(item.MutasiSatuBlnLalu),
+        "total_mutasi_hinggabulankemarin" : parseFloat(item.MutasiBlnIni),
         "total_mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
         "list" : [header],
       }
@@ -1910,7 +1904,12 @@ exports.labarugi = async (req, res) => {
 
     res.json({
       message: "Success, report laba rugi",
-      data: arr_data,
+      header_bulan: {
+        "bulan_ini" : "tes",
+        "bulan_kemarin" : "tes2",
+      },
+      data: arr_list
+      
     });
   }
 };
