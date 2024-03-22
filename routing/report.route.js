@@ -22,6 +22,8 @@ router.post("/bank", upload.none(), reportController.bank);
 router.post("/hutang", upload.none(), reportController.hutang);
 router.post("/piutang", upload.none(), reportController.piutang);
 router.post("/laba-rugi", upload.none(), reportController.labarugi);
+router.get("/getPeriodePostingLabaRugi", upload.none(), reportController.getPeriodePostingLabaRugi);
+
 router.get("/tesRahman", upload.none(), reportController.tesRahman);
 
 router.post("/stock/v2", upload.none(), reportV2Controller.stock);

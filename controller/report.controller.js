@@ -125,6 +125,32 @@ exports.getListSales = async (req, res) => {
   });
 };
 
+exports.getPeriodePostingLabaRugi = async (req, res) => {
+  const sequelize = await fun.connection(req.datacompany);
+
+  let sql = `select Periode, Tgl from mgglposting order by Periode DESC`;
+  const data = await fun.getDataFromQuery(sequelize, sql);
+
+  var arr_list = [];
+
+  const options = { year: 'numeric', month: 'long' };
+  
+  console.log();
+  var arr_data = await Promise.all(data.map(async (item, index) => { 
+    var tgl = new Date(item.Tgl);
+    var tglindo = tgl.toLocaleDateString('id-ID', options)
+    arr_list.push({
+      "Periode": item.Periode,
+      "NamaPeriode": tglindo,
+    })
+  }))
+
+  res.json({
+    message: "Success",
+    data: arr_list,
+  });
+};
+
 exports.penjualan = async (req, res) => {
   const qpenjualan = require("../class/query_report/penjualan");
   const sequelize = await fun.connection(req.datacompany);
