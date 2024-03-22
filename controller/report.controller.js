@@ -1697,6 +1697,11 @@ exports.labarugi = async (req, res) => {
         cbg_nilaihpp = 0;
         cbg_labarugi = 0;
         cbg_persenrl = 0;
+
+        nilaijual = 0;
+        nilaihpp = 0;
+        labarugi = 0;
+        persenrl = 0;
         
         cbg_nilaijual += parseFloat(item.NilaiJual);
         cbg_nilaihpp += parseFloat(item.NilaiHPP);
@@ -1779,37 +1784,69 @@ exports.labarugi = async (req, res) => {
 
     var arr_list = [];
 
+
+
+    var total_mutasi_3bulan_footer = 0;
+    var total_mutasi_2bulan_footer = 0;
+    var total_mutasi_1bulan_footer = 0;
+    var total_mutasi_bulanini_footer = 0;
+    var total_mutasi_hinggabulanini_footer = 0;
+    
+    var total_mutasi_3bulan = 0;
+    var total_mutasi_2bulan = 0;
+    var total_mutasi_1bulan = 0;
+    var total_mutasi_bulanini = 0;
+    var total_mutasi_hinggabulanini = 0;
+
     var arr_data = await Promise.all(data.map(async (item, index) => {
+      var mutasi_3bulan = parseFloat(item.MutasiTigaBlnLalu);
+      var mutasi_2bulan = parseFloat(item.MutasiDuaBlnLalu);
+      var mutasi_1bulan = parseFloat(item.MutasiSatuBlnLalu);
+      var mutasi_bulanini = parseFloat(item.MutasiBlnIni);
+      var mutasi_hinggabulanini = parseFloat(item.MutasiSDBlnIni);
+
+      total_mutasi_3bulan_footer += mutasi_3bulan; 
+      total_mutasi_2bulan_footer += mutasi_2bulan; 
+      total_mutasi_1bulan_footer += mutasi_1bulan; 
+      total_mutasi_bulanini_footer += mutasi_bulanini; 
+      total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini; 
+      
+      total_mutasi_3bulan += mutasi_3bulan; 
+      total_mutasi_2bulan += mutasi_2bulan; 
+      total_mutasi_1bulan += mutasi_1bulan; 
+      total_mutasi_bulanini += mutasi_bulanini; 
+      total_mutasi_hinggabulanini += mutasi_hinggabulanini; 
+
       var list = {
         "IdMPrk": item.IdMPrk,
         "JenisMPrkD" : item.JenisMPrkD,
         "deskripsi": item.NmMPrk,
         "level": item.LevelNumber,
-        "mutasi_3bulan" : parseFloat(item.MutasiTigaBlnLalu),
-        "mutasi_2bulan" : parseFloat(item.MutasiDuaBlnLalu),
-        "mutasi_1bulan" : parseFloat(item.MutasiSatuBlnLalu),
-        "mutasi_bulanini" : parseFloat(item.MutasiBlnIni),
-        "mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
+        "mutasi_3bulan" : mutasi_3bulan,
+        "mutasi_2bulan" : mutasi_2bulan,
+        "mutasi_1bulan" : mutasi_1bulan,
+        "mutasi_bulanini" : mutasi_bulanini,
+        "mutasi_hinggabulanini": mutasi_hinggabulanini,
         "show_value" : item.IsParent == 0 ? 1 : 0
       }
 
       var header = {
         "header": item.Header,
-        "total_mutasi_3bulan" : parseFloat(item.MutasiTigaBlnLalu),
-        "total_mutasi_2bulan" : parseFloat(item.MutasiDuaBlnLalu),
-        "total_mutasi_1bulan" : parseFloat(item.MutasiSatuBlnLalu),
-        "total_mutasi_bulanini" : parseFloat(item.MutasiBlnIni),
-        "total_mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
+        "total_mutasi_3bulan" : total_mutasi_3bulan,
+        "total_mutasi_2bulan" : total_mutasi_2bulan,
+        "total_mutasi_1bulan" : total_mutasi_1bulan,
+        "total_mutasi_bulanini" : total_mutasi_bulanini,
+        "total_mutasi_hinggabulanini": total_mutasi_hinggabulanini,
         "list" : [list],
       }
 
       var footer = {
         "footer": item.Footer,
-        "total_mutasi_3bulan" : parseFloat(item.MutasiTigaBlnLalu),
-        "total_mutasi_2bulan" : parseFloat(item.MutasiDuaBlnLalu),
-        "total_mutasi_1bulan" : parseFloat(item.MutasiSatuBlnLalu),
-        "total_mutasi_bulanini" : parseFloat(item.MutasiBlnIni),
-        "total_mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
+        "total_mutasi_3bulan" : total_mutasi_3bulan_footer,
+        "total_mutasi_2bulan" : total_mutasi_2bulan_footer,
+        "total_mutasi_1bulan" : total_mutasi_1bulan_footer,
+        "total_mutasi_bulanini" : total_mutasi_bulanini_footer,
+        "total_mutasi_hinggabulanini": total_mutasi_hinggabulanini_footer,
         "list" : [header],
       }
 
@@ -1818,15 +1855,83 @@ exports.labarugi = async (req, res) => {
         listheader = [];
         listheader.push(item.Header);
 
-        arr_list.push(footer);
+        total_mutasi_3bulan_footer = 0; 
+        total_mutasi_2bulan_footer = 0; 
+        total_mutasi_1bulan_footer = 0; 
+        total_mutasi_bulanini_footer = 0; 
+        total_mutasi_hinggabulanini_footer = 0;
+        
+        total_mutasi_3bulan = 0; 
+        total_mutasi_2bulan = 0; 
+        total_mutasi_1bulan = 0; 
+        total_mutasi_bulanini = 0; 
+        total_mutasi_hinggabulanini = 0;
+        
+        total_mutasi_3bulan_footer += mutasi_3bulan; 
+        total_mutasi_2bulan_footer += mutasi_2bulan; 
+        total_mutasi_1bulan_footer += mutasi_1bulan; 
+        total_mutasi_bulanini_footer += mutasi_bulanini; 
+        total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini; 
+
+        footer.total_mutasi_3bulan = total_mutasi_3bulan_footer;
+        footer.total_mutasi_2bulan = total_mutasi_2bulan_footer;
+        footer.total_mutasi_1bulan = total_mutasi_1bulan_footer;
+        footer.total_mutasi_bulanini = total_mutasi_bulanini_footer;
+        footer.total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
+
+        // arr_list.push(footer);
+        arr_list.push({
+          "footer": item.Footer,
+          "total_mutasi_3bulan" : total_mutasi_3bulan_footer,
+          "total_mutasi_2bulan" : total_mutasi_2bulan_footer,
+          "total_mutasi_1bulan" : total_mutasi_1bulan_footer,
+          "total_mutasi_bulanini" : total_mutasi_bulanini_footer,
+          "total_mutasi_hinggabulanini": total_mutasi_hinggabulanini_footer,
+          "list" : [header],
+        });
       } else {
         let idx = listfooter.indexOf(item.Footer);
+
+        arr_list[idx].total_mutasi_3bulan = total_mutasi_3bulan_footer;
+        arr_list[idx].total_mutasi_2bulan = total_mutasi_2bulan_footer;
+        arr_list[idx].total_mutasi_1bulan = total_mutasi_1bulan_footer;
+        arr_list[idx].total_mutasi_bulanini = total_mutasi_bulanini_footer;
+        arr_list[idx].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
+
         if (!listheader.includes(item.Header)) {
           listheader.push(item.Header);
 
-          arr_list[idx].list.push(header);
+          total_mutasi_3bulan = 0; 
+          total_mutasi_2bulan = 0; 
+          total_mutasi_1bulan = 0; 
+          total_mutasi_bulanini = 0; 
+          total_mutasi_hinggabulanini = 0; 
+
+          total_mutasi_3bulan += parseFloat(item.MutasiTigaBlnLalu); 
+          total_mutasi_2bulan += mutasi_2bulan; 
+          total_mutasi_1bulan += mutasi_1bulan; 
+          total_mutasi_bulanini += mutasi_bulanini; 
+          total_mutasi_hinggabulanini += mutasi_hinggabulanini; 
+
+          // arr_list[idx].list.push(header);
+          arr_list[idx].list.push({
+            "header": item.Header,
+            "total_mutasi_3bulan" : total_mutasi_3bulan,
+            "total_mutasi_2bulan" : total_mutasi_2bulan,
+            "total_mutasi_1bulan" : total_mutasi_1bulan,
+            "total_mutasi_bulanini" : total_mutasi_bulanini,
+            "total_mutasi_hinggabulanini": total_mutasi_hinggabulanini,
+            "list" : [list],
+          });
         } else {
           let idx2 = listheader.indexOf(item.Header);
+
+          arr_list[idx].list[idx2].total_mutasi_3bulan = total_mutasi_3bulan;
+          arr_list[idx].list[idx2].total_mutasi_2bulan = total_mutasi_2bulan;
+          arr_list[idx].list[idx2].total_mutasi_1bulan = total_mutasi_1bulan;
+          arr_list[idx].list[idx2].total_mutasi_bulanini = total_mutasi_bulanini;
+          arr_list[idx].list[idx2].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini;
+
           arr_list[idx].list[idx2].list.push(list);
         }
       }
@@ -1859,7 +1964,7 @@ exports.labarugi = async (req, res) => {
         "JenisMPrkD" : item.JenisMPrkD,
         "deskripsi": item.NmMPrk,
         "level": item.LevelNumber,
-        "mutasi_bulankemarin" : parseFloat(item.MutasiSatuBlnLalu),
+        "mutasi_bulanini" : parseFloat(item.MutasiSatuBlnLalu),
         "mutasi_hinggabulankemarin" : parseFloat(item.MutasiBlnIni),
         "mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
         "show_value" : item.IsParent == 0 ? 1 : 0
@@ -1867,7 +1972,7 @@ exports.labarugi = async (req, res) => {
 
       var header = {
         "header": item.Header,
-        "total_mutasi_bulankemarin" : parseFloat(item.MutasiSatuBlnLalu),
+        "total_mutasi_bulanini" : parseFloat(item.MutasiSatuBlnLalu),
         "total_mutasi_hinggabulankemarin" : parseFloat(item.MutasiBlnIni),
         "total_mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
         "list" : [list],
@@ -1875,7 +1980,7 @@ exports.labarugi = async (req, res) => {
 
       var footer = {
         "footer": item.Footer,
-        "total_mutasi_bulankemarin" : parseFloat(item.MutasiSatuBlnLalu),
+        "total_mutasi_bulanini" : parseFloat(item.MutasiSatuBlnLalu),
         "total_mutasi_hinggabulankemarin" : parseFloat(item.MutasiBlnIni),
         "total_mutasi_hinggabulanini": parseFloat(item.MutasiSDBlnIni),
         "list" : [header],
