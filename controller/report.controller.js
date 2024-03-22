@@ -200,7 +200,7 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
@@ -305,7 +305,7 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
@@ -410,7 +410,7 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
@@ -517,7 +517,7 @@ exports.penjualan = async (req, res) => {
         "diskon": fil.DiscVDetail != '' ? parseFloat(fil.DiscVDetail) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
@@ -538,7 +538,7 @@ exports.penjualan = async (req, res) => {
       if(jenis == 1){ //summary
         subtotal = (parseFloat(fil.QtyTotal) * parseFloat(fil.HrgStn)) - parseFloat(fil.DiscVDetail);
         diskon = parseFloat(subtotal) * parseFloat(fil.DiscP)/100;
-        pajak = parseFloat(subtotal) * fil.PPNP/100;
+        pajak = (parseFloat(subtotal) - parseFloat(diskon)) * fil.PPNP/100;
         grandtotal = subtotal - diskon + pajak;
       }else{ //detail
         subtotal = fil.Bruto != null ? parseFloat(fil.Bruto) : 0;
@@ -658,7 +658,7 @@ exports.pembelian = async (req, res) => {
         "diskon": fil.DiscVD != '' ? parseFloat(fil.DiscVD) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
@@ -759,7 +759,7 @@ exports.pembelian = async (req, res) => {
         "diskon": fil.DiscVD != '' ? parseFloat(fil.DiscVD) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
@@ -772,8 +772,6 @@ exports.pembelian = async (req, res) => {
       }else{
         sisa = parseFloat(fil.Netto) - (parseFloat(bayar) + bayar_kredit);
       }
-
-      var sisa = parseFloat(fil.Netto) - parseFloat(bayar);
 
       var data_per_nota = {
         "id": fil.IdTBeli,
@@ -863,21 +861,26 @@ exports.pembelian = async (req, res) => {
         "diskon": fil.DiscVD != '' ? parseFloat(fil.DiscVD) : 0,
         "total": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
         "pajak": fil.PPNVEcer || 0,
-        "dpp": fil.dpp != '' ? parseFloat(fil.dpp) : 0,
+        "dpp": fil.dpp != '' ? parseFloat(fil.dpp).toFixed(2) : 0,
         "subtotal": fil.SubTotal != '' ? parseFloat(fil.SubTotal) : 0,
       };
 
-      // per barang, tidak perlu nilai bayar dan sisa
-      var bayar = 0;
-      var bayar_kredit = 0;
       var sisa = 0;
+      var bayar = fil.bayar != null ? parseFloat(fil.bayar) : 0;
+      var bayar_kredit = fil.total_bayar != null ? parseFloat(fil.total_bayar) : 0;
+      if(jenis == 1){ //summary, nilai bayar = total tunai + kredit
+        bayar += bayar_kredit;
+        sisa = parseFloat(fil.Netto) - parseFloat(bayar);
+      }else{
+        sisa = parseFloat(fil.Netto) - (parseFloat(bayar) + bayar_kredit);
+      }
 
       // khusus data per barang
       var subtotal = 0; var diskon = 0; var pajak = 0; var grandtotal = 0;      
       if(jenis == 1){ //summary
         subtotal = (parseFloat(fil.QtyTotal) * parseFloat(fil.HrgStn)) - parseFloat(fil.DiscVD);
         diskon = parseFloat(subtotal) * parseFloat(fil.DiscP)/100;
-        pajak = parseFloat(subtotal) * fil.PPNP/100;
+        pajak = (parseFloat(subtotal) - parseFloat(diskon)) * fil.PPNP/100;
         grandtotal = subtotal - diskon + pajak;
       }else{ //detail
         subtotal = fil.Bruto != null ? parseFloat(fil.Bruto) : 0;

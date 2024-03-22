@@ -118,7 +118,8 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='KMK'),'') AS EditKMK
                  , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
                  , COALESCE((IF(TJual.JmlBayarKartu3 > 0, TJual.JmlBayarKartu3, NULL)), TJual.JmlBayarTunai + TJual.JmlBayarDeposit) as bayar
-                 , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp
+                 , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp_old
+                 , (TJualD.HrgStn - (TJualD.HrgStn * TJualD.DiscP / 100)) * TJualD.QtyTotal as dpp
                  , (select SUM(m.JmlBayar)
                     from mgartbpiutd m join mgartbpiut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBPiut = m2.IdTBPiut
                     where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJual) as total_bayar
@@ -214,7 +215,8 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
             , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL1'),'') AS EditGOL1
             , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL2'),'') AS EditGOL2
             , COALESCE((IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, NULL)),((TJual.JmlBayarTunai-TJual.Kembali))) as bayar
-            , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp
+            , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp_old
+            , (TJualD.HrgStn - (TJualD.HrgStn * TJualD.DiscP / 100)) * TJualD.QtyTotal as dpp
             , (select SUM(m.JmlBayar)
                     from mgartbpiutd m join mgartbpiut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBPiut = m2.IdTBPiut
                     where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJual) as total_bayar
