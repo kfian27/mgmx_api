@@ -616,7 +616,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINMBrg MBrg ON (MBrg.IdMBrg = m.IdMBrg)
                LEFT OUTER JOIN MGINLKartuStock LStock ON (m.IdMCabang = LStock.IdMCabang AND m.IdMBrg = LStock.IdTrans AND LStock.JenisTrans = 'ISA' AND LStock.IdMGd = m.IdMGd)
           WHERE m.QtyTotal <> 0
-            AND (m.TglTSABrg >= '${start} 00:00:00' AND m.TglTSABrg < '${end} 23:59:59')
+            AND (m.TglTSABrg >= '${start} 00:00:00' AND m.TglTSABrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -640,7 +640,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             AND m.VoidLPB = 0 AND m.HapusLPB = 0
             AND d.QtyTotal <> 0
             AND m.IdMUserCreate <> -99
-            AND (m.TglTBeli >= '${start} 00:00:00' AND m.TglTBeli < '${end} 23:59:59')
+            AND (m.TglTBeli >= '${start} 00:00:00' AND m.TglTBeli <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -665,7 +665,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             AND m.JenisRJual = 0
             AND Jual.IdTRJual IS NULL
             AND d.QtyTotal <> 0
-            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual < '${end} 23:59:59')
+            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -691,7 +691,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             AND Jual.IdTRJual IS NOT NULL
             AND MBrg.HAPUS = 0
             AND d.QtyTotal <> 0
-            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual < '${end} 23:59:59')
+            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -713,7 +713,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTPenyesuaianBrg = LStock.IdTrans AND d.IdTPenyesuaianBrgD = LStock.IdTransD AND LStock.JenisTrans = 'IPY')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal > 0
-            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg < '${end} 23:59:59')
+            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -735,7 +735,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTPenyesuaianBrg = LStock.IdTrans AND d.IdTPenyesuaianBrgD = LStock.IdTransD AND LStock.JenisTrans = 'IPY')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal < 0
-            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg < '${end} 23:59:59')
+            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -757,7 +757,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTTransferBrg = LStock.IdTrans AND d.IdTTransferBrgD = LStock.IdTransD AND LStock.JenisTrans = 'ITM')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND m.JenisTTransferBrg = 0
-            AND (m.TglTTransferBrg >= '${start} 00:00:00' AND m.TglTTransferBrg < '${end} 23:59:59')
+            AND (m.TglTTransferBrg >= '${start} 00:00:00' AND m.TglTTransferBrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -779,7 +779,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTTransferBrg = LStock.IdTrans AND d.IdTTransferBrgD = LStock.IdTransD AND LStock.JenisTrans = 'ITK')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND m.JenisTTransferBrg = 1
-            AND (m.TglTTransferBrg >= '${start} 00:00:00' AND m.TglTTransferBrg < '${end} 23:59:59')
+            AND (m.TglTTransferBrg >= '${start} 00:00:00' AND m.TglTTransferBrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -801,7 +801,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTJual = LStock.IdTrans AND d.IdTJualD = LStock.IdTransD AND LStock.JenisTrans = 'RJL')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
-            AND (m.TglTJual >= '${start} 00:00:00' AND m.TglTJual < '${end} 23:59:59')
+            AND (m.TglTJual >= '${start} 00:00:00' AND m.TglTJual <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -823,7 +823,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTRBeli = LStock.IdTrans AND d.IdTRBeliD = LStock.IdTransD AND LStock.JenisTrans = 'PRB')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
-            AND (m.tgltrbeli >= '${start} 00:00:00' AND m.tgltrbeli < '${end} 23:59:59')
+            AND (m.tgltrbeli >= '${start} 00:00:00' AND m.tgltrbeli <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -845,7 +845,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTKonvBrg = LStock.IdTrans AND d.IdTKonvBrgD = LStock.IdTransD AND LStock.JenisTrans = 'IKA')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotalSource <> 0
-            AND m.TglTKonvBrg >= '${start} 00:00:00' AND m.TglTKonvBrg < '${end} 23:59:59'
+            AND m.TglTKonvBrg >= '${start} 00:00:00' AND m.TglTKonvBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -867,7 +867,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTKonvBrg = LStock.IdTrans AND d.IdTKonvBrgD = LStock.IdTransD AND LStock.JenisTrans = 'IKT')
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotalDest <> 0
-             AND m.TglTKonvBrg >= '${start} 00:00:00' AND  m.tgltkonvbrg < '${end} 23:59:59'
+             AND m.TglTKonvBrg >= '${start} 00:00:00' AND  m.tgltkonvbrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -887,7 +887,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINMBrg MBrg ON (MBrg.IdMBrg = m.IdMBrg)
            WHERE m.Void = 0 AND m.Hapus = 0
              AND m.NilaiBrg <> 0
-             AND m.TglTOps >= '${start} 00:00:00' AND m.TglTOps < '${end} 23:59:59'
+             AND m.TglTOps >= '${start} 00:00:00' AND m.TglTOps <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1300,7 +1300,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (m.IdMGd = LStock.IdMGd AND m.IdMCabang = LStock.IdMCabang AND m.IdMBrg = LStock.IdTrans AND LStock.JenisTrans = 'ISA')
                LEFT OUTER JOIN MGINTSABrgDSN DSN ON(m.IdMBrg = DSN.IdMBrg AND m.IdMGd = DSN.IdMGd  AND LStock.IdMBrgDSN = DSN.IdMBrgDSN)   
           WHERE m.QtyTotal <> 0
-            AND (m.TglTSABrg >= '${start} 00:00:00' AND m.TglTSABrg < '${end} 23:59:59')
+            AND (m.TglTSABrg >= '${start} 00:00:00' AND m.TglTSABrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1324,7 +1324,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
             AND m.IdMUserCreate <> -99
-            AND (m.TglTBeli >= '${start} 00:00:00' AND m.TglTBeli < '${end} 23:59:59')
+            AND (m.TglTBeli >= '${start} 00:00:00' AND m.TglTBeli <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1350,7 +1350,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             AND m.JenisRJual = 0
             AND Jual.IdTRJual IS NULL
             AND d.QtyTotal <> 0
-            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual < '${end} 23:59:59')
+            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1377,7 +1377,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             AND Jual.IdTRJual IS NOT NULL
             AND MBrg.HAPUS = 0
             AND d.QtyTotal <> 0
-            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual < '${end} 23:59:59')
+            AND (m.TglTRJual >= '${start} 00:00:00' AND m.TglTRJual <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1400,7 +1400,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINTPenyesuaianBrgDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTPenyesuaianBrg = DSN.IdTPenyesuaianBrg AND d.IdMBrg = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal > 0
-            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg < '${end} 23:59:59')
+            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1423,7 +1423,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINTPenyesuaianBrgDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTPenyesuaianBrg = DSN.IdTPenyesuaianBrg AND d.IdMBrg = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal < 0
-            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg < '${end} 23:59:59')
+            AND (m.TglTPenyesuaianBrg >= '${start} 00:00:00' AND m.TglTPenyesuaianBrg <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1446,7 +1446,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGARTJualDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTJual = DSN.IdTJual AND d.IdMBrg = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
-            AND (m.TglTJual >= '${start} 00:00:00' AND m.TglTJual < '${end} 23:59:59')
+            AND (m.TglTJual >= '${start} 00:00:00' AND m.TglTJual <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1469,7 +1469,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGAPTRBeliDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTRBeli = DSN.IdTRBeli AND d.IdMBrg = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
-            AND (m.tgltrbeli >= '${start} 00:00:00' AND m.tgltrbeli < '${end} 23:59:59')
+            AND (m.tgltrbeli >= '${start} 00:00:00' AND m.tgltrbeli <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1492,7 +1492,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINTKonvBrgSourceDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTKonvBrg = DSN.IdTKonvBrg AND d.IdMBrgSource = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotalSource <> 0
-            AND m.TglTKonvBrg >= '${start} 00:00:00' AND m.TglTKonvBrg < '${end} 23:59:59'
+            AND m.TglTKonvBrg >= '${start} 00:00:00' AND m.TglTKonvBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1515,7 +1515,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINTKonvBrgDestDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTKonvBrg = DSN.IdTKonvBrg AND d.IdMBrgDest = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotalDest <> 0
-             AND m.TglTKonvBrg >= '${start} 00:00:00' AND  m.tgltkonvbrg < '${end} 23:59:59'
+             AND m.TglTKonvBrg >= '${start} 00:00:00' AND  m.tgltkonvbrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1537,7 +1537,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTPackBrg = LStock.IdTrans AND d.IdTPackBrgD = LStock.IdTransD AND LStock.JenisTrans = 'IKS')
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotalSource <> 0
-            AND m.TglTPackBrg >= '${start} 00:00:00' AND m.TglTPackBrg < '${end} 23:59:59'
+            AND m.TglTPackBrg >= '${start} 00:00:00' AND m.TglTPackBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1559,7 +1559,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTPackBrg = LStock.IdTrans AND d.IdTPackBrgD = LStock.IdTransD AND LStock.JenisTrans = 'IKD')
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotalDest <> 0
-             AND m.TglTPackBrg >= '${start} 00:00:00' AND  m.tglTPackBrg < '${end} 23:59:59'
+             AND m.TglTPackBrg >= '${start} 00:00:00' AND  m.tglTPackBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1583,7 +1583,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
              AND m.JenisTTransferBrg = 0
-            AND m.TglTTransferBrg >= '${start} 00:00:00' AND m.TglTTransferBrg < '${end} 23:59:59'
+            AND m.TglTTransferBrg >= '${start} 00:00:00' AND m.TglTTransferBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1607,7 +1607,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotal <> 0
              AND m.JenisTTransferBrg = 1
-             AND m.TglTTransferBrg >= '${start} 00:00:00' AND  m.tgltTransferbrg < '${end} 23:59:59'
+             AND m.TglTTransferBrg >= '${start} 00:00:00' AND  m.tgltTransferbrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1629,7 +1629,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (d.IdMCabang = LStock.IdMCabang AND d.IdTProduksi = LStock.IdTrans AND d.IdTProduksiDBahan = LStock.IdTransD AND LStock.JenisTrans = 'PPB')
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotal <> 0
-             AND m.TglTProduksi >= '${start} 00:00:00' AND  m.TglTProduksi < '${end} 23:59:59'
+             AND m.TglTProduksi >= '${start} 00:00:00' AND  m.TglTProduksi <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1651,7 +1651,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGPRTProduksiDSN DSN ON(m.IdMCabang = DSN.IdMCabang AND m.IdTProduksi = DSN.IdTProduksi  AND m.IdMBrg = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN) 
            WHERE m.Void = 0 AND m.Hapus = 0
              AND m.QtyTotal <> 0
-             AND m.TglTProduksi >= '${start} 00:00:00' AND  m.TglTProduksi < '${end} 23:59:59'
+             AND m.TglTProduksi >= '${start} 00:00:00' AND  m.TglTProduksi <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1674,7 +1674,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGPRTProduksiMultiBrgBahanDSN DSN ON(m.IdMCabang = DSN.IdMCabang AND m.IdTProduksiMultiBrg = DSN.IdTProduksiMultiBrg AND d.IdMBrg = DSN.IdMBrg  AND DSN.IdMbrgDSN = LStock.IdMbrgDSN) 
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotal <> 0
-             AND m.TglTProduksiMultiBrg >= '${start} 00:00:00' AND  m.TglTProduksiMultiBrg < '${end} 23:59:59'
+             AND m.TglTProduksiMultiBrg >= '${start} 00:00:00' AND  m.TglTProduksiMultiBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1695,7 +1695,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINMBrg MBrg ON (MBrg.IdMBrg = d.IdMBrg)
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotal <> 0
-             AND m.TglTProduksi >= '${start} 00:00:00' AND  m.TglTProduksi < '${end} 23:59:59'
+             AND m.TglTProduksi >= '${start} 00:00:00' AND  m.TglTProduksi <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1717,7 +1717,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGINLKartuStock LStock ON (m.IdMCabang = LStock.IdMCabang AND m.IdTProduksiMultiBrg = LStock.IdTrans AND d.IdTProduksiMultiBrgDHasil = LStock.IdTransD AND LStock.JenisTrans = 'PMH')
            WHERE m.Void = 0 AND m.Hapus = 0
              AND d.QtyTotal <> 0
-             AND m.TglTProduksiMultiBrg >= '${start} 00:00:00' AND  m.TglTProduksiMultiBrg < '${end} 23:59:59'
+             AND m.TglTProduksiMultiBrg >= '${start} 00:00:00' AND  m.TglTProduksiMultiBrg <= '${end} 23:59:59'
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1740,7 +1740,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
                LEFT OUTER JOIN MGARTJualDSN DSN ON(d.IdMCabang = DSN.IdMCabang AND d.IdTJualPOS = DSN.IdTJual AND d.IdMBrg = DSN.IdMBrg AND DSN.IdMbrgDSN = LStock.IdMbrgDSN)   
           WHERE m.Void = 0 AND m.Hapus = 0
             AND d.QtyTotal <> 0
-            AND (m.TglTJualPOS >= '${start} 00:00:00' AND m.TglTJualPOS < '${end} 23:59:59')
+            AND (m.TglTJualPOS >= '${start} 00:00:00' AND m.TglTJualPOS <= '${end} 23:59:59')
             AND UPPER(MBrg.KdMBrg) LIKE UPPER('%%')
             AND UPPER(MBrg.NmMBrg) LIKE UPPER('%%')
             AND MBrg.Reserved_int1 <> 2
@@ -1749,7 +1749,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
         ) Trans
           LEFT OUTER JOIN (SELECT IdMCabang, IdMGd, IdMBrg, SUM(1*HrgStn) As Pembulatan
                            FROM MGINLPembulatanKartuStock m
-                            WHERE m.TglTrans >= '${start} 00:00:00' AND m.TglTrans < '${end} 23:59:59'
+                            WHERE m.TglTrans >= '${start} 00:00:00' AND m.TglTrans <= '${end} 23:59:59'
                            GROUP BY IdMCabang, IdMGd, IdMBrg) pemb ON (pemb.IdMCabang = Trans.IdMCabang AND pemb.IdMGd = Trans.IdMGd AND pemb.IdMBrg = Trans.IdMBrg)
         GROUP BY Trans.IdMCabang, Trans.IdMGd, Trans.IdMBrg
       ) TransAll
