@@ -1031,7 +1031,7 @@ exports.stock = async (req, res) => {
     });
   }
 
-  // kartu stock
+  // rekapitulasi stock
   else if (jenis == 3) {
     let start = req.body.start || today;
     let end = req.body.end || today;
@@ -1049,73 +1049,87 @@ exports.stock = async (req, res) => {
     console.log('queryman', qsql)
 
     var arr_list = [];
+    var listcabang = [];
     var listgudang = [];
-    var listbarang = [];
     var arr_listitem = [];
     var saldo = 0;
 
     var arr_data = await Promise.all(data.map(async (fil, index) => {
       saldo += parseFloat(fil.QtyTotal);
       var list = {
-        "tanggal": fil.TglTrans,
-        "keterangan": fil.Keterangan,
-        "satuan": fil.KdMStn,
-        "debit": parseFloat(fil.Debit),
-        "kredit": parseFloat(fil.Kredit),
-        "saldo": saldo,
+        "id": fil.IdMBrg,
+        "kode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "s_awal_qty": parseFloat(fil.TotQtySA),
+        "s_awal_rp": parseFloat(fil.TotRpSA),
+        "beli_qty": parseFloat(fil.TotQtyBeli),
+        "beli_rp": parseFloat(fil.TotRpBeli),
+        "rbeli_qty": parseFloat(fil.TotQtyRBeli),
+        "rbeli_rp": parseFloat(fil.TotRpRBeli),
+        "jual_qty": parseFloat(fil.TotQtyJual),
+        "jual_rp": parseFloat(fil.TotRpJual),
+        "rjual_qty": parseFloat(fil.TotQtyRJual),
+        "rjual_rp": parseFloat(fil.TotRpRJual),
+        "masuk_qty": parseFloat(fil.TotQtyMasuk),
+        "masuk_rp": parseFloat(fil.TotRpMasuk),
+        "keluar_qty": parseFloat(fil.TotQtyKeluar),
+        "keluar_rp": parseFloat(fil.TotRpKeluar),
+        "s_akhir_qty": parseFloat(fil.TotQtySisa),
+        "s_akhir_rp": parseFloat(fil.TotRpSisa),
+
       };
       //
         
-      var barang = {
-        "kode": fil.KdMBrg,
-        "nama": fil.NmMBrg,
+      var gudang = {
+        "id_gudang": fil.IdMGd,
+        "gudang": fil.NmMGd,
         "listitem": [list]
       }
 
-      var gudang = {
+      var cabang = {
+        "id_cabang": fil.IdMCabang,
         "cabang": fil.NmMCabang,
-        "gudang": fil.NmMGd,
-        "list": [barang],
+        "list": [gudang],
       }
     
-      // gudang terbaru (gudang => barang => item)
-      if (!listgudang.includes(fil.IdMGd)) {
+      // cabang terbaru (cabang => gudang => barang)
+      if (!listcabang.includes(fil.IdMCabang)) {
+        listcabang.push(fil.IdMCabang);
+        listgudang = [];
         listgudang.push(fil.IdMGd);
-        listbarang = [];
-        listbarang.push(fil.IdMBrg);
         //
 
-        saldo = parseFloat(fil.Saldo);
-        saldo += (parseFloat(fil.QtyTotal));
+        // saldo = parseFloat(fil.Saldo);
+        // saldo += (parseFloat(fil.QtyTotal));
 
-        list.saldo = saldo;
+        // list.saldo = saldo;
 
-        arr_list.push(gudang);
+        arr_list.push(cabang);
       }
-      // gudang yang sudah ada
+      // cabang yang sudah ada
       else {
-        let idx = listgudang.indexOf(fil.IdMGd);
-        // barang terbaru di gudang yang sudah ada (barang => item)
-        if (!listbarang.includes(fil.IdMBrg)) { 
-          listbarang.push(fil.IdMBrg);
+        let idx = listcabang.indexOf(fil.IdMCabang);
+        // gudang terbaru di gudang yang sudah ada (gudang => barang)
+        if (!listgudang.includes(fil.IdMGd)) { 
+          listgudang.push(fil.IdMGd);
 
-          saldo = parseFloat(fil.Saldo);
-          saldo += (parseFloat(fil.QtyTotal));
+          // saldo = parseFloat(fil.Saldo);
+          // saldo += (parseFloat(fil.QtyTotal));
 
-          list.saldo = saldo;
+          // list.saldo = saldo;
 
-          arr_list[idx].list.push(barang);
+          arr_list[idx].list.push(gudang);
         }
-        // barang yang sudah ada (item)
+        // gudang yang sudah ada (item)
         else {
-          let idx2 = listbarang.indexOf(fil.IdMBrg);
+          let idx2 = listgudang.indexOf(fil.IdMGd);
           arr_list[idx].list[idx2].listitem.push(list);
         }
       }
     }));
 
     res.json({
-      message: "Success kartu",
+      message: "Success rekapitulasi",
       data: arr_list,
     });
   }
