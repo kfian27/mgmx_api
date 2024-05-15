@@ -1785,18 +1785,37 @@ exports.labarugi = async (req, res) => {
     var arr_list = [];
 
 
-
-    var total_mutasi_3bulan_footer = 0;
-    var total_mutasi_2bulan_footer = 0;
-    var total_mutasi_1bulan_footer = 0;
-    var total_mutasi_bulanini_footer = 0;
-    var total_mutasi_hinggabulanini_footer = 0;
+    // unused karena sudah ada perhitungan sendiri
+    // var total_mutasi_3bulan_footer = 0;
+    // var total_mutasi_2bulan_footer = 0;
+    // var total_mutasi_1bulan_footer = 0;
+    // var total_mutasi_bulanini_footer = 0;
+    // var total_mutasi_hinggabulanini_footer = 0;
     
     var total_mutasi_3bulan = 0;
     var total_mutasi_2bulan = 0;
     var total_mutasi_1bulan = 0;
     var total_mutasi_bulanini = 0;
     var total_mutasi_hinggabulanini = 0;
+
+    var total_labakotor_3bulan = 0,
+    total_labakotor_2bulan = 0,
+    total_labakotor_1bulan = 0,
+    total_labakotor_bulanini = 0,
+    total_labakotor_hinggabulanini = 0;
+
+    var total_labausaha_3bulan = 0,
+    total_labausaha_2bulan = 0,
+    total_labausaha_1bulan = 0,
+    total_labausaha_bulanini = 0,
+    total_labausaha_hinggabulanini = 0;
+
+    var total_lababersih_3bulan = 0,
+    total_lababersih_2bulan = 0,
+    total_lababersih_1bulan = 0,
+    total_lababersih_bulanini = 0,
+    total_lababersih_hinggabulanini = 0;
+
 
     var arr_data = await Promise.all(data.map(async (item, index) => {
       var mutasi_3bulan = parseFloat(item.MutasiTigaBlnLalu);
@@ -1805,11 +1824,27 @@ exports.labarugi = async (req, res) => {
       var mutasi_bulanini = parseFloat(item.MutasiBlnIni);
       var mutasi_hinggabulanini = parseFloat(item.MutasiSDBlnIni);
 
-      total_mutasi_3bulan_footer += mutasi_3bulan; 
-      total_mutasi_2bulan_footer += mutasi_2bulan; 
-      total_mutasi_1bulan_footer += mutasi_1bulan; 
-      total_mutasi_bulanini_footer += mutasi_bulanini; 
-      total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini; 
+      var mutasi_3bulan_val = mutasi_3bulan;
+      var mutasi_2bulan_val = mutasi_2bulan;
+      var mutasi_1bulan_val = mutasi_1bulan;
+      var mutasi_bulanini_val = mutasi_bulanini;
+      var mutasi_hinggabulanini_val = mutasi_hinggabulanini;
+
+      // untuk memaninpulasi value yang tampil di web (minus atau tidak) => tanpa mengubah perhitungan dari value aslinya
+      if (!(item.JenisMPrkD == 7 || item.JenisMPrkD == 12 || item.JenisMPrkD == 14)) {
+        mutasi_3bulan_val *= -1;
+        mutasi_2bulan_val *= -1;
+        mutasi_1bulan_val *= -1;
+        mutasi_bulanini_val *= -1;
+        mutasi_hinggabulanini_val *= -1;
+      }
+
+      // unused karena sudah ada perhitungan sendiri
+      // total_mutasi_3bulan_footer += mutasi_3bulan; 
+      // total_mutasi_2bulan_footer += mutasi_2bulan; 
+      // total_mutasi_1bulan_footer += mutasi_1bulan; 
+      // total_mutasi_bulanini_footer += mutasi_bulanini; 
+      // total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini; 
       
       total_mutasi_3bulan += mutasi_3bulan; 
       total_mutasi_2bulan += mutasi_2bulan; 
@@ -1817,16 +1852,38 @@ exports.labarugi = async (req, res) => {
       total_mutasi_bulanini += mutasi_bulanini; 
       total_mutasi_hinggabulanini += mutasi_hinggabulanini; 
 
+      if (item.IdTitle == '0') {
+        total_labakotor_3bulan += mutasi_3bulan,
+        total_labakotor_2bulan += mutasi_2bulan,
+        total_labakotor_1bulan += mutasi_1bulan,
+        total_labakotor_bulanini += mutasi_bulanini,
+        total_labakotor_hinggabulanini += mutasi_hinggabulanini;
+        
+      } else if (item.IdTitle == '1') {
+        total_labausaha_3bulan += mutasi_3bulan,
+        total_labausaha_2bulan += mutasi_2bulan,
+        total_labausaha_1bulan += mutasi_1bulan,
+        total_labausaha_bulanini += mutasi_bulanini,
+        total_labausaha_hinggabulanini += mutasi_hinggabulanini;
+        
+      } else if (item.IdTitle == '2') {
+        total_lababersih_3bulan += mutasi_3bulan,
+        total_lababersih_2bulan += mutasi_2bulan,
+        total_lababersih_1bulan += mutasi_1bulan,
+        total_lababersih_bulanini += mutasi_bulanini,
+        total_lababersih_hinggabulanini += mutasi_hinggabulanini;
+      }
+
       var list = {
         "IdMPrk": item.IdMPrk,
         "JenisMPrkD" : item.JenisMPrkD,
         "deskripsi": item.NmMPrk,
         "level": item.LevelNumber,
-        "mutasi_3bulan" : mutasi_3bulan,
-        "mutasi_2bulan" : mutasi_2bulan,
-        "mutasi_1bulan" : mutasi_1bulan,
-        "mutasi_bulanini" : mutasi_bulanini,
-        "mutasi_hinggabulanini": mutasi_hinggabulanini,
+        "mutasi_3bulan" : mutasi_3bulan_val,
+        "mutasi_2bulan" : mutasi_2bulan_val,
+        "mutasi_1bulan" : mutasi_1bulan_val,
+        "mutasi_bulanini" : mutasi_bulanini_val,
+        "mutasi_hinggabulanini": mutasi_hinggabulanini_val,
         "show_value" : item.IsParent == 0 ? 1 : 0
       }
 
@@ -1842,42 +1899,50 @@ exports.labarugi = async (req, res) => {
 
       var footer = {
         "footer": item.Footer,
-        "total_mutasi_3bulan" : total_mutasi_3bulan_footer,
-        "total_mutasi_2bulan" : total_mutasi_2bulan_footer,
-        "total_mutasi_1bulan" : total_mutasi_1bulan_footer,
-        "total_mutasi_bulanini" : total_mutasi_bulanini_footer,
-        "total_mutasi_hinggabulanini": total_mutasi_hinggabulanini_footer,
+        "total_mutasi_3bulan" : 0,
+        "total_mutasi_2bulan" : 0,
+        "total_mutasi_1bulan" : 0,
+        "total_mutasi_bulanini" : 0,
+        "total_mutasi_hinggabulanini": 0,
         "list" : [header],
       }
 
-      if (!listfooter.includes(item.Footer)) { 
-        listfooter.push(item.Footer);
+      if (!listfooter.includes(item.IdTitle)) { 
+        listfooter.push(item.IdTitle);
         listheader = [];
         listheader.push(item.Header);
 
-        total_mutasi_3bulan_footer = 0; 
-        total_mutasi_2bulan_footer = 0; 
-        total_mutasi_1bulan_footer = 0; 
-        total_mutasi_bulanini_footer = 0; 
-        total_mutasi_hinggabulanini_footer = 0;
+        // unused karena sudah ada perhitungan sendiri
+        // total_mutasi_3bulan_footer = 0; 
+        // total_mutasi_2bulan_footer = 0; 
+        // total_mutasi_1bulan_footer = 0; 
+        // total_mutasi_bulanini_footer = 0; 
+        // total_mutasi_hinggabulanini_footer = 0;
         
         total_mutasi_3bulan = 0; 
         total_mutasi_2bulan = 0; 
         total_mutasi_1bulan = 0; 
         total_mutasi_bulanini = 0; 
         total_mutasi_hinggabulanini = 0;
-        
-        total_mutasi_3bulan_footer += mutasi_3bulan; 
-        total_mutasi_2bulan_footer += mutasi_2bulan; 
-        total_mutasi_1bulan_footer += mutasi_1bulan; 
-        total_mutasi_bulanini_footer += mutasi_bulanini; 
-        total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini; 
 
-        footer.total_mutasi_3bulan = total_mutasi_3bulan_footer;
-        footer.total_mutasi_2bulan = total_mutasi_2bulan_footer;
-        footer.total_mutasi_1bulan = total_mutasi_1bulan_footer;
-        footer.total_mutasi_bulanini = total_mutasi_bulanini_footer;
-        footer.total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
+        total_mutasi_3bulan += mutasi_3bulan; 
+        total_mutasi_2bulan += mutasi_2bulan; 
+        total_mutasi_1bulan += mutasi_1bulan; 
+        total_mutasi_bulanini += mutasi_bulanini; 
+        total_mutasi_hinggabulanini += mutasi_hinggabulanini;
+        
+        // unused karena sudah ada perhitungan sendiri
+        // total_mutasi_3bulan_footer += mutasi_3bulan; 
+        // total_mutasi_2bulan_footer += mutasi_2bulan; 
+        // total_mutasi_1bulan_footer += mutasi_1bulan; 
+        // total_mutasi_bulanini_footer += mutasi_bulanini; 
+        // total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini; 
+
+        // footer.total_mutasi_3bulan = total_mutasi_3bulan_footer;
+        // footer.total_mutasi_2bulan = total_mutasi_2bulan_footer;
+        // footer.total_mutasi_1bulan = total_mutasi_1bulan_footer;
+        // footer.total_mutasi_bulanini = total_mutasi_bulanini_footer;
+        // footer.total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
 
         arr_list.push(footer);
         // arr_list.push({
@@ -1890,13 +1955,14 @@ exports.labarugi = async (req, res) => {
         //   "list" : [header],
         // });
       } else {
-        let idx = listfooter.indexOf(item.Footer);
+        let idx = listfooter.indexOf(item.IdTitle);
 
-        arr_list[idx].total_mutasi_3bulan = total_mutasi_3bulan_footer;
-        arr_list[idx].total_mutasi_2bulan = total_mutasi_2bulan_footer;
-        arr_list[idx].total_mutasi_1bulan = total_mutasi_1bulan_footer;
-        arr_list[idx].total_mutasi_bulanini = total_mutasi_bulanini_footer;
-        arr_list[idx].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
+        // unused karena sudah ada perhitungan sendiri
+        // arr_list[idx].total_mutasi_3bulan = total_mutasi_3bulan_footer;
+        // arr_list[idx].total_mutasi_2bulan = total_mutasi_2bulan_footer;
+        // arr_list[idx].total_mutasi_1bulan = total_mutasi_1bulan_footer;
+        // arr_list[idx].total_mutasi_bulanini = total_mutasi_bulanini_footer;
+        // arr_list[idx].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
 
         if (!listheader.includes(item.Header)) {
           listheader.push(item.Header);
@@ -1907,7 +1973,7 @@ exports.labarugi = async (req, res) => {
           total_mutasi_bulanini = 0; 
           total_mutasi_hinggabulanini = 0; 
 
-          total_mutasi_3bulan += parseFloat(item.MutasiTigaBlnLalu); 
+          total_mutasi_3bulan += mutasi_3bulan; 
           total_mutasi_2bulan += mutasi_2bulan; 
           total_mutasi_1bulan += mutasi_1bulan; 
           total_mutasi_bulanini += mutasi_bulanini; 
@@ -1935,9 +2001,37 @@ exports.labarugi = async (req, res) => {
           arr_list[idx].list[idx2].list.push(list);
         }
       }
-      console.log('listfooter', listfooter)
-      console.log('listheader', listheader)
+      if (item.Footer == 'Laba Bersih') {
+        console.log('item', item.NmMPrk)
+        console.log('mutasi_3bulan', mutasi_3bulan)
+        console.log('total_mutasi_3bulan', total_mutasi_3bulan)
+      }
+      // console.log('listfooter', listfooter)
+      // console.log('listheader', listheader)
     }));
+    
+
+    // hardcode perhitungan
+    if (arr_list.length > 0) {
+      arr_list[0].total_mutasi_3bulan = total_labakotor_3bulan;
+      arr_list[0].total_mutasi_2bulan = total_labakotor_2bulan;
+      arr_list[0].total_mutasi_1bulan = total_labakotor_1bulan;
+      arr_list[0].total_mutasi_bulanini = total_labakotor_bulanini;
+      arr_list[0].total_mutasi_hinggabulanini = total_labakotor_hinggabulanini;
+
+      arr_list[1].total_mutasi_3bulan = total_labakotor_3bulan + total_labausaha_3bulan;
+      arr_list[1].total_mutasi_2bulan = total_labakotor_2bulan + total_labausaha_2bulan;
+      arr_list[1].total_mutasi_1bulan = total_labakotor_1bulan + total_labausaha_1bulan;
+      arr_list[1].total_mutasi_bulanini = total_labakotor_bulanini + total_labausaha_bulanini;
+      arr_list[1].total_mutasi_hinggabulanini = total_labakotor_hinggabulanini + total_labausaha_hinggabulanini;
+
+      arr_list[2].total_mutasi_3bulan = total_lababersih_3bulan + arr_list[1].total_mutasi_3bulan;
+      arr_list[2].total_mutasi_2bulan = total_lababersih_2bulan + arr_list[1].total_mutasi_2bulan;
+      arr_list[2].total_mutasi_1bulan = total_lababersih_1bulan + arr_list[1].total_mutasi_1bulan;
+      arr_list[2].total_mutasi_bulanini = total_lababersih_bulanini + arr_list[1].total_mutasi_bulanini;
+      arr_list[2].total_mutasi_hinggabulanini = total_lababersih_hinggabulanini + arr_list[1].total_mutasi_hinggabulanini;
+      
+    }
 
     res.json({
       message: "Success, progress laba rugi penjualan",
@@ -1958,35 +2052,74 @@ exports.labarugi = async (req, res) => {
 
     var arr_list = [];
     
-    var total_mutasi_bulanini_footer = 0;
-    var total_mutasi_hinggabulankemarin_footer = 0;
-    var total_mutasi_hinggabulanini_footer = 0;
+    // var total_mutasi_bulanini_footer = 0;
+    // var total_mutasi_hinggabulankemarin_footer = 0;
+    // var total_mutasi_hinggabulanini_footer = 0;
 
     var total_mutasi_bulanini = 0;
     var total_mutasi_hinggabulankemarin = 0;
     var total_mutasi_hinggabulanini = 0;
+
+    var total_labakotor_bulanini = 0,
+      total_labakotor_hinggabulankemarin = 0,
+      total_labakotor_hinggabulanini = 0;
+    
+    var total_labausaha_bulanini = 0,
+      total_labausaha_hinggabulankemarin = 0,
+      total_labausaha_hinggabulanini = 0;
+    
+    var total_lababersih_bulanini = 0,
+      total_lababersih_hinggabulankemarin = 0,
+      total_lababersih_hinggabulanini = 0;
 
     var arr_data = await Promise.all(data.map(async (item, index) => {
       var mutasi_bulanini = parseFloat(item.MutasiBlnIni);
       var mutasi_hinggabulanini = parseFloat(item.MutasiSDBlnIni);
       var mutasi_hinggabulankemarin = mutasi_hinggabulanini - mutasi_bulanini;
 
-      total_mutasi_bulanini_footer += mutasi_bulanini;
-      total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini;
-      total_mutasi_hinggabulankemarin_footer += mutasi_hinggabulankemarin;
+      var mutasi_bulanini_val = mutasi_bulanini;
+      var mutasi_hinggabulanini_val = mutasi_hinggabulanini;
+      var mutasi_hinggabulankemarin_val = mutasi_hinggabulankemarin;
+
+      // untuk memaninpulasi value yang tampil di web (minus atau tidak) => tanpa mengubah perhitungan dari value aslinya
+      if (!(item.JenisMPrkD == 7 || item.JenisMPrkD == 12 || item.JenisMPrkD == 14)) { 
+        mutasi_bulanini_val *= -1;
+        mutasi_hinggabulanini_val *= -1;
+        mutasi_hinggabulankemarin_val *= -1;
+      }
+
+      // total_mutasi_bulanini_footer += mutasi_bulanini;
+      // total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini;
+      // total_mutasi_hinggabulankemarin_footer += mutasi_hinggabulankemarin;
 
       total_mutasi_bulanini += mutasi_bulanini;
       total_mutasi_hinggabulanini += mutasi_hinggabulanini;
       total_mutasi_hinggabulankemarin += mutasi_hinggabulankemarin;
+
+      if (item.IdTitle == '0') {
+        total_labakotor_bulanini += mutasi_bulanini;
+        total_labakotor_hinggabulankemarin += mutasi_hinggabulankemarin;
+        total_labakotor_hinggabulanini += mutasi_hinggabulanini;
+        
+      } else if (item.IdTitle == '1') {
+        total_labausaha_bulanini += mutasi_bulanini;
+        total_labausaha_hinggabulankemarin += mutasi_hinggabulankemarin;
+        total_labausaha_hinggabulanini += mutasi_hinggabulanini;
+        
+      } else if (item.IdTitle == '2') {
+        total_lababersih_bulanini += mutasi_bulanini;
+        total_lababersih_hinggabulankemarin += mutasi_hinggabulankemarin;
+        total_lababersih_hinggabulanini += mutasi_hinggabulanini;
+      }
 
       var list = {
         "IdMPrk": item.IdMPrk,
         "JenisMPrkD" : item.JenisMPrkD,
         "deskripsi": item.NmMPrk,
         "level": item.LevelNumber,
-        "mutasi_bulanini" : mutasi_bulanini,
-        "mutasi_hinggabulankemarin" : mutasi_hinggabulankemarin,
-        "mutasi_hinggabulanini": mutasi_hinggabulanini,
+        "mutasi_bulanini" : mutasi_bulanini_val,
+        "mutasi_hinggabulankemarin" : mutasi_hinggabulankemarin_val,
+        "mutasi_hinggabulanini": mutasi_hinggabulanini_val,
         "show_value" : item.IsParent == 0 ? 1 : 0
       }
 
@@ -2000,40 +2133,47 @@ exports.labarugi = async (req, res) => {
 
       var footer = {
         "footer": item.Footer,
-        "total_mutasi_bulanini" : total_mutasi_bulanini_footer,
-        "total_mutasi_hinggabulankemarin" : total_mutasi_hinggabulankemarin_footer,
-        "total_mutasi_hinggabulanini": total_mutasi_hinggabulanini_footer,
+        "total_mutasi_bulanini" : 0,
+        "total_mutasi_hinggabulankemarin" : 0,
+        "total_mutasi_hinggabulanini": 0,
         "list" : [header],
       }
 
-      if (!listfooter.includes(item.Footer)) { 
-        listfooter.push(item.Footer);
+      if (!listfooter.includes(item.IdTitle)) { 
+        listfooter.push(item.IdTitle);
         listheader = [];
         listheader.push(item.Header);
 
-        total_mutasi_bulanini_footer = 0;
-        total_mutasi_hinggabulankemarin_footer = 0;
-        total_mutasi_hinggabulanini_footer = 0;
+        // unused karena sudah ada perhitungan sendiri
+        // total_mutasi_bulanini_footer = 0;
+        // total_mutasi_hinggabulankemarin_footer = 0;
+        // total_mutasi_hinggabulanini_footer = 0;
 
         total_mutasi_bulanini = 0;
         total_mutasi_hinggabulankemarin = 0;
         total_mutasi_hinggabulanini = 0;
 
-        total_mutasi_bulanini_footer += mutasi_bulanini;
-        total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini;
-        total_mutasi_hinggabulankemarin_footer += mutasi_hinggabulankemarin;
+        total_mutasi_bulanini += mutasi_bulanini;
+        total_mutasi_hinggabulanini += mutasi_hinggabulanini;
+        total_mutasi_hinggabulankemarin += mutasi_hinggabulankemarin;
+        
+        // unused karena sudah ada perhitungan sendiri
+        // total_mutasi_bulanini_footer += mutasi_bulanini;
+        // total_mutasi_hinggabulanini_footer += mutasi_hinggabulanini;
+        // total_mutasi_hinggabulankemarin_footer += mutasi_hinggabulankemarin;
 
-        footer.total_mutasi_bulanini = total_mutasi_bulanini_footer;
-        footer.total_mutasi_hinggabulankemarin = total_mutasi_hinggabulankemarin_footer;
-        footer.total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
+        // footer.total_mutasi_bulanini = total_mutasi_bulanini_footer;
+        // footer.total_mutasi_hinggabulankemarin = total_mutasi_hinggabulankemarin_footer;
+        // footer.total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
 
         arr_list.push(footer);
       } else {
-        let idx = listfooter.indexOf(item.Footer);
+        let idx = listfooter.indexOf(item.IdTitle);
 
-        arr_list[idx].total_mutasi_bulanini = total_mutasi_bulanini_footer;
-        arr_list[idx].total_mutasi_hinggabulankemarin = total_mutasi_hinggabulankemarin_footer;
-        arr_list[idx].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
+        // unused karena sudah ada perhitungan sendiri
+        // arr_list[idx].total_mutasi_bulanini = total_mutasi_bulanini_footer;
+        // arr_list[idx].total_mutasi_hinggabulankemarin = total_mutasi_hinggabulankemarin_footer;
+        // arr_list[idx].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini_footer;
 
         if (!listheader.includes(item.Header)) {
           listheader.push(item.Header);
@@ -2059,6 +2199,21 @@ exports.labarugi = async (req, res) => {
       console.log('listfooter', listfooter)
       console.log('listheader', listheader)
     }));
+
+    if (arr_list.length > 0) {
+      arr_list[0].total_mutasi_bulanini = total_labakotor_bulanini;
+      arr_list[0].total_mutasi_hinggabulankemarin = total_labakotor_hinggabulankemarin;
+      arr_list[0].total_mutasi_hinggabulanini = total_labakotor_hinggabulanini;
+
+      arr_list[1].total_mutasi_bulanini = total_labakotor_bulanini + total_labausaha_bulanini;
+      arr_list[1].total_mutasi_hinggabulankemarin = total_labakotor_hinggabulankemarin + total_labausaha_hinggabulankemarin;
+      arr_list[1].total_mutasi_hinggabulanini = total_labakotor_hinggabulanini + total_labausaha_hinggabulanini;
+
+      arr_list[2].total_mutasi_bulanini = total_lababersih_bulanini + arr_list[1].total_mutasi_bulanini;
+      arr_list[2].total_mutasi_hinggabulankemarin = total_lababersih_hinggabulankemarin + arr_list[1].total_mutasi_hinggabulankemarin;
+      arr_list[2].total_mutasi_hinggabulanini = total_lababersih_hinggabulanini + arr_list[1].total_mutasi_hinggabulanini;
+      
+    }
 
     res.json({
       message: "Success, report laba rugi",
