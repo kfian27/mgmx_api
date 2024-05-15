@@ -970,7 +970,7 @@ exports.stock = async (req, res) => {
       var list = {
         "tanggal": fil.TglTrans,
         "keterangan": fil.Keterangan,
-        "satuan": fil.KdMStn,
+        "satuan": fil.KdMStn || "",
         "debit": parseFloat(fil.Debit),
         "kredit": parseFloat(fil.Kredit),
         "saldo": saldo,
@@ -1046,7 +1046,7 @@ exports.stock = async (req, res) => {
 
     let qsql = await qstock.queryRekapStock(companyid,start,end,cabang,gudang,barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
-    console.log('queryman', qsql)
+    console.log('queryman-stock', qsql)
 
     var arr_list = [];
     var listcabang = [];
