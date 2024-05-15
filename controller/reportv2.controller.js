@@ -1030,6 +1030,95 @@ exports.stock = async (req, res) => {
       data: arr_list,
     });
   }
+
+  // kartu stock
+  else if (jenis == 3) {
+    let start = req.body.start || today;
+    let end = req.body.end || today;
+
+    let cabang = req.body.cabang || "";
+    let gudang = req.body.gudang || "";
+    let barang = req.body.barang || "";
+
+    // console.log("logbrg", qbarang);
+    // console.log("logstart", start);
+    // console.log("logend", end);
+
+    let qsql = await qstock.queryRekapStock(companyid,start,end,cabang,gudang,barang);
+    const data = await fun.getDataFromQuery(sequelize, qsql);
+    console.log('queryman', qsql)
+
+    var arr_list = [];
+    var listgudang = [];
+    var listbarang = [];
+    var arr_listitem = [];
+    var saldo = 0;
+
+    var arr_data = await Promise.all(data.map(async (fil, index) => {
+      saldo += parseFloat(fil.QtyTotal);
+      var list = {
+        "tanggal": fil.TglTrans,
+        "keterangan": fil.Keterangan,
+        "satuan": fil.KdMStn,
+        "debit": parseFloat(fil.Debit),
+        "kredit": parseFloat(fil.Kredit),
+        "saldo": saldo,
+      };
+      //
+        
+      var barang = {
+        "kode": fil.KdMBrg,
+        "nama": fil.NmMBrg,
+        "listitem": [list]
+      }
+
+      var gudang = {
+        "cabang": fil.NmMCabang,
+        "gudang": fil.NmMGd,
+        "list": [barang],
+      }
+    
+      // gudang terbaru (gudang => barang => item)
+      if (!listgudang.includes(fil.IdMGd)) {
+        listgudang.push(fil.IdMGd);
+        listbarang = [];
+        listbarang.push(fil.IdMBrg);
+        //
+
+        saldo = parseFloat(fil.Saldo);
+        saldo += (parseFloat(fil.QtyTotal));
+
+        list.saldo = saldo;
+
+        arr_list.push(gudang);
+      }
+      // gudang yang sudah ada
+      else {
+        let idx = listgudang.indexOf(fil.IdMGd);
+        // barang terbaru di gudang yang sudah ada (barang => item)
+        if (!listbarang.includes(fil.IdMBrg)) { 
+          listbarang.push(fil.IdMBrg);
+
+          saldo = parseFloat(fil.Saldo);
+          saldo += (parseFloat(fil.QtyTotal));
+
+          list.saldo = saldo;
+
+          arr_list[idx].list.push(barang);
+        }
+        // barang yang sudah ada (item)
+        else {
+          let idx2 = listbarang.indexOf(fil.IdMBrg);
+          arr_list[idx].list[idx2].listitem.push(list);
+        }
+      }
+    }));
+
+    res.json({
+      message: "Success kartu",
+      data: arr_list,
+    });
+  }
 };
 
 exports.kas = async (req, res) => {
