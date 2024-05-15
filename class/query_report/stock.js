@@ -904,6 +904,7 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
         AND UPPER(MCabang.NmMCabang) LIKE UPPER('%ALAM INDAH HARMONI%')
         AND UPPER(MGd.KdMGd) LIKE UPPER('%%')
         AND UPPER(MGd.NmMGd) LIKE UPPER('%%')
+        ${qcabang} ${qgudang} ${qbarang}
       AND (MGd.IdMGd <> 1000000)
         AND MBrg.Hapus = 0
       ORDER BY MCabang.KdMCabang, MGd.KdMGd, MBrg.KdMBrg
