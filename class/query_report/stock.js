@@ -900,8 +900,8 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             LEFT OUTER JOIN MGSYMCabang MCabang ON (MCabang.IdMCabang = TransAll.IdMCabang)
             LEFT OUTER JOIN MGSYMGd MGd ON (MGd.IdMCabang = TransAll.IdMCabang AND MGd.IdMGd = TransAll.IdMGd)
       WHERE MCabang.Hapus = 0
-        AND UPPER(MCabang.KdMCabang) LIKE UPPER('%AIH%')
-        AND UPPER(MCabang.NmMCabang) LIKE UPPER('%ALAM INDAH HARMONI%')
+        AND UPPER(MCabang.KdMCabang) LIKE UPPER('%%')
+        AND UPPER(MCabang.NmMCabang) LIKE UPPER('%%')
         AND UPPER(MGd.KdMGd) LIKE UPPER('%%')
         AND UPPER(MGd.NmMGd) LIKE UPPER('%%')
         ${qcabang} ${qgudang} ${qbarang}
@@ -1758,8 +1758,8 @@ exports.queryRekapStock = async (companyid, start, end, cabang, gudang, barang) 
             LEFT OUTER JOIN MGSYMCabang MCabang ON (MCabang.IdMCabang = TransAll.IdMCabang)
             LEFT OUTER JOIN MGSYMGd MGd ON (MGd.IdMCabang = TransAll.IdMCabang AND MGd.IdMGd = TransAll.IdMGd)
       WHERE MCabang.Hapus = 0
-        AND UPPER(MCabang.KdMCabang) LIKE UPPER('%SDM%')
-        AND UPPER(MCabang.NmMCabang) LIKE UPPER('%SEJATI TEMBOK%')
+        AND UPPER(MCabang.KdMCabang) LIKE UPPER('%%')
+        AND UPPER(MCabang.NmMCabang) LIKE UPPER('%%')
         AND UPPER(MGd.KdMGd) LIKE UPPER('%%')
         AND UPPER(MGd.NmMGd) LIKE UPPER('%%')
         AND MBrg.Hapus = 0
