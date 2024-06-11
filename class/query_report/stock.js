@@ -152,6 +152,7 @@ exports.queryPosisiStock = async (companyid,tanggal, barang) => {
         AND MBrg.Reserved_int1 <> 2
         AND MBrg.Reserved_int1 <> 3
         AND PosQty <> 0
+        ${qbarang}
       ORDER BY MCabang.KdMCabang, MGd.KdMGd, MJenisBrg.KdMJenisBrg, MBrg.NmMBrg
       ) as Tabel1 
       WHERE 

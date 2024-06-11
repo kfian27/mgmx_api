@@ -1447,11 +1447,12 @@ exports.hutang = async (req, res) => {
   const qhutang = require("../class/query_report/hutang");
 
   let jenis = req.body.jenis || 1;
+  let supplier = req.body.supplier || ''; //update, filter barang
 
   // posisi hutang
   if (jenis == 1) {
     let date = req.body.tanggal || today;
-    let qsql = await qhutang.queryPosisiHutang(companyid,date);
+    let qsql = await qhutang.queryPosisiHutang(companyid,date,supplier);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1503,7 +1504,7 @@ exports.hutang = async (req, res) => {
     let start = req.body.start || today;
     let end = req.body.end || today;
 
-    let qsql = await qhutang.queryKartuHutang(companyid, start, end);
+    let qsql = await qhutang.queryKartuHutang(companyid, start, end, supplier);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1554,11 +1555,12 @@ exports.piutang = async (req, res) => {
   const qpiutang = require("../class/query_report/piutang");
 
   let jenis = req.body.jenis || 1;
+  let customer = req.body.customer || ''; //update, filter barang
 
   // posisi piutang
   if (jenis == 1) {
     let date = req.body.tanggal || today;
-    let qsql = await qpiutang.queryPosisiPiutang(companyid,date);
+    let qsql = await qpiutang.queryPosisiPiutang(companyid,date,customer);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1604,7 +1606,7 @@ exports.piutang = async (req, res) => {
     let start = req.body.start || today;
     let end = req.body.end || today;
 
-    let qsql = await qpiutang.queryKartuPiutang(companyid, start, end);
+    let qsql = await qpiutang.queryKartuPiutang(companyid, start, end, customer);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     console.log('queryman', qsql);
@@ -1651,7 +1653,7 @@ exports.piutang = async (req, res) => {
   // umur piutang
   else if(jenis == 3){
     let date = req.body.tanggal || today;
-    let qsql = await qpiutang.queryUmurPiutang(companyid,date);
+    let qsql = await qpiutang.queryUmurPiutang(companyid,date,customer);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];

@@ -1,7 +1,13 @@
 const fun = require("../../mgmx");
 
-exports.queryPosisiPiutang = async (companyid,tanggal) => { 
+exports.queryPosisiPiutang = async (companyid,tanggal,customer) => { 
     var sql = ``;
+    
+    let where = "";
+    if (customer != "") {
+        where += "AND MCust.IdMCust=" + customer;
+    }
+
     if (companyid == fun.companyWI) {
         sql = `
         SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCabang.Aktif as AktifMCabang
@@ -235,6 +241,7 @@ exports.queryPosisiPiutang = async (companyid,tanggal) => {
         AND MCust.KdMCust LIKE '%%'
         AND MCust.NmMCust LIKE '%%'
         AND PosPiut <> 0
+        ${where}
         ORDER BY MCabang.KdMCabang, MCust.NmMCust
         `;
     } else {
@@ -647,6 +654,7 @@ exports.queryPosisiPiutang = async (companyid,tanggal) => {
             AND MCust.KdMCust LIKE '%%'
             AND MCust.NmMCust LIKE '%%'
             AND PosPiut <> 0
+            ${where}
         ORDER BY MCabang.KdMCabang, MCust.NmMCust
     `;
     }
@@ -654,8 +662,14 @@ exports.queryPosisiPiutang = async (companyid,tanggal) => {
     return sql;
 }
 
-exports.queryKartuPiutang = async (companyid, start, end) => { 
+exports.queryKartuPiutang = async (companyid, start, end, customer) => { 
     var sql = ``;
+    
+    let where = "";
+    if (customer != "") {
+        where += "AND MCust.IdMCust=" + customer;
+    }
+    
     if (companyid == fun.companyWI) {
     //     sql = `SELECT MCabang.KdMCabang
     //         , MCabang.NmMCabang
@@ -1550,6 +1564,7 @@ exports.queryKartuPiutang = async (companyid, start, end) => {
         AND MCust.Aktif = 1
         AND MCust.KdMCust LIKE '%%'
         AND MCust.NmMCust LIKE '%%'
+        ${where}
     ORDER BY MCabang.KdMCabang, MCabang.NmMCabang, TableKartuPiut.IdMCabangMCust
             , MCust.KdMCust, MCust.NmMCust, Urut, TglTrans, JenisTrans, IdTrans
     `;
@@ -2376,6 +2391,7 @@ exports.queryKartuPiutang = async (companyid, start, end) => {
         AND MCust.Aktif = 1
         AND MCust.KdMCust LIKE '%%'
         AND MCust.NmMCust LIKE '%%'
+        ${where}
     ORDER BY MCabang.KdMCabang, MCabang.NmMCabang, TableKartuPiut.IdMCabangMCust
             , MCust.KdMCust, MCust.NmMCust, Urut, TglTrans, JenisTrans, IdTrans
     `;  
@@ -2384,8 +2400,14 @@ exports.queryKartuPiutang = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryUmurPiutang = async(companyid,tanggal) => {
+exports.queryUmurPiutang = async(companyid,tanggal, customer) => {
     var sql = ``;
+
+    let where = "";
+    if (customer != "") {
+        where += "AND CUST.idmcust=" + customer;
+    }
+
     if(companyid == fun.companyWI){
         sql = `SELECT Tbl.*, (PiutBlmJT + Piut30 + Piut60 + Piut90 + PiutL90) AS SaldoAkhir FROM (
             SELECT C.IDMCABANG, C.KDMCABANG, C.NMMCABANG
@@ -2557,6 +2579,7 @@ exports.queryUmurPiutang = async(companyid,tanggal) => {
               AND upper(C.KDMCABANG) Like upper('%%')
               AND upper(C.NMMCABANG) Like upper('%%')
               AND (Detail.TGLTrans < '${tanggal} 23:59:59')
+              ${where}
             GROUP BY C.IDMCABANG , CUST.idmcust
              ORDER BY Cust.KdMCust
             ) Tbl`;
@@ -2731,6 +2754,7 @@ exports.queryUmurPiutang = async(companyid,tanggal) => {
               AND upper(Kota.KDMKota) Like upper('%%')
               AND upper(Kota.NMMKota) Like upper('%%')
               AND (Detail.TGLTrans < '${tanggal} 23:59:59')
+              ${where}
             GROUP BY C.IDMCABANG , C.KdMcabang, C.NmMCabang, CUST.idmcust, Cust.KdMcust, Cust.NmMCust
              ORDER BY Cust.KdMCust
             ) Tbl`;

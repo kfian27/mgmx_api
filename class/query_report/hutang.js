@@ -1,8 +1,14 @@
 const fun = require("../../mgmx");
 
 // query ditambahkan nama cabang
-exports.queryPosisiHutang = async (companyid, tanggal) => { 
+exports.queryPosisiHutang = async (companyid, tanggal, supplier) => { 
     var sql = ``;
+    
+    let where = "";
+    if (supplier != "") {
+        where += " AND MSup.IdMSup = " + supplier;
+    }
+
     if (companyid == fun.companyWI) {
         sql = `
         SELECT MSup.KdMSup, MSup.NmMSup, MSup.Aktif
@@ -168,6 +174,7 @@ exports.queryPosisiHutang = async (companyid, tanggal) => {
         AND MSup.KdMSup LIKE '%%'
         AND MSup.NmMSup LIKE '%%'
         AND PosHut <> 0
+        ${where}
         ORDER BY MSup.NmMSup`;
     } else {
         sql = `SELECT MSup.KdMSup, MSup.NmMSup, MSup.Aktif
@@ -359,6 +366,7 @@ exports.queryPosisiHutang = async (companyid, tanggal) => {
             AND MSup.KdMSup LIKE '%%'
             AND MSup.NmMSup LIKE '%%'
             AND PosHut <> 0
+            ${where}
         ORDER BY MSup.NmMSup
         `;
     }
@@ -368,8 +376,14 @@ exports.queryPosisiHutang = async (companyid, tanggal) => {
 
 
 
-exports.queryKartuHutang = async (companyid, start, end) => { 
+exports.queryKartuHutang = async (companyid, start, end, supplier) => { 
     var sql = ``;
+    
+    let where = "";
+    if (supplier != "") {
+        where += " AND MSup.IdMSup = " + supplier;
+    }
+
     if (companyid == fun.companyWI) {
         sql = `SELECT MSup.KdMSup
             , MSup.NmMSup
@@ -665,6 +679,7 @@ exports.queryKartuHutang = async (companyid, start, end) => {
         WHERE MSup.Hapus = 0
         AND MSup.KdMSup LIKE '%%'
         AND MSup.NmMSup LIKE '%%'
+        ${where}
         ORDER BY MSup.KdMSup, MSup.NmMSup, Urut, TglTrans, JenisTrans, IdTrans`;
     } else {
         sql = `SELECT MSup.KdMSup
@@ -1011,6 +1026,7 @@ exports.queryKartuHutang = async (companyid, start, end) => {
     WHERE MSup.Hapus = 0
         AND MSup.KdMSup LIKE '%%'
         AND MSup.NmMSup LIKE '%%'
+        ${where}
     ORDER BY MSup.KdMSup, MSup.NmMSup, Urut, TglTrans, JenisTrans, IdTrans
     `;
     }
