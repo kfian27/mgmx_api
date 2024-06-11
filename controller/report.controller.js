@@ -1606,6 +1606,50 @@ exports.piutang = async (req, res) => {
       data: arr_list,
     });
   }
+
+  // umur piutang
+  else if(jenis == 3){
+    let date = req.body.tanggal || today;
+    let qsql = await qpiutang.queryUmurPiutang(companyid,date);
+    const data = await fun.getDataFromQuery(sequelize, qsql);
+
+    var arr_list = [];
+    var listcabang = [];
+
+    var count = 0;
+
+    var arr_data = await Promise.all(data.map(async (item, index) => {
+      count++;
+      var list = {
+        "kode": item.KDMCUST,
+        "nama": item.NMMCUST,
+        "blmJT": item.PiutBlmJT,
+        "30hari": item.Piut30,
+        "60hari": item.Piut60,
+        "90hari": item.Piut90,
+        "L90hari": item.PiutL90,
+        "saldoAkhir": item.SaldoAkhir,
+      };
+
+      if (!listcabang.includes(item.KDMCABANG)) {
+        listcabang.push(item.KDMCABANG);
+
+        arr_list.push({
+          "cabang": item.NMMCABANG,
+          "list": [list],
+        });
+      } else {
+        let idx = listcabang.indexOf(item.KDMCABANG);
+        arr_list[idx].list.push(list);
+      }
+    }));
+
+    res.json({
+      message: "Success",
+      countData: count,
+      data: arr_list,
+    });
+  }
 };
 
 exports.labarugi = async (req, res) => {

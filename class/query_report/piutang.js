@@ -2383,3 +2383,357 @@ exports.queryKartuPiutang = async (companyid, start, end) => {
 
     return sql;
 }
+
+exports.queryUmurPiutang = async(companyid,tanggal) => {
+    var sql = ``;
+    if(companyid == fun.companyWI){
+        sql = `SELECT Tbl.*, (PiutBlmJT + Piut30 + Piut60 + Piut90 + PiutL90) AS SaldoAkhir FROM (
+            SELECT C.IDMCABANG, C.KDMCABANG, C.NMMCABANG
+                 , CUST.idmcust, CUST.KDMCUST, CUST.NMMCUST
+                 , Detail.BuktiTransAll, Detail.TglTrans
+                 , Detail.Umur
+                 , SUM(IF((Detail.Umur <= 0), Detail.JmlBayar, 0)) AS PiutBlmJT
+                 , SUM(IF((Detail.Umur > 0 AND Detail.Umur <= 60), Detail.JmlBayar, 0)) AS Piut30
+                 , SUM(IF((Detail.Umur > 60 AND Detail.Umur <= 90), Detail.JmlBayar, 0)) AS Piut60
+                 , SUM(IF((Detail.Umur > 90 AND Detail.Umur <= 120), Detail.JmlBayar, 0)) AS Piut90
+                 , SUM(IF((Detail.Umur > 120), Detail.JmlBayar, 0)) AS PiutL90
+                 , SUM(Detail.NilaiNota) AS NilaiNota, SUM(Detail.JmlBayar) AS SA
+            FROM(
+            SELECT TSAPiut.IdMCust 
+                 , 'S' AS JenisTrans 
+                 , TSAPiut.BuktiTSAPiut AS BuktiTransAll 
+                 , TSAPiut.BuktiTSAPiut AS BuktiAsli 
+                 , TSAPiut.IdMCabang 
+                 , TSAPiut.IdTSAPiut AS IdTrans 
+                 , TSAPiut.TglTSAPiut AS TglTrans 
+                 , TSAPiut.JmlPiut  
+                 , TSAPiut.TGLJTPiut AS TglJTPiut 
+                 , DATEDIFF(cast('${tanggal} 23:59:59' as DATE), DATE(TSAPiut.TGLTSAPiut)) as Umur
+                 , TSAPiut.JmlPiut AS NilaiNota
+                 , TSAPiut.JmlPiut 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0)
+                      FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0
+                        AND IdMCabangTrans = TSAPiut.IdMCabang AND IdTrans = TSAPiut.IdTSAPiut
+                        AND m.IdMCabang = TSAPiut.IdMCabang AND m.IdMCust = TSAPiut.IdMCust
+                        AND JenisTrans = 'S' AND m.BUKTITBPIUT <> '')
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+            FROM MGARTSAPiut TSAPiut
+                 LEFT OUTER JOIN MGARMCust MCust ON (TSAPiut.IDMCABANG=MCust.IDMCABANG AND TSAPiut.IdMCust = MCust.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKota AND KOTA.IDMKOTA = MCust.IDMKOTA)
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TSAPiut.IdMCabang = MCabang.IdMCabang) 
+            WHERE MCust.Hapus = 0 
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+             
+            UNION ALL 
+            
+            SELECT TJual.IdMCust 
+                 , 'J' AS JenisTrans 
+                 , TJual.BuktiTJual AS BuktiTransAll 
+                 , TJual.BUKTITJUAL AS BuktiAsli 
+                 , TJual.IdMCabang 
+                 , TJual.IdTJual AS IdTrans 
+                 , TJual.TglTJual AS TglTrans 
+                 , (TJual.Netto) AS JmlPiut 
+                 , TJual.TglJTPiut 
+                 , DATEDIFF(cast('${tanggal} 23:59:59' as DATE), DATE(TJual.TGLTJUAL)) as Umur
+                 , TJual.Netto AS NilaiNota
+                 , (TJual.Netto) 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0) FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0 AND IdMCabangTrans = TJual.IdMCabang AND IdTrans = TJual.IdTJual AND JenisTrans = 'J' AND m.BUKTITBPIUT <> '') 
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+            FROM MGARTJual TJual
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TJual.IdMCabang = MCabang.IdMCabang) 
+                 LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+            WHERE TJual.Hapus = 0
+              AND TJual.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+             
+             UNION ALL 
+             
+            SELECT TJualLain.IdMCust 
+                 , 'W' AS JenisTrans 
+                 , TJualLain.BuktiTJualLain AS BuktiTransAll 
+                 , TJualLain.BuktiTJualLain AS BuktiAsli 
+                 , TJualLain.IdMCabang 
+                 , TJualLain.IdTJualLain AS IdTrans 
+                 , TJualLain.TglTJualLain AS TglTrans 
+                 , (TJualLain.Netto) AS JmlPiut 
+                 , TJualLain.TglJT 
+                 , DATEDIFF(cast('${tanggal} 23:59:59' as DATE), DATE(TJualLain.TGLTJUALLain)) as Umur
+                 , TJualLain.Netto AS NilaiNota
+                 , (TJualLain.Netto) 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0) FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0 AND IdMCabangTrans = TJualLain.IdMCabang AND IdTrans = TJualLain.IdTJualLain AND JenisTrans = 'W' AND m.BUKTITBPIUT <> '') 
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+            FROM MGARTJualLain TJualLain
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TJualLain.IdMCabang = MCabang.IdMCabang) 
+                 LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJualLain.IdMCabangCust AND MCust.IdMCust = TJualLain.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+            WHERE TJualLain.Hapus = 0
+              AND TJualLain.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+             
+             
+            UNION ALL
+            SELECT TKorPiut.IdMCust
+                 , 'W' AS JenisTrans 
+                 , TKorPiut.BuktiTKorPiut AS BuktiTransAll
+                 , TKorPiut.BuktiTKorPiut AS BuktiAsli
+                 , TKorPiutD.IdMCabangTrans AS IdMCabang
+                 , TKorPiutD.IdTrans AS IdTrans
+                 , TKorPiut.TglTKorPiut AS TglTrans 
+                 , (TKorPiutD.JmlKor) AS JmlPiut
+                 , TKorPiut.TglTKorPiut 
+                 , DATEDIFF(cast('${tanggal} 23:59:59' as DATE), DATE(TKorPiut.TglTKorPiut)) as Umur
+                 , TKorPiutD.JmlKor AS NilaiNota
+                 , TKorPiutD.JmlKor
+                        - (SELECT COALESCE(SUM(KorPiut.JmlKor), 0)
+                           FROM MGARTBPiutD d
+                              LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                              LEFT OUTER JOIN (SELECT KorD.* FROM MGARTKorPiutD KorD
+                                                         LEFT OUTER JOIN MGARTKorPiut Kor ON(KorD.IdMCabang = Kor.IdMCabang AND KorD.IdTKorPiut = Kor.IdTKorPiut)
+                                                     WHERE Kor.Hapus = 0 AND Kor.Void = 0) KorPiut
+                                                     ON (d.IdMCabangTrans = KorPiut.IdMCabang AND d.IdTrans = KorPiut.IdTKorPiut AND d.JenisTrans = 'L')
+                             WHERE m.Hapus = 0 AND m.Void = 0 AND d.IdMCabangTrans = TKorPiut.IdMCabang AND d.IdTrans = TKorPiut.IdTKorPiut AND d.JenisTrans = 'L' AND m.BUKTITBPIUT <> ''
+                          AND KorPiut.IdTKorPiutD = TKorPiutD.IdTKorPiutD
+                          AND ( m.TglTBPiut < '${tanggal} 23:59:59')
+                                          ) AS Jmlbayar
+                 , MCabang.KdMCabang
+            FROM MGARTKorPiutD TKorPiutD
+                 LEFT OUTER JOIN MGARTKorPiut TKorPiut ON(TKorPiutD.IdMCabang = TKorPiut.IdMCabang AND TKorPiutD.IdTKorPiut = TKorPiut.IdTKorpIut)
+                 LEFT OUTER JOIN MGARMCust MCust ON(TKorPiut.IdMCabangMCust = MCust.IdMCabang AND TKorPiut.IdMCust = MCust.IdMCust)
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON(TKorPiut.IdMCabang = MCabang.IdMCabang)
+            WHERE TKorPiut.Hapus = 0
+              AND TKorPiut.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+            UNION ALL
+            
+            SELECT TRJual.IdMCust 
+                 , 'R' AS JenisTrans 
+                 , TRJual.BuktiTRJual AS BuktiTransAll 
+                 , '' AS BuktiAsli 
+                 , TRJual.IdMCabang 
+                 , TRJual.IdTRJual AS IdTrans 
+                 , TRJual.TglTRJual AS TglTrans 
+                 , - (TRJual.Netto) AS JmlPiut 
+                 , TRJual.TglJTPiut 
+                 , DATEDIFF(cast('${tanggal} 23:59:59' as DATE), DATE(TRJual.TGLTRJUAL)) as Umur
+                 , - TRJual.Netto AS NilaiNota
+                 , - (TRJual.Netto) 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0) FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0 AND IdMCabangTrans = TRJual.IdMCabang AND IdTrans = TRJual.IdTRJual AND JenisTrans = 'R' AND m.BUKTITBPIUT <> '') 
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+            FROM MGARTRJual TRJual
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TRJual.IdMCabang = MCabang.IdMCabang) 
+                 LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TRJual.IdMCabangMCust AND MCust.IdMCust = TRJual.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+                 LEFT OUTER JOIN MGARTJual TJual ON (TJual.IdMCabang = TRJual.IdMCabangTJual AND TJual.IdTJual = TRJual.IdTJual)
+            WHERE TRJual.Hapus = 0
+              AND TRJual.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+            ) Detail LEFT OUTER JOIN MGSYMCABANG C ON (C.IDMCABANG = Detail.IDMCABANG)
+                     LEFT OUTER JOIN MGARMCUST CUST ON (CUST.IDMCABANG = Detail.IDMCABANG AND CUST.IDMCUST = Detail.IDMCUST)
+                     LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = CUST.IDMCABANGMKOTA AND KOTA.IDMKOTA = CUST.IDMKOTA)
+            WHERE Detail.JmlBayar <> 0
+              AND upper(C.KDMCABANG) Like upper('%%')
+              AND upper(C.NMMCABANG) Like upper('%%')
+              AND (Detail.TGLTrans < '${tanggal} 23:59:59')
+            GROUP BY C.IDMCABANG , CUST.idmcust
+             ORDER BY Cust.KdMCust
+            ) Tbl`;
+    }else{
+        sql = `SELECT Tbl.*, (PiutBlmJT + Piut30 + Piut60 + Piut90 + PiutL90) AS SaldoAkhir FROM (
+            SELECT C.IDMCABANG, C.KDMCABANG, C.NMMCABANG
+                 , CUST.idmcust, CUST.KDMCUST, CUST.NMMCUST
+                 , SUM(IF((Detail.Umur <= 0), Detail.JmlBayar, 0)) AS PiutBlmJT
+                 , SUM(IF((Detail.Umur > 0 AND Detail.Umur < 30), Detail.JmlBayar, 0)) AS Piut30
+                 , SUM(IF((Detail.Umur >= 30 AND Detail.Umur < 60), Detail.JmlBayar, 0)) AS Piut60
+                 , SUM(IF((Detail.Umur >= 60 AND Detail.Umur < 90), Detail.JmlBayar, 0)) AS Piut90
+                 , SUM(IF((Detail.Umur >= 90), Detail.JmlBayar, 0)) AS PiutL90
+                 , SUM(Detail.NilaiNota) AS NilaiNota, SUM(Detail.JmlBayar) AS SA
+            FROM(
+            SELECT TSAPiut.IdMCust 
+                 , 'S' AS JenisTrans 
+                 , TSAPiut.BuktiTSAPiut AS BuktiTransAll 
+                 , TSAPiut.BuktiTSAPiut AS BuktiAsli 
+                 , TSAPiut.IdMCabang 
+                 , TSAPiut.IdTSAPiut AS IdTrans 
+                 , TSAPiut.TglTSAPiut AS TglTrans 
+                 , TSAPiut.JmlPiut  
+                 , TSAPiut.TGLJTPiut AS TglJTPiut 
+                 , DATEDIFF(cast('${tanggal} 00:00:00' as DATE), DATE(TSAPiut.TGLTSAPiut)) as Umur
+                 , TSAPiut.JmlPiut AS NilaiNota
+                 , TSAPiut.JmlPiut 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0)
+                      FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0
+                        AND IdMCabangTrans = TSAPiut.IdMCabang AND IdTrans = TSAPiut.IdTSAPiut
+                        AND m.IdMCabang = TSAPiut.IdMCabang AND m.IdMCust = TSAPiut.IdMCust
+                        AND JenisTrans = 'S' AND m.BUKTITBPIUT <> '')
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+                 , '' AS NmCustRef 
+            FROM MGARTSAPiut TSAPiut
+                 LEFT OUTER JOIN MGARMCust MCust ON (TSAPiut.IDMCABANG=MCust.IDMCABANG AND TSAPiut.IdMCust = MCust.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKota AND KOTA.IDMKOTA = MCust.IDMKOTA)
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TSAPiut.IdMCabang = MCabang.IdMCabang) 
+            WHERE MCust.Hapus = 0 
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%') 
+            UNION ALL 
+            SELECT TJual.IdMCust 
+                 , 'J' AS JenisTrans 
+                 , TJual.BuktiTJual AS BuktiTransAll 
+                 , TJual.BUKTITJUAL AS BuktiAsli 
+                 , TJual.IdMCabang 
+                 , TJual.IdTJual AS IdTrans 
+                 , TJual.TglTJual AS TglTrans 
+                 , (TJual.JmlBayarKredit) AS JmlPiut 
+                 , TJual.TglJTPiut 
+                 , DATEDIFF(cast('${tanggal} 00:00:00' as DATE), DATE(TJual.TGLTJUAL)) as Umur
+                 , TJual.Netto AS NilaiNota
+                 , (TJual.JmlBayarKredit) 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0) FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0 AND IdMCabangTrans = TJual.IdMCabang AND IdTrans = TJual.IdTJual AND JenisTrans = 'J' AND m.BUKTITBPIUT <> '') 
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+                 , TJual.NmCustRef 
+            FROM MGARTJual TJual
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TJual.IdMCabang = MCabang.IdMCabang) 
+                 LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+            WHERE TJual.Hapus = 0
+              AND TJual.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+             UNION ALL  
+            SELECT TJualLain.IdMCust 
+                 , 'W' AS JenisTrans 
+                 , TJualLain.BuktiTJualLain AS BuktiTransAll 
+                 , TJualLain.BuktiTJualLain AS BuktiAsli 
+                 , TJualLain.IdMCabang 
+                 , TJualLain.IdTJualLain AS IdTrans 
+                 , TJualLain.TglTJualLain AS TglTrans 
+                 , (TJualLain.Netto) AS JmlPiut 
+                 , TJualLain.TglJT 
+                 , DATEDIFF(cast('${tanggal} 00:00:00' as DATE), DATE(TJualLain.TGLTJUALLain)) as Umur
+                 , TJualLain.Netto AS NilaiNota
+                 , (TJualLain.Netto) 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0) FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0 AND IdMCabangTrans = TJualLain.IdMCabang AND IdTrans = TJualLain.IdTJualLain AND JenisTrans = 'W' AND m.BUKTITBPIUT <> '') 
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+                 , '' AS NmCustRef 
+            FROM MGARTJualLain TJualLain
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TJualLain.IdMCabang = MCabang.IdMCabang) 
+                 LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJualLain.IdMCabangCust AND MCust.IdMCust = TJualLain.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+            WHERE TJualLain.Hapus = 0
+              AND TJualLain.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+            UNION ALL
+            SELECT TKorPiut.IdMCust
+                 , 'W' AS JenisTrans 
+                 , TKorPiut.BuktiTKorPiut AS BuktiTransAll
+                 , TKorPiut.BuktiTKorPiut AS BuktiAsli
+                 , TKorPiutD.IdMCabangTrans AS IdMCabang
+                 , TKorPiutD.IdTrans AS IdTrans
+                 , TKorPiut.TglTKorPiut AS TglTrans 
+                 , (TKorPiutD.JmlKor) AS JmlPiut
+                 , TKorPiut.TglTKorPiut 
+                 , DATEDIFF(cast('${tanggal} 00:00:00' as DATE), DATE(TKorPiut.TglTKorPiut)) as Umur
+                 , TKorPiutD.JmlKor AS NilaiNota
+                 , TKorPiutD.JmlKor
+                        - (SELECT COALESCE(SUM(KorPiut.JmlKor), 0)
+                           FROM MGARTBPiutD d
+                              LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                              LEFT OUTER JOIN (SELECT KorD.* FROM MGARTKorPiutD KorD
+                                                         LEFT OUTER JOIN MGARTKorPiut Kor ON(KorD.IdMCabang = Kor.IdMCabang AND KorD.IdTKorPiut = Kor.IdTKorPiut)
+                                                     WHERE Kor.Hapus = 0 AND Kor.Void = 0) KorPiut
+                                                     ON (d.IdMCabangTrans = KorPiut.IdMCabang AND d.IdTrans = KorPiut.IdTKorPiut AND d.JenisTrans = 'L')
+                             WHERE m.Hapus = 0 AND m.Void = 0 AND d.IdMCabangTrans = TKorPiut.IdMCabang AND d.IdTrans = TKorPiut.IdTKorPiut AND d.JenisTrans = 'L' AND m.BUKTITBPIUT <> ''
+                          AND KorPiut.IdTKorPiutD = TKorPiutD.IdTKorPiutD
+                          AND ( m.TglTBPiut < '${tanggal} 23:59:59')
+                                          ) AS Jmlbayar
+                 , MCabang.KdMCabang
+                 , '' AS NmCustRef 
+            FROM MGARTKorPiutD TKorPiutD
+                 LEFT OUTER JOIN MGARTKorPiut TKorPiut ON(TKorPiutD.IdMCabang = TKorPiut.IdMCabang AND TKorPiutD.IdTKorPiut = TKorPiut.IdTKorpIut)
+                 LEFT OUTER JOIN MGARMCust MCust ON(TKorPiut.IdMCabangMCust = MCust.IdMCabang AND TKorPiut.IdMCust = MCust.IdMCust)
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON(TKorPiut.IdMCabang = MCabang.IdMCabang)
+            WHERE TKorPiut.Hapus = 0
+              AND TKorPiut.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+            UNION ALL
+            SELECT TRJual.IdMCust 
+                 , 'R' AS JenisTrans 
+                 , TRJual.BuktiTRJual AS BuktiTransAll 
+                 , '' AS BuktiAsli 
+                 , TRJual.IdMCabang 
+                 , TRJual.IdTRJual AS IdTrans 
+                 , TRJual.TglTRJual AS TglTrans 
+                 , - (TRJual.JmlBayarKredit) AS JmlPiut 
+                 , TRJual.TglJTPiut 
+                 , DATEDIFF(cast('${tanggal} 00:00:00' as DATE), DATE(TRJual.TGLTRJUAL)) as Umur
+                 , - TRJual.Netto AS NilaiNota
+                 , - (TRJual.JmlBayarKredit) 
+                   - (SELECT COALESCE(SUM(d.JmlBayar), 0) FROM MGARTBPiutD d LEFT OUTER JOIN MGARTBPiut m ON (d.IdMCabang = m.IdMCabang AND d.IdTBPiut = m.IdTBPiut)
+                      WHERE Hapus = 0 AND Void = 0 AND IdMCabangTrans = TRJual.IdMCabang AND IdTrans = TRJual.IdTRJual AND JenisTrans = 'R' AND m.BUKTITBPIUT <> '') 
+                   AS JmlBayar 
+                 , MCabang.KdMCabang 
+                 , '' AS NmCustRef 
+            FROM MGARTRJual TRJual
+                 LEFT OUTER JOIN MGSYMCabang MCabang ON (TRJual.IdMCabang = MCabang.IdMCabang) 
+                 LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TRJual.IdMCabangMCust AND MCust.IdMCust = TRJual.IdMCust) 
+                 LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = MCust.IDMCABANGMKOTA AND KOTA.IDMKOTA = MCust.IDMKOTA)
+            WHERE TRJual.Hapus = 0
+              AND TRJual.Void = 0
+              AND upper(MCust.KDMCUST) Like upper('%%')
+              AND upper(MCust.NMMCUST) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+            ) Detail LEFT OUTER JOIN MGSYMCABANG C ON (C.IDMCABANG = Detail.IDMCABANG)
+                     LEFT OUTER JOIN MGARMCUST CUST ON (CUST.IDMCABANG = Detail.IDMCABANG AND CUST.IDMCUST = Detail.IDMCUST)
+                     LEFT OUTER JOIN MGARMKOTA KOTA ON (KOTA.IDMCABANG = CUST.IDMCABANGMKOTA AND KOTA.IDMKOTA = CUST.IDMKOTA)
+            WHERE Detail.JmlBayar <> 0
+              AND upper(C.KDMCABANG) Like upper('%%')
+              AND upper(C.NMMCABANG) Like upper('%%')
+              AND upper(Kota.KDMKota) Like upper('%%')
+              AND upper(Kota.NMMKota) Like upper('%%')
+              AND (Detail.TGLTrans < '${tanggal} 23:59:59')
+            GROUP BY C.IDMCABANG , C.KdMcabang, C.NmMCabang, CUST.idmcust, Cust.KdMcust, Cust.NmMCust
+             ORDER BY Cust.KdMCust
+            ) Tbl`;
+    }
+    return sql;
+}
