@@ -266,7 +266,7 @@ exports.queryBarangTerlaris = async (companyid,start,end,cabang,customer,barang)
         where += " AND jd.IdMCust =" + customer;
     }
     if (barang != "") {
-        where += " AND j.IdMCust = " + barang;
+        where += " AND b.IdMBrg = " + barang;
     }
 
     // sejauh ini wi dan perusahaan lainnya sama querynya (dicek sudah aman)
