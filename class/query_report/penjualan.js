@@ -256,3 +256,29 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
     }
     return sql;
 }
+
+exports.queryBarangTerlaris = async (companyid,start,end,cabang,customer,barang) => {
+    let where = "";
+    if (cabang != "") {
+        where += " AND jd.IdMCabang =" + cabang;
+    }
+    if (customer != "") {
+        where += " AND jd.IdMCust =" + customer;
+    }
+    if (barang != "") {
+        where += " AND j.IdMCust = " + barang;
+    }
+
+    // sejauh ini wi dan perusahaan lainnya sama querynya (dicek sudah aman)
+    var sql = `SELECT m.KdMCabang, m.NmMCabang
+                    , b.KdMBrg, b.NmMBrg, g.NmMStn, SUM(jd.qtytotal) AS jumlah, SUM(jd.SubTotal) as nilaijual	 
+                FROM mgartjuald jd 
+                    LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual 
+                    LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.IdMBrg 
+                    LEFT OUTER JOIN mgsymcabang m ON jd.IdMCabang = m.IdMCabang
+                    LEFT OUTER JOIN MGINMStn g ON g.IdMStn = b.IdMStn1 
+                WHERE j.Hapus = 0 AND j.Void = 0 AND j.tgltjual >= '${start} 00:00:00' AND j.tgltjual <= '${end} 23:59:59' ${where}
+                GROUP BY b.IdMBrg 
+                ORDER BY SUM(jd.SubTotal) DESC`;
+    return sql;
+}
