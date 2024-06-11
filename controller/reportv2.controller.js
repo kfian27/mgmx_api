@@ -855,6 +855,13 @@ exports.pembelian = async (req, res) => {
 exports.stock = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
   const companyid = req.datacompany.id;
+  var companyWI = fun.companyWI;
+
+  var isWI = false;
+
+  if (companyid == companyWI) {
+    isWI = true;
+  }
 
   let jenis = req.body.jenis || 1;
   // posisi stock
@@ -970,7 +977,7 @@ exports.stock = async (req, res) => {
       var list = {
         "tanggal": fil.TglTrans,
         "keterangan": fil.Keterangan,
-        "satuan": fil.KdMStn,
+        "satuan": fil.KdMStn || "",
         "debit": parseFloat(fil.Debit),
         "kredit": parseFloat(fil.Kredit),
         "saldo": saldo,
@@ -1046,7 +1053,7 @@ exports.stock = async (req, res) => {
 
     let qsql = await qstock.queryRekapStock(companyid,start,end,cabang,gudang,barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
-    console.log('queryman', qsql)
+    console.log('queryman-stock', qsql)
 
     var arr_list = [];
     var listcabang = [];
@@ -1055,30 +1062,51 @@ exports.stock = async (req, res) => {
     var saldo = 0;
 
     var arr_data = await Promise.all(data.map(async (fil, index) => {
-      saldo += parseFloat(fil.QtyTotal);
       var list = {
         "id": fil.IdMBrg,
         "kode": fil.KdMBrg,
         "nama": fil.NmMBrg,
-        "s_awal_qty": parseFloat(fil.TotQtySA),
-        "s_awal_rp": parseFloat(fil.TotRpSA),
-        "beli_qty": parseFloat(fil.TotQtyBeli),
-        "beli_rp": parseFloat(fil.TotRpBeli),
-        "rbeli_qty": parseFloat(fil.TotQtyRBeli),
-        "rbeli_rp": parseFloat(fil.TotRpRBeli),
-        "jual_qty": parseFloat(fil.TotQtyJual),
-        "jual_rp": parseFloat(fil.TotRpJual),
-        "rjual_qty": parseFloat(fil.TotQtyRJual),
-        "rjual_rp": parseFloat(fil.TotRpRJual),
-        "masuk_qty": parseFloat(fil.TotQtyMasuk),
-        "masuk_rp": parseFloat(fil.TotRpMasuk),
-        "keluar_qty": parseFloat(fil.TotQtyKeluar),
-        "keluar_rp": parseFloat(fil.TotRpKeluar),
-        "s_akhir_qty": parseFloat(fil.TotQtySisa),
-        "s_akhir_rp": parseFloat(fil.TotRpSisa),
-
+        "s_awal_qty": parseFloat(fil.TotQtySA) || 0,
+        "s_awal_rp": parseFloat(fil.TotRpSA) || 0,
+        "beli_qty": parseFloat(fil.TotQtyBeli) || 0,
+        "beli_rp": parseFloat(fil.TotRpBeli) || 0,
+        "rbeli_qty": parseFloat(fil.TotQtyRBeli) || 0,
+        "rbeli_rp": parseFloat(fil.TotRpRBeli) || 0,
+        "jual_qty": parseFloat(fil.TotQtyJual) || 0,
+        "jual_rp": parseFloat(fil.TotRpJual) || 0,
+        "rjual_qty": parseFloat(fil.TotQtyRJual) || 0,
+        "rjual_rp": parseFloat(fil.TotRpRJual) || 0,
+        "masuk_qty": parseFloat(fil.TotQtyMasuk) || 0,
+        "masuk_rp": parseFloat(fil.TotRpMasuk) || 0,
+        "keluar_qty": parseFloat(fil.TotQtyKeluar) || 0,
+        "keluar_rp": parseFloat(fil.TotRpKeluar) || 0,
+        "s_akhir_qty": parseFloat(fil.TotQtySisa) || 0,
+        "s_akhir_rp": parseFloat(fil.TotRpSisa) || 0,
       };
-      //
+
+      if (!isWI) {
+        list.bahanproduksi_qty = parseFloat(fil.TotQtyProdBhn) || 0;
+        list.bahanproduksi_rp = parseFloat(fil.TotRpProdBhn) || 0;
+
+        list.hasilproduksi_qty = parseFloat(fil.TotQtyProdHasil) || 0;
+        list.hasilproduksi_rp = parseFloat(fil.TotRpProdHasil) || 0;
+
+        list.transfermasuk_qty = parseFloat(fil.TotQtyTransferM) || 0;
+        list.transfermasuk_rp = parseFloat(fil.TotRpTransferM) || 0;
+        list.transferkeluar_qty = parseFloat(fil.TotQtyTransferK) || 0;
+        list.transferkeluar_rp = parseFloat(fil.TotRpTransferK) || 0;
+
+        list.konversimasuk_qty = parseFloat(fil.TotQtyKonvM) || 0;
+        list.konversimasuk_rp = parseFloat(fil.TotRpKonvM) || 0;
+        list.konversikeluar_qty = parseFloat(fil.TotQtyKonvK) || 0;
+        list.konversikeluar_rp = parseFloat(fil.TotRpKonvK) || 0;
+
+        list.adjustmasuk_qty = parseFloat(fil.TotQtyPackM) || 0;
+        list.adjustmasuk_rp = parseFloat(fil.TotRpPackM) || 0;
+        list.adjustkeluar_qty = parseFloat(fil.TotQtyPackK) || 0;
+        list.adjustkeluar_rp = parseFloat(fil.TotRpPackK) || 0;
+      }
+      
         
       var gudang = {
         "id_gudang": fil.IdMGd,
@@ -1097,12 +1125,6 @@ exports.stock = async (req, res) => {
         listcabang.push(fil.IdMCabang);
         listgudang = [];
         listgudang.push(fil.IdMGd);
-        //
-
-        // saldo = parseFloat(fil.Saldo);
-        // saldo += (parseFloat(fil.QtyTotal));
-
-        // list.saldo = saldo;
 
         arr_list.push(cabang);
       }
@@ -1112,11 +1134,6 @@ exports.stock = async (req, res) => {
         // gudang terbaru di gudang yang sudah ada (gudang => barang)
         if (!listgudang.includes(fil.IdMGd)) { 
           listgudang.push(fil.IdMGd);
-
-          // saldo = parseFloat(fil.Saldo);
-          // saldo += (parseFloat(fil.QtyTotal));
-
-          // list.saldo = saldo;
 
           arr_list[idx].list.push(gudang);
         }
@@ -1130,6 +1147,7 @@ exports.stock = async (req, res) => {
 
     res.json({
       message: "Success rekapitulasi",
+      companyWI: isWI, 
       data: arr_list,
     });
   }
