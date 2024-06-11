@@ -2,8 +2,14 @@ const fun = require("../../mgmx");
 var companyWI = fun.companyWI;
 
 // tambahan IdMCabang, IdMGd, IdMBrg
-exports.queryPosisiStock = async (companyid,tanggal) => {
+exports.queryPosisiStock = async (companyid,tanggal, barang) => {
   console.log('companywi', fun.companyWI);
+
+  let qbarang = "";
+  if (barang != "") {
+    qbarang = "AND MBrg.IdMBrg = " + barang;
+  }
+
   var sql = ``;  
 
   if (companyid == companyWI) {
@@ -64,6 +70,7 @@ exports.queryPosisiStock = async (companyid,tanggal) => {
             AND MJenisBrg.KdMJenisBrg LIKE '%%'
             AND MJenisBrg.NmMJenisBrg LIKE '%%'
             AND PosQty <> 0
+            ${qbarang}
           ORDER BY MCabang.KdMCabang, MGd.KdMGd, MJenisBrg.KdMJenisBrg, MBrg.NmMBrg
           ) as Tabel1 
           WHERE 

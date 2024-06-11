@@ -864,10 +864,12 @@ exports.stock = async (req, res) => {
   }
 
   let jenis = req.body.jenis || 1;
+
   // posisi stock
   if (jenis == 1) {
     let date = req.body.tanggal || today;
-    let qsql = await qstock.queryPosisiStock(companyid,date);
+    let barang = req.body.barang || ''; //update, filter barang
+    let qsql = await qstock.queryPosisiStock(companyid,date, barang);
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];

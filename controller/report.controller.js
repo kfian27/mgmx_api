@@ -999,6 +999,7 @@ exports.stock = async (req, res) => {
   const companyid = req.datacompany.id;
 
   let jenis = req.body.jenis || 1;
+
   // posisi stock
   if (jenis == 1) {
     let date = req.body.tanggal || today;
