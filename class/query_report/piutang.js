@@ -2162,7 +2162,7 @@ exports.queryKartuPiutang = async (companyid, start, end, customer) => {
             , m.IdMCust 
             , 4 as JenisTrans 
             , m.IdMCabang 
-            , d.IdTBPiutD as IdTrans 
+            , m.IdTBPiut as IdTrans 
             , m.BuktiTBPiut as BuktiTrans 
             , concat(Date(m.TglTBPiut), ' ', Time(m.TglUpdate)) as TglTrans 
             , m.JenisInvoice as JenisInvoice 
@@ -2394,7 +2394,7 @@ exports.queryKartuPiutang = async (companyid, start, end, customer) => {
         ${where}
     ORDER BY MCabang.KdMCabang, MCabang.NmMCabang, TableKartuPiut.IdMCabangMCust
             , MCust.KdMCust, MCust.NmMCust, Urut, TglTrans, JenisTrans, IdTrans
-    `;  
+    `;
     }
 
     return sql;

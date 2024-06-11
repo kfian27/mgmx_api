@@ -200,7 +200,7 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
             , TJual.IdMCabangTRJualPotongan
             , COALESCE(TRJual.BuktiTRJual,'') AS BuktiTRJual
             , MGd.KdMGd, MGd.NmMGd
-            , MBrg.KdMBrg, MBrg.NmMBrg
+            , MBrg.KdMBrg, MBrg.NmMBrg, MBrg.IdMBrg
             , IF(TJualD.Qty1<=0, 0, TJualD.Qty1) As Qty1, IF(TJualD.Qty1<=0, '', g1.NmMStn) As NmMStn1
             , IF(TJualD.Qty2<=0, 0, TJualD.Qty2) As Qty2, IF(TJualD.Qty2<=0, '', g2.NmMStn) As NmMStn2
             , IF(TJualD.Qty3<=0, 0, TJualD.Qty3) As Qty3, IF(TJualD.Qty3<=0, '', g3.NmMStn) As NmMStn3
@@ -219,7 +219,7 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
             , (TJualD.HrgStn - (TJualD.HrgStn * TJualD.DiscP / 100)) * TJualD.QtyTotal as dpp
             , (select SUM(m.JmlBayar)
                     from mgartbpiutd m join mgartbpiut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBPiut = m2.IdTBPiut
-                    where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJual) as total_bayar
+                    where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJualPOS) as total_bayar
             FROM MGARTJualPOS TJual
                 LEFT OUTER JOIN MGARTRJual TRJual ON (TRJual.IdMCabang=TJual.IdMCabangTRJualPotongan AND TRJual.IdTRjual=TJual.IdTRJualPotongan)
                 LEFT OUTER JOIN MGARMKartu MKartu ON (MKartu.IdMKartu = TJual.IdMKartu AND MKartu.IdMCabang = TJual.IdMCabang)
