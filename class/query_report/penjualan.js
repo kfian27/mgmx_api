@@ -25,13 +25,13 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
 exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) => {
     let where = "";
     if (cabang != "") {
-        where += "AND MCabang.IdMCabang =" + cabang;
+        where += " AND MCabang.IdMCabang =" + cabang;
     }
     if (customer != "") {
-        where += "AND MCust.IdMCust =" + customer;
+        where += " AND MCust.IdMCust =" + customer;
     }
     if (barang != "") {
-        where += "AND MBrg.IdMBrg = " + barang;
+        where += " AND MBrg.IdMBrg = " + barang;
     }
 
     var orderby = "ORDER BY";
@@ -260,17 +260,18 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
 exports.queryBarangTerlaris = async (companyid,start,end,cabang,customer,barang) => {
     let where = "";
     if (cabang != "") {
-        where += " AND jd.IdMCabang =" + cabang;
+        where += " AND j.IdMCabang =" + cabang;
     }
     if (customer != "") {
-        where += " AND jd.IdMCust =" + customer;
+        where += " AND j.IdMCust =" + customer;
     }
     if (barang != "") {
         where += " AND b.IdMBrg = " + barang;
     }
 
-    // sejauh ini wi dan perusahaan lainnya sama querynya (dicek sudah aman)
-    var sql = `SELECT m.KdMCabang, m.NmMCabang
+    var sql = '';
+    if (companyid == companyWI) {
+        sql = `SELECT m.KdMCabang, m.NmMCabang
                     , b.KdMBrg, b.NmMBrg, g.NmMStn, SUM(jd.qtytotal) AS jumlah, SUM(jd.SubTotal) as nilaijual	 
                 FROM mgartjuald jd 
                     LEFT OUTER JOIN mgartjual j ON j.idtjual = jd.idtjual 
@@ -280,5 +281,19 @@ exports.queryBarangTerlaris = async (companyid,start,end,cabang,customer,barang)
                 WHERE j.Hapus = 0 AND j.Void = 0 AND j.tgltjual >= '${start} 00:00:00' AND j.tgltjual <= '${end} 23:59:59' ${where}
                 GROUP BY b.IdMBrg 
                 ORDER BY SUM(jd.SubTotal) DESC`;
+    }else{
+        sql = `select m.KdMCabang, m.NmMCabang
+                    , b.IdMBrg, b.KdMBrg, b.NmMBrg, g.NmMStn, SUM(jd.QtyTotal) AS jumlah, SUM(jd.SubTotal) as nilaijual	 
+                FROM MGARTJualPOSD jd 
+                    LEFT OUTER JOIN MGARTJualPOS j ON j.IdTJualPOS = jd.IdTJualPOS
+                    LEFT OUTER JOIN MGARMCust c ON (c.IdMCabang = j.IdMCabangMCust AND c.IdMCust = j.IdMCust)
+                    LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.IdMBrg
+                    LEFT OUTER JOIN mgsymcabang m ON j.IdMCabang = m.IdMCabang
+                    LEFT OUTER JOIN MGINMStn g ON g.IdMStn = b.IdMStn1 
+                WHERE j.Hapus = 0 AND j.Void = 0 AND j.TglTJualPOS >= '2008-06-11 00:00:00' AND j.TglTJualPOS <= '2024-06-11 23:59:59'
+                ${where}
+                GROUP BY b.IdMBrg 
+                ORDER BY SUM(jd.SubTotal) desc`;
+    }
     return sql;
 }
