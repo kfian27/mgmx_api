@@ -1552,6 +1552,7 @@ exports.hutang = async (req, res) => {
 exports.piutang = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
   const companyid = req.datacompany.id;
+  const companyid_wi = fun.companyWI;
   const qpiutang = require("../class/query_report/piutang");
 
   let jenis = req.body.jenis || 1;
@@ -1661,6 +1662,11 @@ exports.piutang = async (req, res) => {
 
     var count = 0;
 
+    var companyname = 'massal';
+    if(companyid == companyid_wi){
+      companyname = 'wi';
+    }
+
     var arr_data = await Promise.all(data.map(async (item, index) => {
       count++;
       var list = {
@@ -1690,6 +1696,7 @@ exports.piutang = async (req, res) => {
     res.json({
       message: "Success",
       countData: count,
+      companyname : companyname,
       data: arr_list,
     });
   }
