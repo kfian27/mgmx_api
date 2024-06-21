@@ -1534,6 +1534,7 @@ exports.hutang = async (req, res) => {
 
         arr_list.push({
           "customer": item.NmMSup,
+          "kode" : item.KdMSup, 
           "list": [list],
         });
       } else {
