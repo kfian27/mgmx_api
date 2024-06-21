@@ -1533,8 +1533,7 @@ exports.hutang = async (req, res) => {
         list.saldo = Math.abs(saldo);
 
         arr_list.push({
-          "customer": item.NmMSup,
-          "kode" : item.KdMSup, 
+          "customer": item.NmMSup + ' / ' + item.KdMSup,
           "list": [list],
         });
       } else {
