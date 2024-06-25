@@ -1754,15 +1754,15 @@ exports.labarugi = async (req, res) => {
       newdate = newdate.slice(0, 10);
       newdate += '##'+ item.KdMCabang
 
-      nilaijual += parseFloat(item.NilaiJual2);
-      nilaihpp += parseFloat(item.NilaiHPP);
-      labarugi += parseFloat(item.LabaRugi);
-      persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+      // nilaijual += parseFloat(item.NilaiJual2);
+      // nilaihpp += parseFloat(item.NilaiHPP);
+      // labarugi += parseFloat(item.LabaRugi);
+      // persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
-      cbg_nilaijual += parseFloat(item.NilaiJual2);
-      cbg_nilaihpp += parseFloat(item.NilaiHPP);
-      cbg_labarugi += parseFloat(item.LabaRugi);
-      cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+      // cbg_nilaijual += parseFloat(item.NilaiJual2);
+      // cbg_nilaihpp += parseFloat(item.NilaiHPP);
+      // cbg_labarugi += parseFloat(item.LabaRugi);
+      // cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
       var list = {
         "newdate" : newdate,
@@ -1790,20 +1790,30 @@ exports.labarugi = async (req, res) => {
         // listpertanggal = [];
         listpertanggal.push(newdate);
 
-        cbg_nilaijual = 0;
-        cbg_nilaihpp = 0;
-        cbg_labarugi = 0;
-        cbg_persenrl = 0;
+        // cbg_nilaijual = 0;
+        // cbg_nilaihpp = 0;
+        // cbg_labarugi = 0;
+        // cbg_persenrl = 0;
 
-        nilaijual = 0;
-        nilaihpp = 0;
-        labarugi = 0;
-        persenrl = 0;
+        // nilaijual = 0;
+        // nilaihpp = 0;
+        // labarugi = 0;
+        // persenrl = 0;
         
-        cbg_nilaijual += parseFloat(item.NilaiJual2);
-        cbg_nilaihpp += parseFloat(item.NilaiHPP);
-        cbg_labarugi += parseFloat(item.LabaRugi);
-        cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+        // cbg_nilaijual += parseFloat(item.NilaiJual2);
+        // cbg_nilaihpp += parseFloat(item.NilaiHPP);
+        // cbg_labarugi += parseFloat(item.LabaRugi);
+        // cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+
+        nilaijual = parseFloat(item.NilaiJual2);
+        nilaihpp = parseFloat(item.NilaiHPP);
+        labarugi = parseFloat(item.LabaRugi);
+        persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+
+        cbg_nilaijual = parseFloat(item.NilaiJual2);
+        cbg_nilaihpp = parseFloat(item.NilaiHPP);
+        cbg_labarugi = parseFloat(item.LabaRugi);
+        cbg_persenrl = (parseFloat(cbg_labarugi) / parseFloat(cbg_nilaihpp)) * 100;
 
         pertanggal.jual = cbg_nilaijual;
         pertanggal.hpp = cbg_nilaihpp;
@@ -1827,6 +1837,12 @@ exports.labarugi = async (req, res) => {
         arr_list[idx].labarugi = cbg_labarugi;
         arr_list[idx].persen = cbg_persenrl;
 
+        // tiq add
+        cbg_nilaijual += parseFloat(item.NilaiJual2);
+        cbg_nilaihpp += parseFloat(item.NilaiHPP);
+        cbg_labarugi += parseFloat(item.LabaRugi);
+        cbg_persenrl = (parseFloat(cbg_labarugi) / parseFloat(cbg_nilaihpp)) * 100;
+
         if (!listpertanggal.includes(newdate)) { 
           
           listpertanggal.push(newdate);
@@ -1836,9 +1852,14 @@ exports.labarugi = async (req, res) => {
           // labarugi = 0;
           // persenrl = 0;
           
-          nilaijual += parseFloat(item.NilaiJual2);
-          nilaihpp += parseFloat(item.NilaiHPP);
-          labarugi += parseFloat(item.LabaRugi);
+          // nilaijual += parseFloat(item.NilaiJual2);
+          // nilaihpp += parseFloat(item.NilaiHPP);
+          // labarugi += parseFloat(item.LabaRugi);
+          // persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+
+          nilaijual = parseFloat(item.NilaiJual2);
+          nilaihpp = parseFloat(item.NilaiHPP);
+          labarugi = parseFloat(item.LabaRugi);
           persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
           arr_list[idx].list.push({
@@ -1852,7 +1873,12 @@ exports.labarugi = async (req, res) => {
         }
         else {
           let idx2 = listpertanggal.indexOf(newdate);
-          
+
+          nilaijual += parseFloat(item.NilaiJual2);
+          nilaihpp += parseFloat(item.NilaiHPP);
+          labarugi += parseFloat(item.LabaRugi);
+          persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
+
           arr_list[idx].list[idx2].jual = nilaijual;
           arr_list[idx].list[idx2].hpp = nilaihpp;
           arr_list[idx].list[idx2].labarugi = labarugi;
