@@ -1711,7 +1711,7 @@ exports.labarugi = async (req, res) => {
   let start = req.body.start || today;
   let end = req.body.end || today;
 
-  // LABA RUGI PENJUALAN
+  // LABA RUGI PENJUALAN (dekstop: laporan penjualan harian + laporan retur beli => bruto)
   if (jenis == 1) {
     let cabang = req.body.cabang || "";
     let qcabang = "";
@@ -1732,6 +1732,7 @@ exports.labarugi = async (req, res) => {
     }
 
     let qsql = await qlabarugi.queryLabaRugiPenjualan(companyid, start, end, cabang, customer, sales);
+    console.log('qsqlman', qsql, 'endsql')
     const data = await fun.getDataFromQuery(sequelize, qsql);
 
     var arr_list = [];
@@ -1751,22 +1752,24 @@ exports.labarugi = async (req, res) => {
       var newdate = new Date(item.TglTrans);
       newdate = newdate.toISOString();
       newdate = newdate.slice(0, 10);
+      newdate += '##'+ item.KdMCabang
 
-      nilaijual += parseFloat(item.NilaiJual);
+      nilaijual += parseFloat(item.NilaiJual2);
       nilaihpp += parseFloat(item.NilaiHPP);
       labarugi += parseFloat(item.LabaRugi);
       persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
-      cbg_nilaijual += parseFloat(item.NilaiJual);
+      cbg_nilaijual += parseFloat(item.NilaiJual2);
       cbg_nilaihpp += parseFloat(item.NilaiHPP);
       cbg_labarugi += parseFloat(item.LabaRugi);
       cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
 
       var list = {
+        "newdate" : newdate,
         "bukti": item.BuktiTrans,
         "customer": item.NmMCust,
         "sales": item.NmMSales,
-        "jual": parseFloat(item.NilaiJual),
+        "jual": parseFloat(item.NilaiJual2),
         "hpp": parseFloat(item.NilaiHPP),
         "labarugi": parseFloat(item.LabaRugi),
         "persen": (parseFloat(item.LabaRugi) / parseFloat(item.NilaiHPP)) * 100
@@ -1797,7 +1800,7 @@ exports.labarugi = async (req, res) => {
         labarugi = 0;
         persenrl = 0;
         
-        cbg_nilaijual += parseFloat(item.NilaiJual);
+        cbg_nilaijual += parseFloat(item.NilaiJual2);
         cbg_nilaihpp += parseFloat(item.NilaiHPP);
         cbg_labarugi += parseFloat(item.LabaRugi);
         cbg_persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
@@ -1828,12 +1831,12 @@ exports.labarugi = async (req, res) => {
           
           listpertanggal.push(newdate);
 
-          nilaijual = 0;
-          nilaihpp = 0;
-          labarugi = 0;
-          persenrl = 0;
+          // nilaijual = 0;
+          // nilaihpp = 0;
+          // labarugi = 0;
+          // persenrl = 0;
           
-          nilaijual += parseFloat(item.NilaiJual);
+          nilaijual += parseFloat(item.NilaiJual2);
           nilaihpp += parseFloat(item.NilaiHPP);
           labarugi += parseFloat(item.LabaRugi);
           persenrl = (parseFloat(labarugi) / parseFloat(nilaihpp)) * 100;
@@ -2284,9 +2287,39 @@ exports.labarugi = async (req, res) => {
         } else {
           let idx2 = listheader.indexOf(item.Header);
 
+            // fixing karena subtotal minus
+          // arr_list[idx].list[idx2].total_mutasi_bulanini = total_mutasi_bulanini;
+          // arr_list[idx].list[idx2].total_mutasi_hinggabulankemarin = total_mutasi_hinggabulankemarin;
+          // arr_list[idx].list[idx2].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini;
+          // if (total_mutasi_bulanini < 0) {
+          //   total_mutasi_bulanini *= -1;
+          // }
+
+          // if (total_mutasi_hinggabulankemarin < 0) {
+          //   total_mutasi_hinggabulankemarin *= -1;
+          // }
+
+          // if (total_mutasi_hinggabulanini < 0) {
+          //   total_mutasi_hinggabulanini *= -1;
+          // }
+
+
+
           arr_list[idx].list[idx2].total_mutasi_bulanini = total_mutasi_bulanini;
           arr_list[idx].list[idx2].total_mutasi_hinggabulankemarin = total_mutasi_hinggabulankemarin;
           arr_list[idx].list[idx2].total_mutasi_hinggabulanini = total_mutasi_hinggabulanini;
+
+          if (arr_list[idx].list[idx2].total_mutasi_bulanini < 0) {
+            arr_list[idx].list[idx2].total_mutasi_bulanini *= -1;
+          }
+
+          if (arr_list[idx].list[idx2].total_mutasi_hinggabulankemarin < 0) {
+            arr_list[idx].list[idx2].total_mutasi_hinggabulankemarin *= -1;
+          }
+
+          if (arr_list[idx].list[idx2].total_mutasi_hinggabulanini < 0) {
+            arr_list[idx].list[idx2].total_mutasi_hinggabulanini *= -1;
+          }
           arr_list[idx].list[idx2].list.push(list);
         }
       }

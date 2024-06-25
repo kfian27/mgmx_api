@@ -26,17 +26,17 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
         qbarang = ` AND IdMBrg = ${barang}`;
     }
     sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TRLPenjualan.*
-    , (NilaiJual - NilaiHPP) AS LabaRugi
+    , (NilaiJual2 - NilaiHPP) AS LabaRugi
     FROM (
-    SELECT IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, NilaiJual, NilaiHPP
+    SELECT IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, NilaiJual, NilaiHPP, NilaiJual2
     FROM (
-    SELECT 3 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP
+    SELECT 3 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP, NilaiJual2
     FROM (
         SELECT m.IdMCabang, m.TglTJual AS TglTrans, m.BuktiTJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty
             , (d.HrgStn- IF(ISNULL(d.DiscV), 0, d.DiscV) - ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)) * m.discP/100)
                 + ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)
                 - ((d.HrgStn - IF(ISNULL(d.DiscV), 0, d.DiscV)) * m.discP/100)) * m.PPNP/100)) AS HrgStn
-            , COALESCE(d.HPP, 0) AS HPP
+            , COALESCE(d.HPP, 0) AS HPP, m.Bruto-m.DiscV as NilaiJual2
         FROM MGARTJualD d
             LEFT OUTER JOIN MGARTJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTJual = m.IdTJual))
             LEFT OUTER JOIN MGARMCust MCust ON (m.IdMCabangMCust = MCust.IdMCabang AND m.IdMCust = MCust.IdMCust)
@@ -55,10 +55,10 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
     WHERE IdMBrg <> 0 ${qbarang}
     GROUP BY IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales
     UNION ALL
-    SELECT 4 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP
+    SELECT 4 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP, NilaiJual2
     FROM (
         SELECT m.IdMCabang, m.TglTRJual AS TglTrans, m.BuktiTRJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, - (d.HrgStn) AS HrgStn
-            , COALESCE(-d.HPP, 0) AS HPP
+            , COALESCE(-d.HPP, 0) AS HPP, m.Bruto-m.DiscV as NilaiJual2
         FROM MGARTRJualD d
             LEFT OUTER JOIN MGARTRJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTRJual = m.IdTRJual))
             LEFT OUTER JOIN MGARTJual TJual ON (TJual.IdMCabang = m.IdMCabangTJual AND TJual.IdTJual = m.IdTJual)
