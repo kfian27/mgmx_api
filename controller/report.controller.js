@@ -1521,9 +1521,9 @@ exports.hutang = async (req, res) => {
         "tanggal": item.TglTrans,
         "bukti": item.BuktiTrans,
         "keterangan": item.Keterangan,
-        "debit": Math.abs(parseFloat(item.Kredit)),
+        "debit": parseFloat(item.Kredit),
         "kredit": parseFloat(item.Debit),
-        "saldo": Math.abs(parseFloat(saldo)),
+        "saldo": parseFloat(saldo),
       };
 
       if (!listsupplier.includes(item.KdMSup)) {
@@ -1532,7 +1532,7 @@ exports.hutang = async (req, res) => {
         saldo = parseFloat(item.Saldo);
         saldo += (parseFloat(item.Kredit) + parseFloat(item.Debit));
 
-        list.saldo = Math.abs(saldo);
+        list.saldo = saldo;
 
         arr_list.push({
           "customer": item.NmMSup + ' / ' + item.KdMSup,
