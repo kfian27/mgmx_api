@@ -1521,7 +1521,7 @@ exports.hutang = async (req, res) => {
         "tanggal": item.TglTrans,
         "bukti": item.BuktiTrans,
         "keterangan": item.Keterangan,
-        "debit": parseFloat(item.Kredit),
+        "debit": Math.abs(parseFloat(item.Kredit)),
         "kredit": parseFloat(item.Debit),
         "saldo": parseFloat(saldo),
       };
