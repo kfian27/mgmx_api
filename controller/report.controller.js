@@ -137,12 +137,14 @@ exports.getPeriodePostingLabaRugi = async (req, res) => {
   
   console.log();
   var arr_data = await Promise.all(data.map(async (item, index) => { 
-    var tgl = new Date(item.Tgl);
-    var tglindo = tgl.toLocaleDateString('id-ID', options)
-    arr_list.push({
-      "Periode": item.Periode,
-      "NamaPeriode": tglindo,
-    })
+    if(index != 0){
+      var tgl = new Date(item.Tgl);
+      var tglindo = tgl.toLocaleDateString('id-ID', options)
+      arr_list.push({
+        "Periode": item.Periode,
+        "NamaPeriode": tglindo,
+      })
+    }
   }))
 
   res.json({
