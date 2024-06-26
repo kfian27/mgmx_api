@@ -55,7 +55,7 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
     WHERE IdMBrg <> 0 ${qbarang}
     GROUP BY IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales
     UNION ALL
-    SELECT 4 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP, NilaiJual2
+    SELECT 4 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP, -(NilaiJual2)
     FROM (
         SELECT m.IdMCabang, m.TglTRJual AS TglTrans, m.BuktiTRJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, - (d.HrgStn) AS HrgStn
             , COALESCE(-d.HPP, 0) AS HPP, m.Bruto-m.DiscV as NilaiJual2
