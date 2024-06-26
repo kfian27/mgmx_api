@@ -128,7 +128,7 @@ exports.getListSales = async (req, res) => {
 exports.getPeriodePostingLabaRugi = async (req, res) => {
   const sequelize = await fun.connection(req.datacompany);
 
-  let sql = `select Periode, Tgl from mgglposting order by Periode DESC`;
+  let sql = `select Periode, Tgl from mgglposting where Posted = 1 order by Periode DESC`;
   const data = await fun.getDataFromQuery(sequelize, sql);
 
   var arr_list = [];
@@ -137,14 +137,12 @@ exports.getPeriodePostingLabaRugi = async (req, res) => {
   
   console.log();
   var arr_data = await Promise.all(data.map(async (item, index) => { 
-    if(index != 0){
-      var tgl = new Date(item.Tgl);
-      var tglindo = tgl.toLocaleDateString('id-ID', options)
-      arr_list.push({
-        "Periode": item.Periode,
-        "NamaPeriode": tglindo,
-      })
-    }
+    var tgl = new Date(item.Tgl);
+    var tglindo = tgl.toLocaleDateString('id-ID', options)
+    arr_list.push({
+      "Periode": item.Periode,
+      "NamaPeriode": tglindo,
+    })
   }))
 
   res.json({
