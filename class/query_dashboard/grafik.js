@@ -1,27 +1,27 @@
 const fun = require("../../mgmx");
 var companyWI = fun.companyWI;
 
-exports.queryPenjualan = async (companyid, start, end) => { 
+exports.queryPenjualan = async (companyid, start, end) => {
     var sql = ``;
-    // WI
+    // WI (laporan penjualan harian)
     if (companyid == companyWI) {
 
     }
 
-    sql = `select TglTJual as Tanggal, SUM(TJual.Netto + Coalesce(TJualLain.Netto, 0)) AS jumlah 
+    sql = `select TglTJual as Tanggal, TJual.Netto + Coalesce(TJualLain.Netto, 0) AS jumlah 
     FROM mgartjual TJual
     LEFT OUTER JOIN MGARTJualLain TJualLain ON (TJual.IdMCabang = TJualLain.IdMCabang AND TJual.BuktiTJual = TJualLain.BuktiAsli AND TJualLain.Hapus = 0 AND TJualLain.Void = 0)
     where TJual.Hapus = 0 AND TJual.Void = 0 AND TJual.TglTJual >= '${start} 00:00:00' AND TJual.TglTJual <= '${end} 23:59:59' 
     AND TJual.AprtBulan <> 1
     AND TJual.IdTRJual = 0
     AND TJual.AprtBulan <> 2
-    group by TglTJual`
+    group by TJual.IdTJual`;
 
 
     return sql;
 }
 
-exports.queryPembelian = async (companyid, start, end) => { 
+exports.queryPembelian = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -38,7 +38,7 @@ exports.queryPembelian = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryReturJual = async (companyid, start, end) => { 
+exports.queryReturJual = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -50,7 +50,7 @@ exports.queryReturJual = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryReturBeli = async (companyid, start, end) => { 
+exports.queryReturBeli = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -61,7 +61,7 @@ exports.queryReturBeli = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryKasMasuk = async (companyid, start, end) => { 
+exports.queryKasMasuk = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -73,7 +73,7 @@ exports.queryKasMasuk = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryKasKeluar = async (companyid, start, end) => { 
+exports.queryKasKeluar = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -85,7 +85,7 @@ exports.queryKasKeluar = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryBankMasuk = async (companyid, start, end) => { 
+exports.queryBankMasuk = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -97,7 +97,7 @@ exports.queryBankMasuk = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryBankKeluar = async (companyid, start, end) => { 
+exports.queryBankKeluar = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -108,7 +108,7 @@ exports.queryBankKeluar = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryHutang = async (companyid, start, end) => { 
+exports.queryHutang = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -121,7 +121,7 @@ exports.queryHutang = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryPiutang = async (companyid, start, end) => { 
+exports.queryPiutang = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -133,7 +133,7 @@ exports.queryPiutang = async (companyid, start, end) => {
     return sql;
 }
 
-exports.queryLabaRugi = async (companyid, start, end) => { 
+exports.queryLabaRugi = async (companyid, start, end) => {
     var sql = ``;
     // WI
     if (companyid == companyWI) {
@@ -142,6 +142,3 @@ exports.queryLabaRugi = async (companyid, start, end) => {
 
     return sql;
 }
-
-
-
