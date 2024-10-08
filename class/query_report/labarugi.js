@@ -1,31 +1,38 @@
 const fun = require("../../mgmx");
 var companyWI = fun.companyWI;
 
-exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer, sales, barang = '') => { 
-    var sql = ``;
-    if (companyid == companyWI) { 
-        
-    }
-    var qcabang = ``;
-    var qcustomer = ``;
-    var qsales = ``;
-    var qbarang = ``;
-    if (cabang != "") {
-        qcabang = ` AND (MCabang.IdMCabang=${cabang})`;
-    }
+exports.queryLabaRugiPenjualan = async (
+  companyid,
+  start,
+  end,
+  cabang,
+  customer,
+  sales,
+  barang = ""
+) => {
+  var sql = ``;
+  if (companyid == companyWI) {
+  }
+  var qcabang = ``;
+  var qcustomer = ``;
+  var qsales = ``;
+  var qbarang = ``;
+  if (cabang != "") {
+    qcabang = ` AND (MCabang.IdMCabang=${cabang})`;
+  }
 
-    if (customer != "") {
-        qcustomer = ` AND (MCust.IdMCust = ${customer})`;
-    }
+  if (customer != "") {
+    qcustomer = ` AND (MCust.IdMCust = ${customer})`;
+  }
 
-    if (sales != "") {
-        qsales = ` AND (MSales.IdMSales = ${sales})`;
-    }
+  if (sales != "") {
+    qsales = ` AND (MSales.IdMSales = ${sales})`;
+  }
 
-    if (barang != "") {
-        qbarang = ` AND IdMBrg = ${barang}`;
-    }
-    sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TRLPenjualan.*
+  if (barang != "") {
+    qbarang = ` AND IdMBrg = ${barang}`;
+  }
+  sql = `SELECT MCabang.KdMCabang, MCabang.NmMCabang, TRLPenjualan.*
     , (NilaiJual2 - NilaiHPP) AS LabaRugi
     FROM (
     SELECT IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, NilaiJual, NilaiHPP, NilaiJual2
@@ -58,7 +65,7 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
     SELECT 4 AS Idx, IdMCabang, TglTrans, BuktiTrans, KdMCust, NmMCust, KdMSales, NmMSales, SUM(Qty * HrgStn) AS NilaiJual, SUM(Qty * HPP) AS NilaiHPP, -(NilaiJual2)
     FROM (
         SELECT m.IdMCabang, m.TglTRJual AS TglTrans, m.BuktiTRJual AS BuktiTrans, MCust.KdMCust, MCust.NmMCust, MSales.KdMSales, MSales.NmMSales, d.IdMBrg, d.QtyTotal AS Qty, - (d.HrgStn) AS HrgStn
-            , COALESCE(-d.HPP, 0) AS HPP, m.Bruto-m.DiscV as NilaiJual2
+            , COALESCE(-d.HPP, 0) AS HPP, TJual.Bruto-TJual.DiscV as NilaiJual2
         FROM MGARTRJualD d
             LEFT OUTER JOIN MGARTRJual m ON ((d.IdMCabang = m.IdMCabang) AND (d.IdTRJual = m.IdTRJual))
             LEFT OUTER JOIN MGARTJual TJual ON (TJual.IdMCabang = m.IdMCabangTJual AND TJual.IdTJual = m.IdTJual)
@@ -86,16 +93,15 @@ exports.queryLabaRugiPenjualan = async (companyid, start, end, cabang, customer,
     ${qcabang}
     ORDER BY KdMCabang, TglTrans, BuktiTrans`;
 
-    return sql;
-}
+  return sql;
+};
 
-exports.queryProgressLabaRugi = async (companyid, periode) => { 
-    var sql = ``;
+exports.queryProgressLabaRugi = async (companyid, periode) => {
+  var sql = ``;
 
-    if (companyid == companyWI) { 
-        
-    }
-    sql = `SELECT IF(((MPrk.JenisMPrkD >= 7 AND MPrk.JenisMPrkD <= 9) OR (MPrk.JenisMPrkD = 14)),
+  if (companyid == companyWI) {
+  }
+  sql = `SELECT IF(((MPrk.JenisMPrkD >= 7 AND MPrk.JenisMPrkD <= 9) OR (MPrk.JenisMPrkD = 14)),
         0,
         IF((MPrk.JenisMPrkD >= 10 AND MPrk.JenisMPrkD <= 11),
             1,
@@ -163,13 +169,13 @@ exports.queryProgressLabaRugi = async (companyid, periode) => {
     AND MPrk.JenisMPrkD <= 14
     ORDER BY IdTitle, IdSubTitle, JenisMPrkD, OrderByAll, KdMPrk`;
 
-    return sql;
-}
+  return sql;
+};
 
-exports.queryRugiLaba = async (companyid, periode) => { 
-    var sql = ``;
+exports.queryRugiLaba = async (companyid, periode) => {
+  var sql = ``;
 
-    sql = `SELECT IF(((MPrk.JenisMPrkD >= 7 AND MPrk.JenisMPrkD <= 9) OR (MPrk.JenisMPrkD = 14)),
+  sql = `SELECT IF(((MPrk.JenisMPrkD >= 7 AND MPrk.JenisMPrkD <= 9) OR (MPrk.JenisMPrkD = 14)),
         0,
         IF((MPrk.JenisMPrkD >= 10 AND MPrk.JenisMPrkD <= 11),
             1,
@@ -234,7 +240,7 @@ exports.queryRugiLaba = async (companyid, periode) => {
     AND MPrk.JenisMPrkD >= 7
     AND MPrk.JenisMPrkD <= 14
     ORDER BY IdTitle, IdSubTitle, JenisMPrkD, OrderByAll, KdMPrk
-`
+`;
 
-    return sql;
-}
+  return sql;
+};
