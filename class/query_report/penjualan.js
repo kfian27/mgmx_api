@@ -22,7 +22,7 @@ exports.querySummary = async (companyid,start,end,cabang,customer,barang) => {
     return sql;
 }
 
-exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) => {
+exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group, jenis_transaksi = 1) => {
     let where = "";
     if (cabang != "") {
         where += " AND MCabang.IdMCabang =" + cabang;
@@ -163,96 +163,192 @@ exports.queryDetail = async (companyid,start,end,cabang,customer,barang, group) 
                (EditMERK Like '%%' OR EditMERK Is Null)
             ${orderby}`;
     }else { //db perusahaan lainnya
-        sql = `SELECT * FROM (
-            SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCust.KdMCust, MCust.NmMCust, MCust.IdMCust
-            , TJual.IdMCabang, TJual.IdTJualPOS
-            , MSales.IdMSales, MSales.NmMSales
-            , Date(TJual.TglTJualPOS) As TglTJualPOS, Time(TJual.TglUpdate) As Waktu, TJual.BuktiTJualPOS
-            , TModAwalKasir.IdTModAwalKasir
-            , TModAwalKasir.TglTModAwalKasir
-            , 'Kasir' As StatusKasir
-            , MUser.KdMUser, MUser.NmMUser
-            , TJual.Bruto
-            , IF(TJual.Biaya > 0, 'Biaya' , 'Biaya') As StatusBiaya
-            , IF(TJual.Biaya > 0, ':', ':') As TandaBiaya
-            , IF(TJual.Biaya > 0, TJual.Biaya, TJual.Biaya) As Biaya
-            , '' As StatusPPN
-            , '' As TandaPPN
-            , '' As PPNP
-            , TJual.Netto
-            , IF(TJual.IdMKartu <> 0, 'Dibayar Kartu', '') As StatusBayarKartu
-            , IF(TJual.IdMKartu <> 0, ':', '') As TandaKartu
-            , IF(TJual.IdMKartu <> 0, Concat(MKartu.KdMKartu, ' / ', TJual.NoKartu, ', ', TJual.NamaKartu), '') As Kartu
-            , IF(TJual.IdMKartu <> 0 AND TJual.BiayaKartu > 0, 'Biaya Kartu', '') As StatusBiayaKartu
-            , IF(TJual.IdMKartu <> 0 AND TJual.BiayaKartu > 0, ':', '') As TandaBiayaKartu
-            , IF(TJual.IdMKartu <> 0 AND TJual.BiayaKartu > 0, TJual.BiayaKartu, '') As BiayaKartu
-            , IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, '') As JmlBayarKartu
-            , (TJual.JmlBayarTunai-TJual.Kembali) As JmlBayarTunai
-            , IF(TJual.JmlBayarKredit > 0, 'Dibayar Kredit', '') As StatusBayarKredit
-            , IF(TJual.JmlBayarKredit > 0, ':', '') As TandaKredit
-            , IF(TJual.JmlBayarKredit > 0, TJual.JmlBayarKredit, 0) As JmlBayarKredit
-            , IF(TJual.JmlBayarKredit > 0, 'Jatuh Tempo', '') As StatusJatuhTempo
-            , IF(TJual.JmlBayarKredit > 0, ':', '') As TandaJatuhTempo
-            , IF(TJual.JmlBayarKredit > 0, TJual.TglJTPiut, '') As TglJTPiut
-            , IF(TJual.Kembali > 0, 'Kembali', '') As StatusKembali
-            , IF(TJual.Kembali > 0, TJual.Kembali, '') As Kembali
-            , TJual.IdTRJualPOtongan
-            , TJual.IdMCabangTRJualPotongan
-            , COALESCE(TRJual.BuktiTRJual,'') AS BuktiTRJual
-            , MGd.KdMGd, MGd.NmMGd
-            , MBrg.KdMBrg, MBrg.NmMBrg, MBrg.IdMBrg
-            , IF(TJualD.Qty1<=0, 0, TJualD.Qty1) As Qty1, IF(TJualD.Qty1<=0, '', g1.NmMStn) As NmMStn1
-            , IF(TJualD.Qty2<=0, 0, TJualD.Qty2) As Qty2, IF(TJualD.Qty2<=0, '', g2.NmMStn) As NmMStn2
-            , IF(TJualD.Qty3<=0, 0, TJualD.Qty3) As Qty3, IF(TJualD.Qty3<=0, '', g3.NmMStn) As NmMStn3
-            , IF(TJualD.Qty4<=0, 0, TJualD.Qty4) As Qty4, IF(TJualD.Qty4<=0, '', g4.NmMStn) As NmMStn4
-            , IF(TJualD.Qty5<=0, 0, TJualD.Qty5) As Qty5, IF(TJualD.Qty5<=0, '', g5.NmMStn) As NmMStn5
-            , TJualD.QtyTotal
-            , TJualD.HrgStn
-            , TJualD.DiscP As DiscPDetail
-            , (TJualD.QtyTotal*TJualD.HrgStn*TJualD.DiscP)/100 As DiscVDetail
-            , TJualD.SubTotal
-            , TJualD.PPNVEcer
-            , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL1'),'') AS EditGOL1
-            , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL2'),'') AS EditGOL2
-            , COALESCE((IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, NULL)),((TJual.JmlBayarTunai-TJual.Kembali))) as bayar
-            , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp_old
-            , (TJualD.HrgStn - (TJualD.HrgStn * TJualD.DiscP / 100)) * TJualD.QtyTotal as dpp
-            , (select SUM(m.JmlBayar)
-                    from mgartbpiutd m join mgartbpiut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBPiut = m2.IdTBPiut
-                    where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJualPOS) as total_bayar
-            FROM MGARTJualPOS TJual
-                LEFT OUTER JOIN MGARTRJual TRJual ON (TRJual.IdMCabang=TJual.IdMCabangTRJualPotongan AND TRJual.IdTRjual=TJual.IdTRJualPotongan)
-                LEFT OUTER JOIN MGARMKartu MKartu ON (MKartu.IdMKartu = TJual.IdMKartu AND MKartu.IdMCabang = TJual.IdMCabang)
-                LEFT OUTER JOIN MGSYMCabang MCabang ON (MCabang.IdMCabang = TJual.IdMCabang)
-                LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust)
-                LEFT OUTER JOIN MGARMSales MSales ON (MSales.IdMSales = TJual.IdMSales AND MSales.IdMSales = TJual.IdMSales)
-                LEFT OUTER JOIN MGSYMUser MUser ON (MUser.IdMCabang = TJual.IdMCabang AND MUser.IdMUser = TJual.IdMKasir)
-                LEFT OUTER JOIN MGARTModAwalKasir TModAwalKasir ON (TModAwalKasir.IdMCabang=TJual.IdMCabang AND TModAwalKasir.IdTModAwalKasir=TJual.IdTModAwalKasir)
-                LEFT OUTER JOIN MGARTJualPOSD TJualD ON (TJualD.IdMCabang = TJual.IdMCabang AND TJualD.IdTJualPOS = TJual.IdTJualPOS)
-                LEFT OUTER JOIN MGSYMGd MGd ON (MGd.IdMCabang = TJualD.IdMCabang AND MGd.IdMGd = TJualD.IdMGd)
-                LEFT OUTER JOIN MGINMBrg MBrg ON MBrg.IdMBrg=TJualD.IdMBrg
-                LEFT OUTER JOIN MGINMStn g1 ON (g1.IdMStn=MBrg.IdMStn1)
-                LEFT OUTER JOIN MGINMStn g2 ON (g2.IdMStn=MBrg.IdMStn2)
-                LEFT OUTER JOIN MGINMStn g3 ON (g3.IdMStn=MBrg.IdMStn3)
-                LEFT OUTER JOIN MGINMStn g4 ON (g4.IdMStn=MBrg.IdMStn4)
-                LEFT OUTER JOIN MGINMStn g5 ON (g5.IdMStn=MBrg.IdMStn5)
-            WHERE MCust.KdMCust Like '%%'
-                AND MCust.NmMCust Like '%%'
-                AND MBrg.KdMBrg Like '%%'
-                AND MBrg.NmMBrg Like '%%'
-                AND MUser.KdMUser Like '%%'
-                AND MUser.NmMUser Like '%%'
-                AND (TJual.TglTJualPOS >= '${start} 00:00:00' AND TJual.TglTJualPOS <= '${end} 23:59:59')
-                AND TJual.Hapus = 0
-                AND TJual.Void = 0
-                ${where}
-            ORDER BY MCabang.KdMCabang, TJual.TglTJualPOS, MCust.KdMCust, TJual.BuktiTJualPOS
-            ) as Tabel1 
-             WHERE 
-               EditGOL1 Like '%%'
-             AND 
-               EditGOL2 Like '%%'
-            ${orderby}`;
+        if(jenis_transaksi == 1){ //POS = retail
+            console.log(jenis_transaksi+ " jenis penjualan")
+            sql = `SELECT * FROM (
+                SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCust.KdMCust, MCust.NmMCust, MCust.IdMCust
+                , TJual.IdMCabang, TJual.IdTJualPOS
+                , MSales.IdMSales, MSales.NmMSales
+                , Date(TJual.TglTJualPOS) As TglTJualPOS, Time(TJual.TglUpdate) As Waktu, TJual.BuktiTJualPOS
+                , TModAwalKasir.IdTModAwalKasir
+                , TModAwalKasir.TglTModAwalKasir
+                , 'Kasir' As StatusKasir
+                , MUser.KdMUser, MUser.NmMUser
+                , TJual.Bruto
+                , IF(TJual.Biaya > 0, 'Biaya' , 'Biaya') As StatusBiaya
+                , IF(TJual.Biaya > 0, ':', ':') As TandaBiaya
+                , IF(TJual.Biaya > 0, TJual.Biaya, TJual.Biaya) As Biaya
+                , '' As StatusPPN
+                , '' As TandaPPN
+                , '' As PPNP
+                , TJual.Netto
+                , IF(TJual.IdMKartu <> 0, 'Dibayar Kartu', '') As StatusBayarKartu
+                , IF(TJual.IdMKartu <> 0, ':', '') As TandaKartu
+                , IF(TJual.IdMKartu <> 0, Concat(MKartu.KdMKartu, ' / ', TJual.NoKartu, ', ', TJual.NamaKartu), '') As Kartu
+                , IF(TJual.IdMKartu <> 0 AND TJual.BiayaKartu > 0, 'Biaya Kartu', '') As StatusBiayaKartu
+                , IF(TJual.IdMKartu <> 0 AND TJual.BiayaKartu > 0, ':', '') As TandaBiayaKartu
+                , IF(TJual.IdMKartu <> 0 AND TJual.BiayaKartu > 0, TJual.BiayaKartu, '') As BiayaKartu
+                , IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, '') As JmlBayarKartu
+                , (TJual.JmlBayarTunai-TJual.Kembali) As JmlBayarTunai
+                , IF(TJual.JmlBayarKredit > 0, 'Dibayar Kredit', '') As StatusBayarKredit
+                , IF(TJual.JmlBayarKredit > 0, ':', '') As TandaKredit
+                , IF(TJual.JmlBayarKredit > 0, TJual.JmlBayarKredit, 0) As JmlBayarKredit
+                , IF(TJual.JmlBayarKredit > 0, 'Jatuh Tempo', '') As StatusJatuhTempo
+                , IF(TJual.JmlBayarKredit > 0, ':', '') As TandaJatuhTempo
+                , IF(TJual.JmlBayarKredit > 0, TJual.TglJTPiut, '') As TglJTPiut
+                , IF(TJual.Kembali > 0, 'Kembali', '') As StatusKembali
+                , IF(TJual.Kembali > 0, TJual.Kembali, '') As Kembali
+                , TJual.IdTRJualPOtongan
+                , TJual.IdMCabangTRJualPotongan
+                , COALESCE(TRJual.BuktiTRJual,'') AS BuktiTRJual
+                , MGd.KdMGd, MGd.NmMGd
+                , MBrg.KdMBrg, MBrg.NmMBrg, MBrg.IdMBrg
+                , IF(TJualD.Qty1<=0, 0, TJualD.Qty1) As Qty1, IF(TJualD.Qty1<=0, '', g1.NmMStn) As NmMStn1
+                , IF(TJualD.Qty2<=0, 0, TJualD.Qty2) As Qty2, IF(TJualD.Qty2<=0, '', g2.NmMStn) As NmMStn2
+                , IF(TJualD.Qty3<=0, 0, TJualD.Qty3) As Qty3, IF(TJualD.Qty3<=0, '', g3.NmMStn) As NmMStn3
+                , IF(TJualD.Qty4<=0, 0, TJualD.Qty4) As Qty4, IF(TJualD.Qty4<=0, '', g4.NmMStn) As NmMStn4
+                , IF(TJualD.Qty5<=0, 0, TJualD.Qty5) As Qty5, IF(TJualD.Qty5<=0, '', g5.NmMStn) As NmMStn5
+                , TJualD.QtyTotal
+                , TJualD.HrgStn
+                , TJualD.DiscP As DiscPDetail
+                , (TJualD.QtyTotal*TJualD.HrgStn*TJualD.DiscP)/100 As DiscVDetail
+                , TJualD.SubTotal
+                , TJualD.PPNVEcer
+                , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL1'),'') AS EditGOL1
+                , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='GOL2'),'') AS EditGOL2
+                , COALESCE((IF(TJual.IdMKartu <> 0 AND TJual.JmlBayarKartu > 0, JmlBayarKartu, NULL)),((TJual.JmlBayarTunai-TJual.Kembali))) as bayar
+                , ((TJualD.HrgStn * TJualD.QtyTotal) - (TJualD.DiscV*TJualD.QtyTotal)) as dpp_old
+                , (TJualD.HrgStn - (TJualD.HrgStn * TJualD.DiscP / 100)) * TJualD.QtyTotal as dpp
+                , (select SUM(m.JmlBayar)
+                        from mgartbpiutd m join mgartbpiut m2 on m.IdMCabang = m2.IdMCabang and m.IdTBPiut = m2.IdTBPiut
+                        where m.JenisTrans = 'J' and m2.Hapus = 0 and m2.Void = 0 and m.IdTrans = TJual.IdTJualPOS) as total_bayar
+                FROM MGARTJualPOS TJual
+                    LEFT OUTER JOIN MGARTRJual TRJual ON (TRJual.IdMCabang=TJual.IdMCabangTRJualPotongan AND TRJual.IdTRjual=TJual.IdTRJualPotongan)
+                    LEFT OUTER JOIN MGARMKartu MKartu ON (MKartu.IdMKartu = TJual.IdMKartu AND MKartu.IdMCabang = TJual.IdMCabang)
+                    LEFT OUTER JOIN MGSYMCabang MCabang ON (MCabang.IdMCabang = TJual.IdMCabang)
+                    LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust)
+                    LEFT OUTER JOIN MGARMSales MSales ON (MSales.IdMSales = TJual.IdMSales AND MSales.IdMSales = TJual.IdMSales)
+                    LEFT OUTER JOIN MGSYMUser MUser ON (MUser.IdMCabang = TJual.IdMCabang AND MUser.IdMUser = TJual.IdMKasir)
+                    LEFT OUTER JOIN MGARTModAwalKasir TModAwalKasir ON (TModAwalKasir.IdMCabang=TJual.IdMCabang AND TModAwalKasir.IdTModAwalKasir=TJual.IdTModAwalKasir)
+                    LEFT OUTER JOIN MGARTJualPOSD TJualD ON (TJualD.IdMCabang = TJual.IdMCabang AND TJualD.IdTJualPOS = TJual.IdTJualPOS)
+                    LEFT OUTER JOIN MGSYMGd MGd ON (MGd.IdMCabang = TJualD.IdMCabang AND MGd.IdMGd = TJualD.IdMGd)
+                    LEFT OUTER JOIN MGINMBrg MBrg ON MBrg.IdMBrg=TJualD.IdMBrg
+                    LEFT OUTER JOIN MGINMStn g1 ON (g1.IdMStn=MBrg.IdMStn1)
+                    LEFT OUTER JOIN MGINMStn g2 ON (g2.IdMStn=MBrg.IdMStn2)
+                    LEFT OUTER JOIN MGINMStn g3 ON (g3.IdMStn=MBrg.IdMStn3)
+                    LEFT OUTER JOIN MGINMStn g4 ON (g4.IdMStn=MBrg.IdMStn4)
+                    LEFT OUTER JOIN MGINMStn g5 ON (g5.IdMStn=MBrg.IdMStn5)
+                WHERE MCust.KdMCust Like '%%'
+                    AND MCust.NmMCust Like '%%'
+                    AND MBrg.KdMBrg Like '%%'
+                    AND MBrg.NmMBrg Like '%%'
+                    AND MUser.KdMUser Like '%%'
+                    AND MUser.NmMUser Like '%%'
+                    AND (TJual.TglTJualPOS >= '${start} 00:00:00' AND TJual.TglTJualPOS <= '${end} 23:59:59')
+                    AND TJual.Hapus = 0
+                    AND TJual.Void = 0
+                    ${where}
+                ORDER BY MCabang.KdMCabang, TJual.TglTJualPOS, MCust.KdMCust, TJual.BuktiTJualPOS
+                ) as Tabel1 
+                 WHERE 
+                   EditGOL1 Like '%%'
+                 AND 
+                   EditGOL2 Like '%%'
+                ${orderby}`;
+        }else{ //Non POS = grosir
+            console.log("hasil non-pos")
+            sql = `Select * from (
+                    SELECT MCabang.KdMCabang, MCabang.NmMCabang, MCust.KdMCust, MCust.NmMCust
+                    , TJual.IdMCabang, TJual.IdTJual as IdTJualPOS
+                    , Date(TJual.TglTJual) As TglTJualPOS, Time(TJual.TglUpdate) As Waktu, TJual.BuktiTJual as BuktiTJualPOS
+                    , 0 as IdTModAwalKasir
+                    , Date(TJual.TglTJual) As TglTModAwalKasir
+                    , 'User' As StatusKasir
+                    , MUser.KdMUser, MUser.NmMUser
+                    , TJual.Bruto
+                    , 'Disc(%)' As StatusBiaya
+                    , ':' As TandaBiaya
+                    , TJual.DiscP As Biaya
+                    , 'PPN(%)' As StatusPPN
+                    , ':' As TandaPPN
+                    , TJual.PPNP As PPNP
+                    , TJual.Netto
+                    , '' As StatusBayarKartu
+                    , '' As TandaKartu
+                    , '' As Kartu
+                    , '' As StatusBiayaKartu
+                    , '' As TandaBiayaKartu
+                    , '' As BuktiTRJual
+                    , 0 As BiayaKartu
+                    , 0 As JmlBayarKartu
+                    , TJual.JmlBayarTunai
+                    , IF(TJual.JmlBayarKredit > 0, 'Dibayar Kredit', '') As StatusBayarKredit
+                    , IF(TJual.JmlBayarKredit > 0, ':', '') As TandaKredit
+                    , IF(TJual.JmlBayarKredit > 0, TJual.JmlBayarKredit, 0) As JmlBayarKredit
+                    , IF(TJual.JmlBayarKredit > 0, 'Jatuh Tempo', '') As StatusJatuhTempo
+                    , IF(TJual.JmlBayarKredit > 0, ':', '') As TandaJatuhTempo
+                    , IF(TJual.JmlBayarKredit > 0, TglJTPiut, 0) As TglJTPiut
+                    , 0 As StatusKembali
+                    , 0 As Kembali
+                    , MGd.KdMGd, MGd.NmMGd
+                    , MBrg.KdMBrg, MBrg.NmMBrg
+                    , IF(TJualD.Qty1<=0, NULL, TJualD.Qty1) As Qty1, IF(TJualD.Qty1<=0, NULL, g1.NmMStn) As NmMStn1
+                    , IF(TJualD.Qty2<=0, NULL, TJualD.Qty2) As Qty2, IF(TJualD.Qty2<=0, NULL, g2.NmMStn) As NmMStn2
+                    , IF(TJualD.Qty3<=0, NULL, TJualD.Qty3) As Qty3, IF(TJualD.Qty3<=0, NULL, g3.NmMStn) As NmMStn3
+                    , IF(TJualD.Qty4<=0, NULL, TJualD.Qty4) As Qty4, IF(TJualD.Qty4<=0, NULL, g4.NmMStn) As NmMStn4
+                    , IF(TJualD.Qty5<=0, NULL, TJualD.Qty5) As Qty5, IF(TJualD.Qty5<=0, NULL, g5.NmMStn) As NmMStn5
+                    , TJualD.QtyTotal
+                        , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='MERK'),'') AS EditMERK
+                        , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='WARNA'),'') AS EditWARNA
+                        , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='TIPE'),'') AS EditTIPE
+                        , COALESCE((Select Nilai from MGINMBrgDGol MDGol LEFT OUTER JOIN MGINMGol MGOL ON(MGOL.idmgol=MDGOL.idmgol AND MGol.Hapus = 0) where mdgol.idmbrg=MBrg.idmbrg and mgol.kdmgol='ORI'),'') AS EditORI
+                    , TJualD.HrgStn
+                    , TJualD.DiscP As DiscPDetail
+                    , TJualD.SubTotal
+                    , IF(TJual.LebihBayar <> 0, 'Lebih Bayar', IF(UM.BuktiTUMJual <> '', IF(UM.Total <> 0, 'Masuk Deposito', ''), '')) AS StatusLebihBayar
+                    , IF(TJual.LebihBayar <> 0, ':', IF(UM.BuktiTUMJual <> '', IF(UM.Total <> 0, ':', ''), '')) AS TandaLebihBayar
+                    , IF(TJual.LebihBayar <> 0, TJual.LebihBayar, IF(UM.BuktiTUMJual <> '', COALESCE(UM.Total, 0), '')) AS LebihBayar                    
+                    , TJual.JmlBayarTunai + TJual.JmlBayarKredit as bayar
+                    , (TJualD.HrgStn - (TJualD.HrgStn * TJualD.DiscP / 100)) * TJualD.QtyTotal as dpp
+                    FROM MGARTJual TJual
+                        LEFT OUTER JOIN MGARTUMJual UM ON (UM.IdMCabang = TJual.IdMCabang AND UM.IdTJual = TJual.IdTJual AND UM.Hapus = 0 AND UM.VOID = 0)
+                        LEFT OUTER JOIN MGSYMCabang MCabang ON (TJual.IdMCabang = MCabang.IdMCabang)
+                        LEFT OUTER JOIN MGARMCust MCust ON (MCust.IdMCabang = TJual.IdMCabangMCust AND MCust.IdMCust = TJual.IdMCust)
+                        LEFT OUTER JOIN MGSYMUser MUser ON (MUser.IdMCabang = TJual.IdMCabang AND MUser.IdMUser = TJual.IdMUserUpdate)
+                        LEFT OUTER JOIN MGARTJualD TJualD ON (TJualD.IdMCabang = TJual.IdMCabang AND TJualD.IdTJual = TJual.IdTJual)
+                        LEFT OUTER JOIN MGSYMGd MGd ON (MGd.IdMCabang = TJualD.IdMCabang AND MGd.IdMGd = TJualD.IdMGd)
+                        LEFT OUTER JOIN MGINMBrg MBrg ON (MBrg.IdMBrg=TJualD.IdMBrg)
+                        LEFT OUTER JOIN MGINMStn g1 ON (g1.IdMStn=MBrg.IdMStn1)
+                        LEFT OUTER JOIN MGINMStn g2 ON (g2.IdMStn=MBrg.IdMStn2)
+                        LEFT OUTER JOIN MGINMStn g3 ON (g3.IdMStn=MBrg.IdMStn3)
+                        LEFT OUTER JOIN MGINMStn g4 ON (g4.IdMStn=MBrg.IdMStn4)
+                        LEFT OUTER JOIN MGINMStn g5 ON (g5.IdMStn=MBrg.IdMStn5)
+                    WHERE MCabang.KdMCabang Like '%%'
+                        AND MCabang.NmMCabang Like '%%'
+                        AND MCust.KdMCust Like '%%'
+                        AND MCust.NmMCust Like '%%'
+                        AND MBrg.KdMBrg Like '%%'
+                        AND MBrg.NmMBrg Like '%%'
+                        AND MUser.KdMUser Like '%%'
+                        AND MUser.NmMUser Like '%%'
+                        AND (TJual.TglTJual >= '${start} 00:00:00' AND TJual.TglTJual < '${end} 23:59:59')
+                        AND TJual.Hapus = 0
+                        AND TJual.Void = 0
+                        ${where}
+                    ORDER BY MCabang.KdMCabang, TJual.TglTJual, TJual.BuktiTJual, MCust.KdMCust
+                    ) as Tabel1 
+                    WHERE 
+                    EditMERK Like '%%'
+                    AND 
+                    EditWARNA Like '%%'
+                    AND 
+                    EditTIPE Like '%%'
+                    AND 
+                    EditORI Like '%%'
+                    ${orderby}
+                    `;
+        }
+        
     }
     return sql;
 }
@@ -290,7 +386,7 @@ exports.queryBarangTerlaris = async (companyid,start,end,cabang,customer,barang)
                     LEFT OUTER JOIN mginmbrg b ON jd.IdMBrg = b.IdMBrg
                     LEFT OUTER JOIN mgsymcabang m ON j.IdMCabang = m.IdMCabang
                     LEFT OUTER JOIN MGINMStn g ON g.IdMStn = b.IdMStn1 
-                WHERE j.Hapus = 0 AND j.Void = 0 AND j.TglTJualPOS >= '2008-06-11 00:00:00' AND j.TglTJualPOS <= '2024-06-11 23:59:59'
+                WHERE j.Hapus = 0 AND j.Void = 0 AND j.TglTJualPOS >= '${start} 00:00:00' AND j.TglTJualPOS <= '${end} 23:59:59'
                 ${where}
                 GROUP BY b.IdMBrg 
                 ORDER BY SUM(jd.SubTotal) desc`;

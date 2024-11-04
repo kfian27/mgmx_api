@@ -163,6 +163,7 @@ exports.penjualan = async (req, res) => {
   let customer = req.body.customer || "";
   let barang = req.body.barang || "";
   let group = req.body.group;
+  let jenis_transaksi = req.body.jenis_transaksi || 1;
 
   let jenis = req.body.jenis || 1;
 
@@ -212,7 +213,7 @@ exports.penjualan = async (req, res) => {
     }
   }else{
     // summary dan detail penjualan, dibedakan per group
-    let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group);
+    let q = await qpenjualan.queryDetail(companyid,start,end,cabang,customer,barang,group,jenis_transaksi);
     const data = await fun.getDataFromQuery(sequelize, q);
     if(group == "cabang"){
       var arr_list = [];
